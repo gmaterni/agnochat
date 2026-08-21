@@ -470,7 +470,9 @@ export const runUpdate = async function() {
                 });
                 UaLog.log(`${provider}: elenco ${catalog[provider].length} modelli.`);
             } catch (e) {
-                UaLog.log(`${provider}: discovery fallita, uso catalogo da file.`);
+                const reason = e.userMessage || e.message || "errore sconosciuto";
+                UaLog.log(`${provider}: discovery fallita (${e.type || "Error"}). ${reason}`);
+                console.warn(`[llm-update] Discovery ${provider} fallita:`, e);
                 catalog[provider] = (fileCatalog[provider] || []).filter(function(m) {
                     return isChatModel(m);
                 });
@@ -562,7 +564,7 @@ export const fetchAvailableModels = async function() {
                     return isChatModel(m.id);
                 });
             } catch (e) {
-                console.warn(`fetchAvailableModels: discovery fallita per ${provider}:`, e);
+                console.warn(`fetchAvailableModels: discovery fallita per ${provider} [${e.type || "Error"}]:`, e.userMessage || e.message);
                 available[provider] = (fileCatalog[provider] || []).map(function(id) {
                     return { id: id, contextWindow: 0 };
                 }).filter(function(m) {

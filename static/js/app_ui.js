@@ -258,6 +258,9 @@ const _UaWindowInfoFactory = function(id) {
         if (delAll) wnds.closeAll();
 
         _win.drag().setZ(11);
+        // Ripristina la larghezza di default: le finestre specializzate
+        // (es. editor dei prompt) possono fissarla dopo la show().
+        _win.setStyle({ width: "auto" });
 
         const isMenuOpen = document.body.classList.contains(CSS_MENU_OPEN);
         const xPos = isMenuOpen ? 22 : 2;
@@ -500,7 +503,31 @@ const _actionListConversationsAsync = async function() {
 };
 
 /**
+ * Prompt di sistema di esempio proposti nella creazione di un nuovo prompt.
+ * @type {Array<{name: string, content: string}>}
+ */
+const PROMPT_EXAMPLES = [
+    {
+        name: "Assistente Generale",
+        content: "Sei un assistente utile e preciso. Rispondi sempre in italiano, con un tono professionale e diretto. Se una richiesta è ambigua, poni una domanda di chiarimento prima di rispondere. Preferisci elenchi puntati quando migliorano la leggibilità."
+    },
+    {
+        name: "Sviluppatore JavaScript",
+        content: "Sei un esperto di JavaScript vanilla ES2020+ e Web API, senza framework né bundler. Fornisci codice completo e funzionante, con commenti brevi in italiano e identificatori in inglese. Spiega le scelte tecniche solo se richiesto."
+    },
+    {
+        name: "Traduttore IT/EN",
+        content: "Sei un traduttore professionista. Traduci il testo ricevuto dall'italiano all'inglese o dall'inglese all'italiano, rilevando automaticamente la lingua di partenza. Conserva tono, registro e formattazione dell'originale. Restituisci solo la traduzione, senza commenti."
+    },
+    {
+        name: "Sintetizzatore di Testi",
+        content: "Riceverai testi da riassumere. Producisci un riassunto chiaro e strutturato: prima una frase con l'idea centrale, poi i punti chiave in elenco puntato. Non aggiungere informazioni non presenti nel testo originale."
+    }
+];
+
+/**
  * Mostra l'editor di un prompt di sistema (creazione o modifica).
+ * In creazione propone una lista di prompt di sistema di esempio.
  * @param {Object|null} prompt - Prompt da modificare o null per crearne uno nuovo.
  */
 const _showPromptEditorAsync = function(prompt) {
@@ -512,6 +539,18 @@ const _showPromptEditorAsync = function(prompt) {
     jfh.append('<div class="ak-form">');
     jfh.append('<div class="ak-form-row"><div><label class="ak-label">Nome</label></div></div>');
     jfh.append(`<input type="text" id="prompt-inp-name" class="ak-input-key" value="${isEdit ? prompt.name : ''}" placeholder="Nome del prompt">`);
+
+    if (!isEdit) {
+        jfh.append('<div class="ak-form-row"><div><label class="ak-label">Esempi</label></div></div>');
+        jfh.append('<select id="prompt-inp-examples" class="ak-input-key" onchange="wnds.handlePromptExample(this.value)">');
+        jfh.append('<option value="">— Scegli un prompt di sistema di esempio —</option>');
+        PROMPT_EXAMPLES.forEach((example, index) => {
+            const optionHtml = `<option value="${index}">${example.name}</option>`;
+            jfh.append(optionHtml);
+        });
+        jfh.append('</select>');
+    }
+
     jfh.append('<div class="ak-form-row"><div><label class="ak-label">Contenuto</label></div></div>');
     jfh.append('<textarea id="prompt-inp-content" class="ak-input-key" rows="10" placeholder="Istruzioni per il modello"></textarea>');
     jfh.append('<div class="ak-form-row-inputs">');
@@ -536,7 +575,23 @@ const _showPromptEditorAsync = function(prompt) {
         await _actionListPromptsAsync();
     };
 
+    wnds.handlePromptExample = function(index) {
+        const exampleIndex = Number(index);
+        const example = PROMPT_EXAMPLES[exampleIndex];
+        if (!example) return;
+
+        const nameInput = document.getElementById("prompt-inp-name");
+        const contentInput = document.getElementById("prompt-inp-content");
+        if (nameInput) nameInput.value = example.name;
+        if (contentInput) contentInput.value = example.content;
+    };
+
     wnds.winfo.show(jfh.html());
+
+    // Finestra dell'editor prompt a larghezza fissa 60vw
+    const promptWin = UaWindowAdm.get("id-wnd-info");
+    if (promptWin) promptWin.setStyle({ width: "60vw" });
+
     if (isEdit && prompt.content) {
         const textarea = document.getElementById("prompt-inp-content");
         if (textarea) textarea.value = prompt.content;

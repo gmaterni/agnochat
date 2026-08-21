@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.ico">
+    <title>vanillallm - Chat LLM Pura, Semplice e 100% Client-Side</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #e2e8f0;
+            --accent-color: #38bdf8;
+            --secondary-bg: #1e293b;
+            --border-color: #334155;
+            --card-bg: #1e293b;
+            --link-color: #38bdf8;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f8fafc;
+            --text-color: #1e293b;
+            --accent-color: #0284c7;
+            --secondary-bg: #f1f5f9;
+            --border-color: #e2e8f0;
+            --card-bg: #ffffff;
+            --link-color: #0284c7;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        h1, h2, h3 {
+            color: var(--accent-color);
+        }
+
+        code {
+            background: var(--secondary-bg);
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.9em;
+        }
+
+        .theme-toggle {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 0.5rem;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--border-color);
+        }
+
+        .hero {
+            text-align: center;
+            padding: 3rem 0;
+            background: linear-gradient(135deg, var(--secondary-bg) 0%, var(--bg-color) 100%);
+            border-radius: 1rem;
+            margin-bottom: 3rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            margin-bottom: 0.75rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            color: var(--accent-color);
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+
+        .tech-tag {
+            display: inline-block;
+            background: var(--secondary-bg);
+            color: var(--accent-color);
+            padding: 0.2rem 0.6rem;
+            border-radius: 0.25rem;
+            font-size: 0.85rem;
+            font-family: monospace;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .launch-box {
+            text-align: center;
+            margin-top: 4rem;
+            padding: 2rem;
+            border-top: 2px solid var(--accent-color);
+        }
+
+        .btn-launch {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: white !important;
+            padding: 1rem 2.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-launch:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+
+        .highlight {
+            border-left: 4px solid var(--accent-color);
+            padding-left: 1rem;
+            font-style: italic;
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <div class="container">
+        <header>
+            <div class="logo"><strong>vanillallm</strong> 1.0.0</div>
+            <button class="theme-toggle" id="theme-btn" title="Cambia Tema">
+                <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5" />
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                </svg>
+                <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+            </button>
+        </header>
+
+        <section class="hero">
+            <h1>vanillallm</h1>
+            <p style="font-size: 1.25rem; opacity: 0.9;">Chat LLM pura nel tuo browser. Nient'altro.</p>
+            <p>LLM-Agnostica. 100% Client-Side. Zero Build.</p>
+        </section>
+
+        <div class="section">
+            <h2>Cos'è vanillallm?</h2>
+            <p>
+                vanillallm è un'applicazione di <strong>chat con modelli linguistici (LLM)</strong> nata dal progetto
+                RagIndex, da cui eredita layout, gestione provider e librerie interne, lasciando fuori la pipeline RAG.
+                Scrivi un messaggio, l'app lo invia al modello attivo e mostra la risposta: nessuna indicizzazione,
+                nessun worker, nessuna complessità in più.
+            </p>
+            <div class="card highlight">
+                "Un frontend minimale e leggibile per dialogare con i migliori LLM disponibili, mantenendo chiavi,
+                conversazioni e preferenze interamente sul tuo dispositivo."
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>I Caratteri Originali del Progetto</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3>Frontend 100% Client-Side</h3>
+                    <p>JavaScript vanilla con <strong>ES Modules</strong> caricati nativamente dal browser. Nessun framework,
+                    nessun bundler, nessun transpiler: il codice che leggi è esattamente quello che il browser esegue.
+                    Gli stili sono <strong>LESS compilati a runtime</strong> da una copia locale, senza CDN.</p>
+                    <span class="tech-tag">Vanilla JS</span> <span class="tech-tag">ES Modules</span> <span class="tech-tag">LESS</span> <span class="tech-tag">Zero Build</span>
+                </div>
+                <div class="card">
+                    <h3>LLM-Agnostico</h3>
+                    <p>Il pacchetto <code>llmclient</code> astrae <strong>6 provider</strong> dietro un'interfaccia unica:
+                    Gemini, Mistral, Groq, OpenRouter, Cerebras e SiliconFlow. Cambi provider o modello a runtime
+                    (<strong>hot-swap</strong>) senza ricaricare la pagina, e ogni provider gestisce i propri formati di richiesta.</p>
+                    <span class="tech-tag">llmclient</span> <span class="tech-tag">Hot-Swap</span>
+                </div>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <h3>Gestione API Key Privata</h3>
+                    <p>Le chiavi vivono <strong>solo nell'IndexedDB</strong> del tuo browser, mai nel codice né su server.
+                    Al primo avvio vengono seminate da <code>api_x.json</code> (chiavi di prova offuscate) solo se il
+                    database è vuoto. Le richieste partono direttamente dal tuo computer verso il provider.</p>
+                    <span class="tech-tag">IndexedDB</span> <span class="tech-tag">Seed Offuscato</span> <span class="tech-tag">Zero Server</span>
+                </div>
+                <div class="card">
+                    <h3>Catalogo Modelli Locale</h3>
+                    <p>Provider e modelli sono descritti da dati, non da codice: <code>manifest.json</code> e file
+                    <code>.txt</code> in <code>data/models/</code>, con window size per ogni modello. La procedura
+                    <em>Aggiorna LLM</em> popola il repository dei modelli accettati; la discovery live via
+                    <code>llmlist</code> interroga i provider con la tua chiave.</p>
+                    <span class="tech-tag">manifest.json</span> <span class="tech-tag">Discovery Live</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Cosa Trovi nell'App</h2>
+            <ul class="feature-list">
+                <li><strong>Conversazioni persistenti:</strong> creazione, elenco, ripristino della cronologia ed eliminazione, tutto su IndexedDB.</li>
+                <li><strong>Prompt di sistema personalizzati:</strong> crea, modifica e seleziona il prompt attivo da anteporre a ogni conversazione.</li>
+                <li><strong>Layout equivalente a RagIndex:</strong> barra superiore fissa, drawer laterale, pannelli output/input, overlay di attesa con pulsante stop, finestre fluttuanti e tooltip.</li>
+                <li><strong>Temi dark/light:</strong> selezionabili e persistiti, dark di default.</li>
+                <li><strong>Affidabilità:</strong> retry automatico su errori transitori (408/500/502/503/504), interruzione manuale delle richieste e gestione chiara dei limiti di token.</li>
+                <li><strong>Risposte in markdown:</strong> rendering delle risposte tramite <code>marked</code> locale.</li>
+                <li><strong>Telemetria minima e trasparente:</strong> eventi di apertura e avvio conversazione verso il worker WWWANALYZER, automaticamente disattivati in ambiente locale.</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Gestione Memoria</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3>Browser Storage</h3>
+                    <p>Conversazioni, messaggi, prompt, impostazioni e chiavi sono salvati in <strong>IndexedDB</strong>
+                    (via Dexie.js). Riapri il browser e ritrovi tutto esattamente come l'hai lasciato.</p>
+                </div>
+                <div class="card">
+                    <h3>Nessun Account</h3>
+                    <p>Niente login, niente tracciamento utente: l'applicazione è pronta all'avvio e i dati non
+                    lasciano mai il dispositivo.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="launch-box">
+            <h2>Pronto a iniziare?</h2>
+            <p>Serva la cartella con un web server statico e apri l'applicazione.</p>
+            <br>
+            <a href="index.html" class="btn-launch">Avvia vanillallm Now</a>
+        </div>
+
+        <footer style="margin-top: 4rem; text-align: center; font-size: 0.8rem; opacity: 0.6;">
+            vanillallm è un progetto focalizzato sulla semplicità, sulla privacy e sull'AI lato client.
+        </footer>
+    </div>
+
+    <script>
+        const themeBtn = document.getElementById('theme-btn');
+        const body = document.body;
+        const sunIcon = themeBtn.querySelector('.icon-sun');
+        const moonIcon = themeBtn.querySelector('.icon-moon');
+
+        themeBtn.addEventListener('click', () => {
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            body.setAttribute('data-theme', newTheme);
+            sunIcon.style.display = newTheme === 'light' ? 'none' : 'block';
+            moonIcon.style.display = newTheme === 'light' ? 'block' : 'none';
+        });
+    </script>
+</body>
+</html>
