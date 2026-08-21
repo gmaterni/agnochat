@@ -1,0 +1,83 @@
+// ===================================================================
+//  ALBERO PROVIDER / MODELLI
+// ===================================================================
+
+// --- Liste Dati ---
+.list-data {
+  width: 100%;
+  margin: 1em auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+  list-style: none;
+  padding: 0;
+
+  li {
+    border: 1px solid;
+    padding: 8px;
+    text-align: left;
+    border-top: none;
+    &:first-child {
+      border-top: 1px solid;
+    }
+  }
+}
+
+// --- Selettore Provider ---
+.provider-tree-container {
+  display: none;
+  position: absolute;
+  border-radius: 6px;
+  padding: 10px;
+  z-index: @z-tree-container;
+  min-width: 250px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.provider-tree-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.provider-tree-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.provider-tree ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.provider-tree-container {
+  font-family: @fsans;
+  top: 6vh;
+  left: 12rem;
+  .provider-node > span {
+    cursor: pointer;
+    font-weight: bold;
+    padding: 5px;
+    display: block;
+  }
+  .model-list {
+    padding-left: 20px;
+    display: none;
+  }
+
+  .model-list--visible {
+    display: block;
+  }
+  .model-node {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-family: @fsans;
+  }
+}

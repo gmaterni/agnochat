@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="it">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="vanillallm - Chat LLM 100% client-side" />
+    <title>vanillallm</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+    <link rel="stylesheet/less" href="less/style.less?v=2" />
+    <link rel="stylesheet/less" href="less/uadialog.less?v=2" />
+    <link rel="stylesheet/less" href="less/ualog3.less?v=2" />
+    <link rel="stylesheet/less" href="less/tooltip.less?v=2" />
+    <script src="less/less.js"></script>
+
+    <script type="module" src="js/app.js"></script>
+  </head>
+
+  <body>
+
+    <div id="spinner" class="spinner">
+      <div class="spinner-content">
+        <div class="pulse-icon"></div>
+        <div class="stop-message">STOP</div>
+      </div>
+    </div>
+
+    <div id="spinner-wait" class="spinner-wait">
+      <div class="spinner-content">
+        <div class="pulse-icon"></div>
+        <div class="stop-message">STOP</div>
+      </div>
+    </div>
+
+    <div class="menu-h">
+      <input id="id-menu-btn" name="id-menu-btn" class="menu-btn" type="checkbox" />
+      <label for="id-menu-btn" id="id-menu-icon-label" class="menu-icon tt-right" data-tt="Menu">
+        <span class="nav-icon"></span>
+      </label>
+
+      <div class="head-wrapper">
+        <button id="btn-help" class="help tt-bottom" data-tt="Istruzioni">?</button>
+        <button id="btn-provider-settings" class="provider-settings">LLM</button>
+        <span id="active-model-display" class="active-model-display"></span>
+        <button class="log tt-bottom" id="id_log" data-tt="Log">Log</button>
+      </div>
+
+      <button id="btn-theme-toggle" class="btn-theme-toggle tt-left" data-tt="Tema Chiaro">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5" />
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+
+      <div class="menu-box">
+        <ul>
+          <li><b>Conversazioni</b></li>
+          <li><a href="#" id="menu-new-conversation">Nuova Conversazione</a></li>
+          <li><a href="#" id="menu-list-conversations">Gestisci Conversazioni</a></li>
+          <li class="separator"></li>
+          <li><b>Prompt di Sistema</b></li>
+          <li><a href="#" id="menu-new-prompt">Nuovo Prompt</a></li>
+          <li><a href="#" id="menu-list-prompts">Gestisci Prompt</a></li>
+          <li class="separator"></li>
+          <li><b>LLM</b></li>
+          <li><a href="#" id="menu-reset-llm">Reset LLM</a></li>
+          <li><a href="#" id="menu-llm-update">Aggiorna LLM</a></li>
+          <li><a href="#" id="menu-provider-tree">Seleziona LLM</a></li>
+          <li class="separator"></li>
+          <li><b>API Key</b></li>
+          <li><a href="#" id="menu-add-api-key">Gestisci API Key</a></li>
+          <li><a href="#" id="menu-default-api-keys">API Keys Default</a></li>
+          <li class="separator"></li>
+          <li><a href="#" id="menu-reset" class="delete menu-reset">Reset</a></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="container">
+      <div class="item item1">
+        <div class="output-wrapper">
+          <div class="output-toolbar">
+            <button id="btn-copy-output-toolbar" class="tt-bottom" data-tt="Copia Output">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+              </svg>
+            </button>
+            <button id="btn-clear-output" class="tt-bottom" data-tt="Cancella Output">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+              </svg>
+            </button>
+          </div>
+          <div class="text-out" id="id-text-out" tabindex="0">
+            <div class="div-text"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="item item2">
+        <div class="input-wrapper">
+          <textarea class="text-input" id="text-input" placeholder="Scrivi qui... " rows="2"></textarea>
+          <button id="btn-edit-last" class="btn-edit-last tt-top" data-tt="Modifica domanda" style="display: none;" onclick="wnds.editLastQuestion()">
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+            </svg>
+          </button>
+        </div>
+        <div class="input-context-actions">
+          <button id="btn-copy-output" class="tt-leftx" data-tt="Copia Output">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+            </svg>
+          </button>
+          <button class="clear-input tt-leftx" data-tt="Cancella Input" id="btn-clear-input">
+            <svg class="icon" viewBox="0 0 24 24">
+              <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+            </svg>
+          </button>
+          <button id="btn-action-send" class="tt-leftx" data-tt="Invia Messaggio">
+            <svg class="btn-icon-svg" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/services/vendor/marked.min.js"></script>
+  </body>
+
+</html>

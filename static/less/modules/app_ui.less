@@ -1,0 +1,163 @@
+/** @format */
+
+// ===================================================================
+//  APP_UI — Stili per finestre gestione KB, conversazioni, documenti e dati
+// ===================================================================
+
+@color-presente: #00bd97;
+@color-assente: #e82323;
+@color-icon-close: #f6e602;
+@btn-margin-left: 5px;
+@btn-margin-left-wide: 15px;
+@btn-margin-left-docs: 8px;
+
+// --- Icona chiusura gialla (quando senza copia) ---
+.close-icon-yellow {
+  fill: @color-icon-close;
+}
+
+// --- Stato documento nella KB ---
+.status-presente {
+  color: @color-presente;
+}
+
+.status-assente {
+  color: @color-assente;
+}
+
+// --- Pulsanti azioni con margine sinistro ---
+.btn-ml5 {
+  margin-left: @btn-margin-left;
+}
+
+.btn-ml8 {
+  margin-left: @btn-margin-left-docs;
+}
+
+.btn-ml15 {
+  margin-left: @btn-margin-left-wide;
+}
+
+// --- docs-header allineato a sinistra (lista documenti) ---
+.docs-header-start {
+  justify-content: flex-start;
+}
+
+// --- Wrapper ed-wrap per finestra Riepilogo Dati ---
+.ed-wrap {
+  max-height: 70vh;
+  overflow-y: auto;
+
+  h4 {
+    color: #f1c40f;
+    margin: 0.4em 0 0.1em;
+    font-size: 0.9em;
+  }
+
+  .table-data {
+    margin: 0.2em auto 0.6em;
+
+    td {
+      padding: 2px 6px;
+      font-size: 0.85em;
+    }
+
+    tr td:first-child {
+      font-family: monospace;
+      font-size: 0.8em;
+      color: #94a3b8;
+    }
+  }
+}
+
+// --- Messaggio nessun dato ---
+.empty-data {
+  text-align: center;
+  padding: 2em;
+}
+
+// ===================================================================
+//  RISULTATI AGGIORNAMENTO LLM
+// ===================================================================
+
+.llm-results {
+  max-height: 55vh;
+  overflow-y: auto;
+  margin: 0.6em 0;
+}
+
+.llm-result-provider {
+  margin: 0.5em 0 0.8em;
+}
+
+.llm-provider-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1em;
+  cursor: pointer;
+
+  b {
+    color: @color-presente;
+  }
+}
+
+.llm-result-models {
+  margin: 4px 0 0 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.llm-model-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.92em;
+  cursor: pointer;
+}
+
+// --- Finestra "Seleziona LLM": larghezza dedicata ---
+.window-info-select {
+  width: 68vw;
+}
+
+// --- Colonne LLM / Voto / Tempo ---
+.llm-result-head {
+  display: grid;
+  grid-template-columns: 3fr 1fr 1fr;
+  font-size: 0.85em;
+  font-weight: bold;
+  opacity: 0.7;
+  padding: 0 0 4px 0;
+  border-bottom: 1px solid currentColor;
+  margin-bottom: 4px;
+}
+
+.llm-result-row {
+  display: grid;
+  grid-template-columns: 3fr 1fr 1fr;
+  align-items: center;
+  font-size: 0.92em;
+}
+
+.llm-result-llm {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.llm-result-vote,
+.llm-result-time {
+  text-align: center;
+}
+
+// --- Pulsanti Salva/Annulla con stessa dimensione ---
+.llm-select-btns {
+  display: flex;
+  gap: 0.5em;
+
+  button {
+    flex: 1;
+  }
+}
