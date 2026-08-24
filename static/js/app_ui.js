@@ -27,6 +27,10 @@ import { SettingsMgr } from "./settings_mgr.js";
 import { ChatEngine } from "./chat_engine.js";
 import { addApiKey, getApiKey, restoreDefaultApiKeys } from "./services/key_retriever.js";
 import { LlmUpdater } from "./llm_updater.js";
+import { createLlmSelectionWindow } from "./llm/llm-selection.js";
+import { getLlmDb } from "./app_mgr.js";
+import { runUpdate as runLlmUpdate } from "./commands/update-llm.js";
+import { runReset as runLlmReset } from "./commands/reset-llm.js";
 import { UaSender } from "./services/sender.js";
 
 import "./services/uadialog.js";
@@ -561,7 +565,10 @@ const _showPromptEditorAsync = function(prompt) {
     wnds.handleSavePrompt = async function() {
         const name = document.getElementById("prompt-inp-name").value.trim();
         const content = document.getElementById("prompt-inp-content").value;
-        if (!name || !content.trim()) return await alert("Nome e contenuto obbligatori.");
+        if (!name || !content.trim()) {
+            alert("Nome e contenuto obbligatori.");
+            return;
+        }
         if (isEdit) {
             await PromptMgr.update(prompt.id, { name, content });
         } else {
@@ -728,7 +735,14 @@ export const Commands = {
 
 export const TextInput = {
     _inputEl: null,
-    init: function() { TextInput._inputEl = document.querySelector(".text-input"); },
+    _fileInputEl: null,
+    init: function() {
+        TextInput._inputEl = document.querySelector(".text-input");
+        TextInput._fileInputEl = document.getElementById("doc-upload-input");
+        if (TextInput._fileInputEl) {
+            TextInput._fileInputEl.addEventListener("change", TextInput._handleFileSelect);
+        }
+    },
     handleEnter: function(event) {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
@@ -737,6 +751,41 @@ export const TextInput = {
     },
     clear: function() {
         if (TextInput._inputEl) { TextInput._inputEl.value = ""; TextInput._inputEl.focus(); }
+    },
+    triggerFileUpload: function() {
+        if (TextInput._fileInputEl) {
+            TextInput._fileInputEl.value = "";
+            TextInput._fileInputEl.click();
+        }
+    },
+    _handleFileSelect: async function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        try {
+            const { processFile, SUPPORTED_TYPES } = await import("vanillallm/document_processor.js");
+            const ext = "." + file.name.split(".").pop().toLowerCase();
+            if (!SUPPORTED_TYPES.includes(ext)) {
+                await alert(`Tipo di file non supportato: ${ext}`);
+                return;
+            }
+            
+            const content = await processFile(file);
+            const formatted = `[Contenuto del documento: ${file.name}]\n${content}\n[Fine documento]\n\n`;
+            TextInput.insertAtCursor(formatted);
+        } catch (error) {
+            console.error("Errore upload documento:", error);
+            await alert(`Errore durante l'elaborazione del documento:\n${error.message}`);
+        } finally {
+            event.target.value = "";
+        }
+    },
+    insertAtCursor: function(text) {
+        if (!TextInput._inputEl) return;
+        const start = TextInput._inputEl.selectionStart;
+        const end = TextInput._inputEl.selectionEnd;
+        TextInput._inputEl.setRangeText(text, start, end, "end");
+        TextInput._inputEl.focus();
     },
     _checkProviderReady: async function() {
         const config = LlmProvider.getConfig();
@@ -959,11 +1008,16 @@ const _addProviderTreeListeners = function() {
  * @param {string} provider
  * @param {string} model
  */
-const _onProviderModelSelect = function(provider, model) {
+const _onProviderModelSelect = async function(provider, model) {
     const success = LlmProvider.setActive(provider, model);
     if (!success) return;
 
-    LlmProvider.saveConfig();
+    try {
+        await LlmProvider.saveConfig();
+    } catch (error) {
+        console.error("_onProviderModelSelect:", error);
+    }
+
     updateActiveModelDisplay();
 
     if (_treeVisible) {
@@ -997,6 +1051,24 @@ export const toggleProviderTree = function() {
     }
 };
 
+/**
+ * Ricostruisce l'albero di selezione provider/modelli se è visibile.
+ * Usato dopo una modifica della selezione LLM per rifletterla subito.
+ */
+export const refreshProviderTree = function() {
+    if (!_treeVisible) return;
+
+    const wnd = UaWindowAdm.get(TREE_CONTAINER_ID);
+    if (!wnd) return;
+
+    const container = wnd.getElement();
+    if (!container) return;
+
+    const treeHtml = _buildProviderTreeHtml();
+    wnd.setHtml(treeHtml);
+    _addProviderTreeListeners();
+};
+
 // ============================================================================
 // AGGIORNAMENTO LLM (procedura di test e repository dei modelli accettati)
 // ============================================================================
@@ -1021,8 +1093,7 @@ const _syncLlmProviderCheckbox = function(providerName) {
 
 /**
  * Gestore della voce di menu "Aggiorna LLM".
- * Chiude il drawer, mostra l'overlay di attesa, scarica e testa i modelli,
- * memorizza i superati nell'elenco (new) e mostra solo un riepilogo.
+ * Usa il modulo dedicato per scoprire e testare i modelli, salva in IndexedDB.
  */
 const _actionLlmUpdateAsync = async function() {
     const menuBtn = document.getElementById("id-menu-btn");
@@ -1034,7 +1105,8 @@ const _actionLlmUpdateAsync = async function() {
 
     _showWaitSpinner();
     try {
-        const results = await LlmUpdater.runUpdate();
+        const results = await runLlmUpdate();
+
         const passed = results.filter(function(r) { return r.ok; });
 
         if (results.length === 0) {
@@ -1043,16 +1115,8 @@ const _actionLlmUpdateAsync = async function() {
             return;
         }
 
-        // Memorizza i superati nell'elenco da selezionare (new).
-        const newModels = {};
-        passed.forEach(function(r) {
-            if (!newModels[r.provider]) newModels[r.provider] = [];
-            newModels[r.provider].push({ model: r.model, vote: r.vote, elapsedMs: r.elapsedMs });
-        });
-        await LlmUpdater.setNewModels(newModels);
-
         _hideWaitSpinner();
-        await alert(`Aggiorna LLM completato.\n\nScaricati e testati: ${results.length}\nSuperati il test (filtrati): ${passed.length}`);
+        await alert(`Aggiorna LLM completato.\n\nScaricati e testati: ${results.length}\nSuperati il test: ${passed.length}`);
     } catch (error) {
         console.error("_actionLlmUpdateAsync:", error);
         _hideWaitSpinner();
@@ -1061,123 +1125,22 @@ const _actionLlmUpdateAsync = async function() {
 };
 
 /**
- * Mostra la finestra "Seleziona LLM": elenco dei modelli scaricati per i
- * provider con chiave API attiva, raggruppati per provider, con checkbox per
- * scegliere quali modelli rendere attivi nell'albero di scelta LLM.
- * All'apertura nessuna checkbox risulta selezionata.
+ * Mostra la finestra "Seleziona LLM" usando il modulo dedicato.
  */
 const _showSelectLlm = async function() {
-    const newModels = await LlmUpdater.readNewModels();
-    const providerConfig = getProviderConfig();
-
-    const jfh = UaJtfh();
-    jfh.append('<div class="data-dialog"><h4>Seleziona LLM</h4>');
-    jfh.append('<div class="llm-results">');
-
-    const providerSet = new Set(Object.keys(newModels));
-    Object.keys(providerConfig).forEach(function(p) { providerSet.add(p); });
-    const providers = Array.from(providerSet);
-
-    if (providers.length === 0) {
-        jfh.append('<p>Nessun modello disponibile. Esegui prima "Aggiorna LLM".</p>');
-    } else {
-        providers.forEach(function(providerName) {
-            const models = newModels[providerName] || [];
-
-            jfh.append(`<div class="llm-result-provider">`);
-            if (models.length === 0) {
-                jfh.append(`<label class="llm-provider-label"><b>${providerName}</b></label>`);
-                jfh.append('<div class="llm-result-models"><p class="llm-no-models">Nessun modello ha superato il test.</p></div>');
-            } else {
-                jfh.append(`<label class="llm-provider-label"><input type="checkbox" class="llm-provider-check" data-provider="${providerName}"> <b>${providerName}</b></label>`);
-                jfh.append('<div class="llm-result-models">');
-                jfh.append('<div class="llm-result-head"><span>LLM</span><span>Voto</span><span>Tempo</span></div>');
-                models.forEach(function(m) {
-                    const modelId = typeof m === "string" ? m : m.model;
-                    const vote = typeof m === "string" ? "-" : (m.vote != null ? m.vote : "-");
-                    const time = typeof m === "string" ? "-" : (m.elapsedMs != null ? (m.elapsedMs / 1000).toFixed(1) + "s" : "-");
-                    jfh.append(`<div class="llm-result-row">`);
-                    jfh.append(`  <span class="llm-result-llm"><label><input type="checkbox" class="llm-model-check" data-provider="${providerName}" data-model="${modelId}"> ${modelId}</label></span>`);
-                    jfh.append(`  <span class="llm-result-vote">${vote}</span>`);
-                    jfh.append(`  <span class="llm-result-time">${time}</span>`);
-                    jfh.append(`</div>`);
-                });
-                jfh.append('</div>');
-            }
-            jfh.append('</div>');
-        });
+    const db = getLlmDb();
+    if (!db) {
+        UaLog.log("ERRORE: Database LLM non inizializzato.");
+        return;
     }
 
-    jfh.append('</div>');
-    jfh.append('<div class="ak-form-row-inputs">');
-    jfh.append('<div class="llm-select-btns">');
-    jfh.append('<button class="btn-success" onclick="wnds.llmSelectSave()">Salva</button>');
-    jfh.append('<button class="btn-danger" onclick="wnds.llmSelectCancel()">Annulla</button>');
-    jfh.append('</div>');
-    jfh.append('</div></div>');
-
-    wnds.winfo.show(jfh.html());
-
-    // Sposta la finestra a destra del menu laterale (menu = 20vw) ad ogni apertura.
-    const win = UaWindowAdm.get("id-wnd-info");
-    if (win && win.reset && win.vw_vh) {
-        win.reset().vw_vh().setXY(24, 6, -1);
-        win.show();
+    try {
+        const selectionWindow = createLlmSelectionWindow(db);
+        await selectionWindow.show();
+    } catch (error) {
+        console.error("_showSelectLlm:", error);
+        UaLog.log("ERRORE: Impossibile aprire la selezione LLM.");
     }
-
-    const container = wnds.winfo.getElement();
-    const infoBox = container ? container.querySelector(".window-info") : null;
-    if (infoBox) {
-        infoBox.classList.add("window-info-select");
-    }
-    container.querySelectorAll(".llm-provider-check").forEach(function(cb) {
-        cb.addEventListener("change", function() {
-            const providerName = cb.dataset.provider;
-            container.querySelectorAll(`.llm-model-check[data-provider="${providerName}"]`).forEach(function(modelCb) {
-                modelCb.checked = cb.checked;
-            });
-            cb.indeterminate = false;
-        });
-    });
-    container.querySelectorAll(".llm-model-check").forEach(function(cb) {
-        cb.addEventListener("change", function() {
-            _syncLlmProviderCheckbox(cb.dataset.provider);
-        });
-    });
-};
-
-wnds.llmSelectSave = async function() {
-    const container = wnds.winfo.getElement();
-    if (!container) return;
-
-    const activeModels = {};
-    let selectedCount = 0;
-    container.querySelectorAll(".llm-model-check").forEach(function(cb) {
-        if (!cb.checked) return;
-        const provider = cb.dataset.provider;
-        const model = cb.dataset.model;
-        if (!activeModels[provider]) activeModels[provider] = [];
-        activeModels[provider].push(model);
-        selectedCount++;
-    });
-
-    if (selectedCount === 0) {
-        const confirmed = await confirm("Nessun modello selezionato: l'albero di scelta LLM verrà svuotato. Confermi?");
-        if (!confirmed) return;
-    }
-
-    await LlmUpdater.setActiveModels(activeModels);
-
-    const available = await LlmUpdater.fetchAvailableModels();
-    await LlmProvider.applyRepositoryToAvailable(available);
-    LlmProvider.validateActive();
-    updateActiveModelDisplay();
-    wnds.winfo.close();
-    UaLog.log(">>> Selezione LLM applicata all'albero. <<<");
-};
-
-wnds.llmSelectCancel = function() {
-    wnds.winfo.close();
 };
 
 const _actionSelectLlm = function() {
@@ -1189,10 +1152,7 @@ const _actionSelectLlm = function() {
 
 /**
  * Gestore della voce di menu "Reset LLM".
- * Azzera la selezione "active" su IndexedDB e ricostruisce il catalogo in
- * memoria con tutti i modelli presenti nei file data/models/, così l'albero
- * di scelta LLM mostra tutti i modelli indipendentemente dalla selezione
- * precedente.
+ * Usa il modulo dedicato per ripristinare i modelli di default.
  */
 const _actionResetLlmAsync = async function() {
     const menuBtn = document.getElementById("id-menu-btn");
@@ -1203,16 +1163,7 @@ const _actionResetLlmAsync = async function() {
     if (!proceed) return;
 
     try {
-        const repository = await LlmUpdater.readRepository();
-        await UaDb.saveJson(DATA_KEYS.KEY_LLM_REPOSITORY, {
-            new: repository.new,
-            active: null
-        });
-
-        await LlmProvider.loadModels();
-        LlmProvider.validateActive();
-        updateActiveModelDisplay();
-        UaLog.log(">>> Reset LLM: albero ricostruito con tutti i modelli dai file. <<<");
+        await runLlmReset();
     } catch (error) {
         console.error("_actionResetLlmAsync:", error);
         await alert(`ERRORE durante il reset LLM:\n${error.message || error}`);
@@ -1244,7 +1195,8 @@ export const bindEventListener = function() {
         "btn-action-send": TextInput.sendMessageAsync,
         "btn-copy-output": TextOutput.copyAsync,
         "btn-copy-output-toolbar": TextOutput.copyAsync,
-        "btn-clear-output": function() { _setResponseHtml(""); }
+        "btn-clear-output": function() { _setResponseHtml(""); },
+        "btn-upload-doc": TextInput.triggerFileUpload
     };
 
     Object.entries(ids).forEach(([id, fn]) => {

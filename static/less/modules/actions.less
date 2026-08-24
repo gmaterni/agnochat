@@ -142,3 +142,33 @@ button.btn-edit-last {
     height: 13px;
   }
 }
+
+// Pulsante upload documento (a sinistra del pulsante modifica)
+button.btn-upload-doc {
+  box-sizing: border-box;
+  position: absolute;
+  bottom: 6px;
+  right: 36px;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: @z-tree-btn;
+  border: none;
+  background-color: transparent;
+  color: inherit;
+
+  &:hover {
+    transform: scale(1.1);
+    background-color: rgba(0, 0, 0, 0.08);
+  }
+
+  svg {
+    width: 13px;
+    height: 13px;
+  }
+}

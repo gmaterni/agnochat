@@ -384,7 +384,9 @@ export const createLlmSelectionWindow = function(db) {
      * e l'albero LLM se aperto.
      */
     const _applySelection = async function() {
-        await LlmProvider.loadModels();
+        // NON ricaricare i .txt. Il catalogo in memoria è già popolato
+        // (da discovery "Aggiorna LLM" o da default "Reset LLM").
+        // Applica solo il filtro della selezione corrente.
 
         const selected = await db.getSelected();
         if (selected && selected.length > 0) {

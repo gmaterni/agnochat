@@ -9,6 +9,15 @@
 "use strict";
 
 import { LlmProvider } from "./llm_provider.js";
+import { createLlmDB } from "./llm/llm-db.js";
+import { LlmUpdater } from "./llm_updater.js";
+
+// Istanza singleton del database LLM
+let _llmDb = null;
+
+export const getLlmDb = function() {
+    return _llmDb;
+};
 
 // ============================================================================
 // API PUBBLICA
@@ -20,6 +29,9 @@ export const AppMgr = {
      * Inizializza l'applicazione.
      */
     initApp: async function() {
+        _llmDb = createLlmDB();
+        await _llmDb.init();
+
         await LlmProvider.init();
         await AppMgr.initConfig();
     },
@@ -34,12 +46,32 @@ export const AppMgr = {
 
         const config = LlmProvider.getConfig();
         if (!config || !config.windowSize) {
-            console.error("AppMgr.initConfig: configurazione LLM mancante o non valida");
+            // Caso normale: nessun modello configurato finché l'utente non
+            // esegue "Reset LLM" o "Aggiorna LLM". Non è un errore.
+            console.info("AppMgr.initConfig: nessuna configurazione LLM attiva (esegui Reset LLM o Aggiorna LLM).");
             return;
         }
 
         console.info("AppMgr.initConfig: configurazione caricata.");
-        console.info(`Provider: ${config.provider} | Model: ${config.model}`);
-        console.info(`Window: ${config.windowSize}k`);
+        const providerMsg = "Provider: " + config.provider + " | Model: " + config.model;
+        console.info(providerMsg);
+        const windowMsg = "Window: " + config.windowSize + "k";
+        console.info(windowMsg);
+    },
+
+    /**
+     * Carica i modelli selezionati dal database e applica il filtro al provider.
+     */
+    loadSelectedModels: async function() {
+        if (!_llmDb) return;
+
+        const selected = await _llmDb.getSelected();
+        if (selected && selected.length > 0) {
+            LlmProvider.ensureSelectedModels(selected);
+            LlmProvider.applySelectionFilter(selected);
+        }
+        // Se nessuna selezione salvata: NON leggere i .txt.
+        // L'albero rimane vuoto finché l'utente non fa "Aggiorna LLM" o "Reset LLM".
+        LlmProvider.validateActive();
     }
 };

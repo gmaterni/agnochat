@@ -25,15 +25,16 @@ import {
 } from "./llmclient/index.js";
 import { DATA_KEYS } from "./services/data_keys.js";
 import { UaDb } from "./services/uadb.js";
+import { loadProviderModels } from "vanillallm/llm/llm-catalog.js";
 
 // ============================================================================
 // COSTANTI
 // ============================================================================
 
-// I provider sono scoperti dinamicamente da static/data/models/manifest.json.
+// I provider sono quelli con un client implementato in llmclient
+// (IMPLEMENTED_CLIENTS in services/key_retriever.js).
 // Ogni provider con file .txt valido in data/models/ compare nell'albero di
-// selezione — aggiungi/rimuovi un .txt + aggiorna manifest.json e l'albero
-// si aggiorna senza toccare codice.
+// selezione; un file mancante significa semplicemente 0 modelli, nessun errore.
 //
 // L'unica eccezione è _createClientInstance (switch + import) che va
 // aggiornata a mano quando si aggiunge un nuovo provider LLM client.
@@ -181,79 +182,30 @@ export const LlmProvider = {
 
     /**
      * Carica i modelli da file su disco. Ogni chiamata ricarica da zero.
+     * I provider sono quelli con client implementato in llmclient:
+     * chi non ha un file modelli semplicemente non compare (0 modelli,
+     * nessun errore).
      * @returns {Promise<void>}
      */
     loadModels: async () => {
         _providerModels = {};
 
-        let providers = [];
-        try {
-            const manifestRes = await fetch(`./data/models/manifest.json`);
-            if (manifestRes.ok) {
-                providers = await manifestRes.json();
+        for (const p of IMPLEMENTED_CLIENTS) {
+            const models = await loadProviderModels(p);
+            if (models.length === 0) {
+                continue;
             }
-        } catch (_) {}
 
-        if (providers.length === 0) {
-            providers = IMPLEMENTED_CLIENTS;
-        }
+            _providerModels[p] = {
+                client: p,
+                models: {}
+            };
 
-        for (const p of providers) {
-            try {
-                const response = await fetch(`./data/models/${p}.txt`);
-                if (!response.ok) {
-                    continue;
-                }
-                const text = await response.text();
-                const lines = text.split("\n").filter(function(line) {
-                    return line.trim() !== "";
-                });
-
-                _providerModels[p] = {
-                    client: p,
-                    models: {}
+            models.forEach(function(m) {
+                _providerModels[p].models[m.name] = {
+                    windowSize: m.windowSize
                 };
-
-                lines.forEach(function(line) {
-                    const [name, windowSizeTokens] = line.split("|");
-                    if (name && windowSizeTokens) {
-                        const tokens = Math.round(parseInt(windowSizeTokens, 10) / 1024);
-                        _providerModels[p].models[name] = {
-                            windowSize: tokens
-                        };
-                    }
-                });
-            } catch (e) {
-                console.warn(`Impossibile caricare i modelli per ${p}:`, e);
-            }
-        }
-
-        // Filtro dai modelli attivi del repository ("active", se presente).
-        // In assenza di modelli attivi salvati il catalogo resta completo.
-        const repository = await UaDb.readJson(DATA_KEYS.KEY_LLM_REPOSITORY);
-        const active = (repository && typeof repository === "object" && !Array.isArray(repository))
-            ? (repository.active || null)
-            : null;
-        if (active && typeof active === "object" && !Array.isArray(active)) {
-            for (const providerName of Object.keys(_providerModels)) {
-                const accepted = active[providerName];
-
-                if (!Array.isArray(accepted) || accepted.length === 0) {
-                    delete _providerModels[providerName];
-                    continue;
-                }
-
-                const acceptedSet = new Set(accepted);
-                for (const modelName of Object.keys(_providerModels[providerName].models)) {
-                    if (!acceptedSet.has(modelName)) {
-                        delete _providerModels[providerName].models[modelName];
-                    }
-                }
-
-                if (Object.keys(_providerModels[providerName].models).length === 0) {
-                    delete _providerModels[providerName];
-                }
-            }
+            });
         }
     },
 
@@ -262,7 +214,8 @@ export const LlmProvider = {
      * @returns {Promise<void>}
      */
     init: async () => {
-        await LlmProvider.loadModels();
+        // NON caricare i modelli dai .txt all'avvio.
+        // Vengono caricati solo su "Reset LLM" o "Aggiorna LLM".
         await fetchApiKeys();
     },
 
@@ -296,55 +249,76 @@ export const LlmProvider = {
     },
 
     /**
-     * Ricostruisce il catalogo in memoria a partire dai modelli disponibili
-     * (scoperti dinamicamente o da file), applicando il filtro del repository
-     * dei modelli accettati. Se il repository è assente o vuoto, vengono
-     * mantenuti tutti i modelli disponibili. I provider rimasti senza modelli
-     * vengono rimossi. Serve per far comparire nell'albero anche i modelli
-     * scoperti non presenti nei file .txt.
-     * @param {Object<string, Array<{id: string, contextWindow: number}>>} available
-     * @returns {Promise<void>}
+     * Filtra il catalogo in memoria in base ai modelli selezionati dall'utente (selected-models).
+     * Rimuove i provider/modelli non presenti nella selezione.
+     * @param {Array<{provider: string, model: string, name?: string, windowSize?: number}>} selectedModels
+     * @returns {void}
      */
-    applyRepositoryToAvailable: async function(available) {
-        _providerModels = {};
+    applySelectionFilter: function(selectedModels) {
+        if (!Array.isArray(selectedModels) || selectedModels.length === 0) {
+            return;
+        }
 
-        const repository = await UaDb.readJson(DATA_KEYS.KEY_LLM_REPOSITORY);
-        const active = (repository && typeof repository === "object" && !Array.isArray(repository))
-            ? (repository.active || null)
-            : null;
-        const hasActive = active && typeof active === "object" && !Array.isArray(active);
+        // Costruisce mappa provider -> Set(model) per lookup veloce
+        const selectedByProvider = {};
+        for (const m of selectedModels) {
+            if (!m.provider || !m.model) continue;
+            if (!selectedByProvider[m.provider]) {
+                selectedByProvider[m.provider] = new Set();
+            }
+            selectedByProvider[m.provider].add(m.model);
+        }
 
-        for (const provider of Object.keys(available)) {
-            const models = available[provider];
-            if (!Array.isArray(models) || models.length === 0) {
+        // Filtra _providerModels in place
+        for (const provider of Object.keys(_providerModels)) {
+            const allowed = selectedByProvider[provider];
+            if (!allowed) {
+                delete _providerModels[provider];
                 continue;
             }
-
-            let list = models;
-            if (hasActive) {
-                const accepted = active[provider];
-                if (!Array.isArray(accepted) || accepted.length === 0) {
-                    continue;
+            for (const modelName of Object.keys(_providerModels[provider].models)) {
+                if (!allowed.has(modelName)) {
+                    delete _providerModels[provider].models[modelName];
                 }
-                const acceptedSet = new Set(accepted);
-                list = models.filter(function(m) {
-                    return acceptedSet.has(m.id);
-                });
             }
+            if (Object.keys(_providerModels[provider].models).length === 0) {
+                delete _providerModels[provider];
+            }
+        }
+    },
 
-            if (list.length === 0) {
-                continue;
+    /**
+     * Assicura che i modelli selezionati dall'utente siano presenti in
+     * _providerModels con i loro dati completi (windowSize, name, ecc.).
+     * Viene chiamato PRIMA di applySelectionFilter per evitare che modelli
+     * selezionati non presenti nei file .txt vengano persi.
+     * @param {Array<{provider: string, model: string, name?: string, windowSize?: number, elapsedMs?: number, vote?: number}>} selectedModels
+     * @returns {void}
+     */
+    ensureSelectedModels: function(selectedModels) {
+        if (!Array.isArray(selectedModels) || selectedModels.length === 0) {
+            return;
+        }
+        for (const m of selectedModels) {
+            if (!m.provider || !m.model) continue;
+            if (!_providerModels[m.provider]) {
+                _providerModels[m.provider] = { client: m.provider, models: {} };
             }
-
-            const store = {};
-            for (const m of list) {
-                if (!m || !m.id) {
-                    continue;
-                }
-                const tokens = m.contextWindow ? Math.round(m.contextWindow / 1024) : 0;
-                store[m.id] = { windowSize: tokens };
+            const store = _providerModels[m.provider].models;
+            if (!store[m.model]) {
+                store[m.model] = {
+                    windowSize: m.windowSize || 0,
+                    name: m.name,
+                    elapsedMs: m.elapsedMs,
+                    vote: m.vote
+                };
+            } else {
+                // Aggiorna i campi se mancanti
+                if (m.windowSize && !store[m.model].windowSize) store[m.model].windowSize = m.windowSize;
+                if (m.name && !store[m.model].name) store[m.model].name = m.name;
+                if (m.elapsedMs && !store[m.model].elapsedMs) store[m.model].elapsedMs = m.elapsedMs;
+                if (m.vote !== undefined && m.vote !== null && !store[m.model].vote) store[m.model].vote = m.vote;
             }
-            _providerModels[provider] = { client: provider, models: store };
         }
     },
 
@@ -481,8 +455,10 @@ export const LlmProvider = {
      * @returns {Promise<void>}
      */
     loadConfig: async function() {
-        await LlmProvider.loadModels();
-
+        // NON caricare i modelli dai .txt all'avvio.
+        // Il catalogo viene popolato solo con "Reset LLM" (da .txt) o
+        // "Aggiorna LLM" (da discovery API). Se _providerModels è vuoto
+        // e non c'è una config salvata, nessun default viene impostato.
         const savedConfig = await UaDb.readJson(DATA_KEYS.KEY_PROVIDER);
 
         if (_isValidConfig(savedConfig)) {
