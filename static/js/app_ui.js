@@ -1262,15 +1262,15 @@ export const bindEventListener = function() {
     HelpPopup.bind("menu-list-conversations", "<strong>Gestisci Conversazioni</strong><br>Elenca, seleziona o elimina le conversazioni salvate.");
 
     // Menu — Prompt di Sistema
-    HelpPopup.bind("menu-new-prompt", "<strong>Nuovo Prompt</strong><br>Crea un prompt di sistema personalizzato con nome e contenuto.");
-    HelpPopup.bind("menu-list-prompts", "<strong>Gestisci Prompt</strong><br>Elenca, modifica, seleziona o elimina i prompt di sistema.");
+    HelpPopup.bind("menu-new-prompt", "<strong>Nuovo System Prompt</strong><br>Crea un prompt di sistema personalizzato con nome e contenuto.");
+    HelpPopup.bind("menu-list-prompts", "<strong>Gestisci System Prompt</strong><br>Elenca, modifica, seleziona o elimina i prompt di sistema.");
 
     // Menu — LLM
     HelpPopup.bind("menu-reset-llm", "<strong>Reset LLM</strong><br>Azzera la selezione attiva e ripristina tutti i modelli disponibili dai file locali.");
     HelpPopup.bind("menu-provider-tree", "<strong>Seleziona LLM</strong><br>Apre l'elenco dei modelli scaricati con checkbox per aggiornare l'albero di scelta LLM.");
     HelpPopup.bind("menu-llm-update", "<strong>Aggiorna LLM</strong><br>Testa i modelli dei provider con chiave attiva e aggiorna l'albero di selezione LLM.");
     HelpPopup.bind("menu-add-api-key", "<strong>Gestione API Key</strong><br>Aggiungi, attiva o elimina le tue chiavi API personali.");
-    HelpPopup.bind("menu-default-api-keys", "<strong>API Keys Default</strong><br>Ripristina le chiavi API predefinite, sovrascrivendo quelle attuali.");
+    HelpPopup.bind("menu-default-api-keys", "<strong>Reset Api Keys</strong><br>Ripristina le chiavi API predefinite, sovrascrivendo quelle attuali.");
 
     // Menu — Sistema
     HelpPopup.bind("menu-reset", "<strong>Reset</strong><br>Cancella TUTTI i dati: conversazioni, prompt, chiavi API e configurazione. Due conferme richieste.");

@@ -49,8 +49,8 @@ export const help0_html = `
     <div>
         <strong class="help-section-title">Menu Laterale &mdash; Prompt di Sistema</strong>
         <div class="help-grid">
-            <strong>Nuovo Prompt</strong> <span>Crea un prompt di sistema personalizzato con nome e contenuto.</span>
-            <strong>Gestisci Prompt</strong> <span>Elenca, modifica, seleziona o elimina i prompt di sistema.</span>
+            <strong>Nuovo System Prompt</strong> <span>Crea un prompt di sistema personalizzato con nome e contenuto.</span>
+            <strong>Gestisci System Prompt</strong> <span>Elenca, modifica, seleziona o elimina i prompt di sistema.</span>
         </div>
     </div>
 
@@ -58,8 +58,8 @@ export const help0_html = `
         <strong class="help-section-title">Menu Laterale &mdash; LLM</strong>
         <div class="help-grid">
             <strong>Seleziona LLM</strong> <span>Apre l'elenco dei modelli scaricati per aggiornare l'albero di scelta LLM.</span>
+            <strong>Reset Api Keys</strong> <span>Ripristina le chiavi API predefinite.</span>
             <strong>Gestisci API Key</strong> <span>Aggiungi, attiva o elimina le tue chiavi API personali.</span>
-            <strong>API Keys Default</strong> <span>Ripristina le chiavi API predefinite.</span>
         </div>
     </div>
 
