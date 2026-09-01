@@ -504,7 +504,8 @@ const _actionListConversationsAsync = async function() {
             jfh.append(`<td>${c.title || "Senza titolo"}${activeMark}</td>`);
             jfh.append(`<td>${date}</td>`);
             jfh.append('<td>');
-            jfh.append(`<button class="btn-success" onclick="wnds.selectConversation(${c.id})">Attiva</button>`);
+            jfh.append(`<button class="btn-success" onclick="wnds.viewConversation(${c.id})">Visualizza</button>`);
+            jfh.append(`<button class="btn-success btn-ml5" onclick="wnds.selectConversation(${c.id})">Attiva</button>`);
             jfh.append(`<button class="btn-danger btn-ml5" onclick="wnds.deleteConversation(${c.id})">Elimina</button>`);
             jfh.append('</td></tr>');
         });
@@ -512,6 +513,56 @@ const _actionListConversationsAsync = async function() {
     }
 
     jfh.append('</div>');
+
+    wnds.viewConversation = async function(id) {
+        const conv = await ConversationMgr.get(id);
+        const messages = await MessageStore.list(id);
+        
+        if (!messages || messages.length === 0) {
+            await alert("Nessun messaggio in questa conversazione.");
+            return;
+        }
+
+        const conversationHtml = messages2html(messages);
+        const jfhView = UaJtfh();
+        jfhView.append('<div class="data-dialog">');
+        jfhView.append(`<h4>${conv.title || "Senza titolo"}</h4>`);
+        jfhView.append('<div class="conversation-view">');
+        jfhView.append(conversationHtml);
+        jfhView.append('</div>');
+        jfhView.append('</div>');
+
+        wnds.winfo.show(jfhView.html());
+        
+        const convWin = UaWindowAdm.get("id-wnd-info");
+        if (convWin) convWin.setStyle({ width: "70vw" });
+
+        // Aggiungi pulsante Copy nella btn-wrapper
+        const container = convWin.getElement();
+        if (container) {
+            const btnWrapper = container.querySelector(".btn-wrapper");
+            if (btnWrapper) {
+                const copyBtn = document.createElement("button");
+                copyBtn.className = "btn-copy tt-left";
+                copyBtn.setAttribute("data-tt", "Copia");
+                copyBtn.innerHTML = '<svg class="icon copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path></svg>';
+                copyBtn.onclick = async function() {
+                    try {
+                        const text = messages.map(m => {
+                            const role = m.role === "user" ? "Tu" : "Assistente";
+                            return `[${role}]\n${m.content}`;
+                        }).join("\n\n");
+                        await navigator.clipboard.writeText(text);
+                        copyBtn.classList.add("copied");
+                        setTimeout(() => copyBtn.classList.remove("copied"), 2000);
+                    } catch (err) {
+                        console.error("viewConversation.copy:", err);
+                    }
+                };
+                btnWrapper.insertBefore(copyBtn, btnWrapper.firstChild);
+            }
+        }
+    };
 
     wnds.selectConversation = async function(id) {
         await SettingsMgr.setActiveConversationId(id);
@@ -1259,7 +1310,7 @@ export const bindEventListener = function() {
 
     // Menu — Conversazioni
     HelpPopup.bind("menu-new-conversation", "<strong>Nuova Conversazione</strong><br>Crea una nuova conversazione vuota e la attiva. La conversazione attiva resta salvata.");
-    HelpPopup.bind("menu-list-conversations", "<strong>Gestisci Conversazioni</strong><br>Elenca, seleziona o elimina le conversazioni salvate.");
+    HelpPopup.bind("menu-list-conversations", "<strong>Gestisci Conversazioni</strong><br>Elenca, visualizza, attiva o elimina le conversazioni salvate.");
 
     // Menu — Prompt di Sistema
     HelpPopup.bind("menu-new-prompt", "<strong>Nuovo System Prompt</strong><br>Crea un prompt di sistema personalizzato con nome e contenuto.");

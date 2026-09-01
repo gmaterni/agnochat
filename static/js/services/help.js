@@ -42,7 +42,7 @@ export const help0_html = `
         <strong class="help-section-title">Menu Laterale &mdash; Conversazioni</strong>
         <div class="help-grid">
             <strong>Nuova Conversazione</strong> <span>Crea una nuova conversazione vuota e la attiva.</span>
-            <strong>Gestisci Conversazioni</strong> <span>Elenca, seleziona o elimina le conversazioni salvate.</span>
+            <strong>Gestisci Conversazioni</strong> <span>Elenca, visualizza, attiva o elimina le conversazioni salvate.</span>
         </div>
     </div>
 
