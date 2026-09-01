@@ -742,6 +742,7 @@ export const wnds = {
 export const Commands = {
     init: function() {},
     help: function() { wnds.wdiv.show(help0_html); },
+    readme: function() { window.open("README.html", "_blank"); },
     log: function() {
         UaLog.toggle();
         const btn = document.getElementById("id_log");
@@ -1177,6 +1178,7 @@ export const bindEventListener = function() {
     // Pulsanti Header
     const ids = {
         "btn-help": Commands.help,
+        "btn-readme": Commands.readme,
         "id_log": Commands.log,
         "btn-provider-settings": Commands.providerSettings,
         "btn-theme-toggle": toggleThemeAsync,
@@ -1221,7 +1223,8 @@ export const bindEventListener = function() {
 
     // --- INIZIALIZZAZIONE POPUP INFORMATIVI ---
     // Header
-    HelpPopup.bind("btn-help", "<strong>Istruzioni</strong><br>Apre il manuale utente con l'elenco dei comandi dell'app.");
+    HelpPopup.bind("btn-help", "<strong>Help</strong><br>Apre il manuale utente con l'elenco dei comandi dell'app.");
+    HelpPopup.bind("btn-readme", "<strong>README</strong><br>Apre la guida completa dell'applicazione in una nuova scheda.");
     HelpPopup.bind("id_log", "<strong>Registro Eventi</strong><br>Mostra i messaggi di log dell'applicazione in tempo reale.");
     HelpPopup.bind("btn-provider-settings", "<strong>Configurazione LLM</strong><br>Seleziona il provider AI e il modello specifico.");
     // btn-theme-toggle usa tooltip CSS (data-tt) — dinamico in _updateThemeAsync

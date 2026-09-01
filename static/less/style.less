@@ -55,6 +55,7 @@ textarea,
     height: 4vh;
     .active-model-display,
     .help,
+    .readme,
     .provider-settings,
     .log {
       box-sizing: border-box;
@@ -73,9 +74,19 @@ textarea,
       font-size: @fsize-out;
       font-weight: 900;
       z-index: @z-help;
+      color: #f6e602;
+      background: transparent;
+    }
+    .readme {
+      left: 8vw;
+      font-size: @fsize-out;
+      font-weight: 900;
+      z-index: @z-help;
+      background: transparent;
+      color: #00bd97;
     }
     .provider-settings {
-      left: 40vw;
+      left: 46vw;
       transition: background-color 0.3s ease;
       &:hover {
         background-color: fade(@dark-color2, 40%) !important;
@@ -83,7 +94,7 @@ textarea,
       }
     }
     .active-model-display {
-      left: 45.5vw;
+      left: 51.5vw;
       font-size: @fsize-out;
       font-style: italic;
       display: inline-block;

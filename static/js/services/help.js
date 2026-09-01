@@ -17,7 +17,8 @@ export const help0_html = `
         <strong class="help-section-title">Barra Superiore (Header)</strong>
         <div class="help-grid">
             <strong>Icona Menu</strong> <span>Apre il menu laterale con le sezioni Conversazioni, Prompt di Sistema, LLM e Reset.</span>
-            <strong>? (Help)</strong> <span>Apre questa finestra con l'elenco completo dei comandi.</span>
+            <strong>Help</strong> <span>Apre questa finestra con l'elenco completo dei comandi.</span>
+            <strong>README</strong> <span>Apre la guida completa dell'applicazione in una nuova scheda.</span>
             <strong>LLM</strong> <span>Sceglie il provider AI (Gemini, Mistral, Groq, OpenRouter, ecc.) e il modello.</span>
             <strong>Log</strong> <span>Mostra la console tecnica con i messaggi di errore e di sistema.</span>
             <strong>Tema</strong> <span>Alterna tra tema scuro e tema chiaro.</span>
