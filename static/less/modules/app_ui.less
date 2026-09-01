@@ -86,70 +86,176 @@
   margin: 0.6em 0;
 }
 
-.llm-result-provider {
-  margin: 0.5em 0 0.8em;
-}
-
-.llm-provider-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 1em;
-  cursor: pointer;
-
-  b {
-    color: @color-presente;
-  }
-}
-
-.llm-result-models {
-  margin: 4px 0 0 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.llm-model-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.92em;
-  cursor: pointer;
-}
-
 // --- Finestra "Seleziona LLM": larghezza dedicata ---
 .window-info-select {
   width: 68vw;
 }
 
-// --- Colonne LLM / Voto / Tempo ---
-.llm-result-head {
-  display: grid;
-  grid-template-columns: 3fr 1fr 1fr;
-  font-size: 0.85em;
-  font-weight: bold;
-  opacity: 0.7;
-  padding: 0 0 4px 0;
-  border-bottom: 1px solid currentColor;
-  margin-bottom: 4px;
+// --- Tabella LLM Seleziona (compatta stile window-info) ---
+.llm-select-table {
+  width: 100%;
+  table-layout: fixed;
 }
 
-.llm-result-row {
-  display: grid;
-  grid-template-columns: 3fr 1fr 1fr;
+.llm-select-table th,
+.llm-select-table td {
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+
+.llm-select-table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 6px;
+  border-bottom: 2px solid currentColor;
+}
+
+// Header della tabella fissa, attaccato alla barra dei comandi.
+// Header e corpo sono due tabelle separate con le stesse colonne.
+.llm-scroll-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.llm-select-head {
+  flex: none;
+  margin: 0;
+  border-bottom: none;
+  border-radius: 0;
+}
+
+.llm-select-head thead th {
+  position: static;
+  background-color: inherit;
+}
+
+.llm-scroll-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.llm-scroll-body .llm-select-table {
+  margin: 0;
+  border-top: none;
+  border-radius: 0;
+}
+
+.llm-scroll-body .llm-select-table tbody tr:first-child td {
+  border-top: none;
+}
+
+.llm-select-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid;
+}
+
+.llm-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.table-data .llm-row:hover,
+.llm-row:hover {
+  background-color: fade(@color-presente, 10%);
+}
+
+.table-data .llm-row.selected,
+.llm-row.selected {
+  background-color: fade(#f6e602, 45%) !important;
+  color: #1a1a1a !important;
+}
+
+.table-data .llm-row.selected:hover,
+.llm-row.selected:hover {
+  background-color: fade(#f6e602, 55%) !important;
+}
+
+.llm-row-label {
+  display: flex;
   align-items: center;
-  font-size: 0.92em;
+  gap: 6px;
+  cursor: pointer;
+  width: 100%;
+  padding: 2px 0;
 }
 
-.llm-result-llm {
+.llm-name-text {
+  display: inline-block;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
-.llm-result-vote,
-.llm-result-time {
+.llm-vote-cell,
+.llm-time-cell,
+.llm-window-cell {
   text-align: center;
+  font-size: 0.85em;
+}
+
+.llm-vote-cell {
+  font-weight: 600;
+  color: @color-presente;
+  width: 3.5ch;  // voto: max 3 char (es. "10")
+}
+
+.llm-time-cell {
+  font-family: monospace;
+  font-size: 0.8em;
+  width: 4.5ch;  // tempo: max 4 char (es. "1.2s")
+}
+
+.llm-window-cell {
+  font-family: monospace;
+  font-size: 0.8em;
+  width: 5.5ch;  // finestra: max 5 char (es. "1024")
+}
+
+.llm-name-cell {
+  width: 100%;
+  min-width: 0;  // permette il truncate
+}
+
+// Provider row evidenziata
+.llm-provider-row {
+  background-color: fade(#ff8c00, 15%);
+}
+
+.table-data .llm-provider-cell,
+.llm-provider-cell {
+  font-weight: 600;
+  font-size: 0.9em;
+  color: #ff8c00 !important;
+  padding: 6px 8px !important;
+  border-bottom: 2px solid #ff8c00 !important;
+}
+
+.table-data .llm-provider-cell b,
+.llm-provider-cell b {
+  background-color: transparent !important;
+  color: #ff8c00 !important;
+  padding: 0 !important;
+  font-size: 1em;
+}
+
+.llm-provider-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.llm-provider-row + .llm-row {
+  border-top: none;
 }
 
 // --- Pulsanti Salva/Annulla con stessa dimensione ---
@@ -160,4 +266,65 @@
   button {
     flex: 1;
   }
+}
+
+// --- Barra header con pulsanti azione (Salva/Aggiungi/Annulla) ---
+.llm-btn-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: auto;
+  min-height: 34px;
+  padding: 2px 6px;
+  box-sizing: border-box;
+
+  .llm-header-btns {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+
+    button {
+      flex: none;
+      padding: 4px 12px;
+      font-size: 0.8em;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      font-weight: 600;
+    }
+  }
+
+  .btn-close {
+    position: static;
+    flex: none;
+  }
+}
+
+// Contenuto per finestra LLM: header label attaccato ai comandi, corpo scorre
+.llm-select-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  max-height: none;
+  overflow-y: visible;
+}
+
+// Finestra Seleziona LLM: niente padding extra, contenuto a tutto bordo.
+// La finestra si adatta al contenuto; l'altezza massima è gestita dal JS
+// (container output+input) e il corpo scrolla oltre.
+#llm-selection-window .window-info {
+  padding: 0;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+#llm-selection-window .div-info {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
 }

@@ -236,6 +236,19 @@
     }
   }
 
+  .doc-bar {
+    .doc-item {
+      background-color: @btn-bg;
+      color: @text;
+      .doc-icon { fill: @text; }
+      .doc-remove {
+        color: @text;
+        .icon-remove { fill: @text; }
+        &:hover { background-color: @btn-hover; }
+      }
+    }
+  }
+
   .btn-edit-last {
     background-color: @btn-bg;
     color: @text;
@@ -300,6 +313,10 @@
     th {
       background-color: @menu-h-bg;
     }
+    // Header fissa della tabella Seleziona LLM: sfondo pieno della finestra
+    .llm-select-table thead th {
+      background-color: @wnd-bg;
+    }
     .link-show-doc {
       color: @table-link-fg;
       &:hover {
@@ -360,6 +377,53 @@
   }
   .active-model-display {
     color: @active-model-fg;
+  }
+
+  // --- Upload ---
+  .upload-dialog-content {
+    .upload-description {
+      color: @text;
+    }
+    .drop-zone {
+      border-color: @drop-zone-border;
+      p {
+        color: @drop-zone-fg;
+      }
+      &.drag-over {
+        background-color: @drop-zone-drag-over-bg;
+        border-color: @color2;
+      }
+    }
+    #progress-container {
+      div {
+        background-color: @progress-bg;
+      }
+      #progress-bar {
+        background-color: @progress-bar-bg;
+      }
+      #progress-text {
+        color: @text;
+      }
+    }
+    #file-list-container {
+      border-color: @file-list-border;
+    }
+    .file-list-item {
+      border-bottom-color: @file-list-item-border;
+      color: @text;
+      &.success {
+        background-color: @file-list-item-success-bg;
+        color: @file-list-item-success-fg;
+      }
+      &.duplicate {
+        background-color: @file-list-item-duplicate-bg;
+        color: @file-list-item-duplicate-fg;
+      }
+      &.error {
+        background-color: @file-list-item-error-bg;
+        color: @file-list-item-error-fg;
+      }
+    }
   }
 }
 
@@ -441,6 +505,19 @@
   @tree-model-node-active-fg: white;
   @active-model-fg: lighten(@dark-color2, 5%);
   @title-color: lighten(@dark-color3, 15%); // Titoli chiari su fondo scuro
+  @progress-bg: @dark-progress-bg;
+  @progress-bar-bg: @dark-progress-bar-bg;
+  @drop-zone-border: #888;
+  @drop-zone-fg: #888;
+  @drop-zone-drag-over-bg: #333333;
+  @file-list-border: #555;
+  @file-list-item-border: #555;
+  @file-list-item-success-bg: @dark-file-list-item-success-bg;
+  @file-list-item-success-fg: @dark-file-list-item-success-fg;
+  @file-list-item-duplicate-bg: @dark-file-list-item-duplicate-bg;
+  @file-list-item-duplicate-fg: @dark-file-list-item-duplicate-fg;
+  @file-list-item-error-bg: @dark-file-list-item-error-bg;
+  @file-list-item-error-fg: @dark-file-list-item-error-fg;
 
   // --- Applica Stili e Override ---
   .apply-theme();
@@ -530,6 +607,19 @@
   @tree-model-node-active-fg: white;
   @active-model-fg: darken(@light-color2, 10%);
   @title-color: @light-color3; // Titolo scuro (arancione bruciato) su fondo chiaro
+  @progress-bg: @light-progress-bg;
+  @progress-bar-bg: @light-progress-bar-bg;
+  @drop-zone-border: #bbb;
+  @drop-zone-fg: #888;
+  @drop-zone-drag-over-bg: #e6e6e6;
+  @file-list-border: #ccc;
+  @file-list-item-border: #ddd;
+  @file-list-item-success-bg: @light-file-list-item-success-bg;
+  @file-list-item-success-fg: @light-file-list-item-success-fg;
+  @file-list-item-duplicate-bg: @light-file-list-item-duplicate-bg;
+  @file-list-item-duplicate-fg: @light-file-list-item-duplicate-fg;
+  @file-list-item-error-bg: @light-file-list-item-error-bg;
+  @file-list-item-error-fg: @light-file-list-item-error-fg;
 
   // --- Applica Stili e Override ---
   .apply-theme();

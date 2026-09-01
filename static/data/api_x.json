@@ -1,54 +1,14 @@
 {
-    "last_updated": "2026-08-21T17:40:38.809798",
+    "last_updated": "2026-08-21T19:54:14.877756",
     "providers": {
         "gemini": {
             "api_key_env": "GEMINI_API_KEY",
             "exported_key": "ragquery",
             "keys": [
                 {
-                    "name": "ua260305",
-                    "key": "mLEAxPXkA9rPiLJcwYB_lHn7dqiyacdpQqsI1DW",
-                    "notes": "giuseppe.materni"
-                },
-                {
                     "name": "ragquery",
                     "key": "mLEAxPKgMeQsFqYcNp6ZJCqAAk0ypySqZDrlzLL",
                     "notes": "giuseppe.materni"
-                },
-                {
-                    "name": "ragtext",
-                    "key": "mLEAxPmlYry9bsBWYDj-XldkNaq3ZedzHx7_4Qo",
-                    "notes": "giuseppe.materni"
-                },
-                {
-                    "name": "ipotesi2000",
-                    "key": "mLEAxPmbm9Yd4hWuwscCySF3mbdYfNPFc-TwojC",
-                    "notes": "giuseppe.materni"
-                },
-                {
-                    "name": "ragindex",
-                    "key": "mLEAxPmP4kiTbJpVqu6W7V_PU19bJif-knhK8jm",
-                    "notes": "giuseppe.materni"
-                },
-                {
-                    "name": "gab",
-                    "key": "mLEAxPmoXRPFjtpMhpuQQdSrB0h6ocXleTxBbkL",
-                    "notes": "gabriele.tenebra"
-                },
-                {
-                    "name": "gm",
-                    "key": "mLEAxPXTtsPxMN_aFNztNwMwBJwPBqiMejOS_JB",
-                    "notes": "gmaterni"
-                },
-                {
-                    "name": "giu",
-                    "key": "mLEAxPXcOxVKfsyjCDa0qoeRe_aAHNAdhFaIIrR",
-                    "notes": "giumaterni"
-                },
-                {
-                    "name": "ipotesi",
-                    "key": "mLEAxPpx77REpFF6IHuA04GVVmwl2wZ--ouZqZL",
-                    "notes": "ipotesi2000"
                 }
             ]
         },
@@ -68,11 +28,6 @@
             "exported_key": "ua260310",
             "keys": [
                 {
-                    "name": "crb1",
-                    "key": "N67-kBdBti0iqGMOzzOsNzqPaizPq7ztk5dO7S2VGVNPMzSzOVik",
-                    "notes": "giuseppe.materni"
-                },
-                {
                     "name": "ua260310",
                     "key": "N67-sa5s0VOr7zNMshiqGVSG7MSkaMkM2MrGzOP5MVN0q2iGqsMk",
                     "notes": "giuseppe.materni"
@@ -81,45 +36,19 @@
         },
         "opencode": {
             "api_key_env": "OPENCODE_API_KEY",
-            "exported_key": "zen260718",
+            "exported_key": "go260702",
             "keys": [
-                {
-                    "name": "zen260718",
-                    "key": "67-lvXnXm1Cr6zGVGeao8F8EAXfwiG3BBti9Jj9xeJduCrqTGSBLvXeOhmfjJX2xWOO",
-                    "notes": "giuseppe.materni"
-                },
                 {
                     "name": "go260702",
                     "key": "67-rWDZ65S6dl85jxUXXcshALtkBVgzOVjKnwD5vx3ElXQ93za5YOIzUz1dM3rNUlos",
                     "notes": "giuseppe.materni"
-                },
-                {
-                    "name": "gm2607222",
-                    "key": "67-IuPjnXeSXFq71uy49a0V2Kwcm2G616qO7g4gguQMGC8cfRl5ESzdyoCFgMn2CBFU",
-                    "notes": "gmaterni"
-                },
-                {
-                    "name": "gabzen2600918",
-                    "key": "67-sK5mnM9L8eyk0l6WZDFzcd6Ws4edOIj2wCMrsFwRbRwfiyr1shHFhuvr4uYRXaPq",
-                    "notes": "gabriele.tenebra"
-                },
-                {
-                    "name": "260606",
-                    "key": "67-V85pVBltImCNPWyRgeybwtAIGor0vRd4VxxeWofoI8Kw1f5kpbmyhC381HXzWlrX",
-                    "notes": "ipotesi2000"
                 }
             ]
         },
         "nvidia": {
             "api_key_env": "NVIDIA_API_KEY",
             "exported_key": null,
-            "keys": [
-                {
-                    "name": "260615",
-                    "key": "zqA5D-pK8Qa7GhzhXhTDmni3cx6VFp0C-8EQgrlTk2heB6P41YPzkMzRAhwCEcIAjCJj9z",
-                    "notes": "giuseppe.materni"
-                }
-            ]
+            "keys": []
         },
         "openrouter": {
             "api_key_env": "OPENROUTER_API_KEY",
@@ -140,21 +69,6 @@
                     "name": "260414",
                     "key": "qyqMNcyMydvxWeEA6PCo8QkLe5boT7dA",
                     "notes": "giuseppe.materni"
-                },
-                {
-                    "name": "260416",
-                    "key": "VRd2FGMaeqvzGXHfsnQneD4bqPQi5qzi",
-                    "notes": "ipotesi1000"
-                },
-                {
-                    "name": "vibegm261011",
-                    "key": "0dpg19W3yJeXgapABxXoMqBHqMxMByZR",
-                    "notes": "giuseppe.materni"
-                },
-                {
-                    "name": "gt261011",
-                    "key": "7SxLy2vax3WpEm8TKmkO6z2FMFgrqPDB",
-                    "notes": "gabriele.tenebra"
                 }
             ]
         },
@@ -162,11 +76,6 @@
             "api_key_env": "HF_TOKEN",
             "exported_key": "hf12",
             "keys": [
-                {
-                    "name": "hf1",
-                    "key": "O2_hfgPYPPEVUUxjWKzGIRQn341w8qFfDKhDI",
-                    "notes": "giuseppe.materni"
-                },
                 {
                     "name": "hf12",
                     "key": "O2_hNDLVebH8EDgO7cPciTcVGZngmxI2Qf7Kz",
@@ -178,11 +87,6 @@
             "api_key_env": "GROQ_API_KEY",
             "exported_key": "gmt2",
             "keys": [
-                {
-                    "name": "gmt1",
-                    "key": "o67_D6UzMLbtevBLhSuhBlSxHQsPg0vU1kIBru1CvpeIalzrAuLFivIy",
-                    "notes": "giuseppe.materni"
-                },
                 {
                     "name": "gmt2",
                     "key": "o67_deaFoPWuNsV9xSs82bmNHQsPg0vU9HpaKqgqYBbpDwdWvJMKIMR0",
@@ -197,16 +101,6 @@
                 {
                     "name": "ua260310",
                     "key": "67-aCkgBNB2NlAuBNtAku00duNBsklgAg2l",
-                    "notes": "giuseppe.materni"
-                },
-                {
-                    "name": "ua260320",
-                    "key": "67-0ACk2NsgtANkBsABk0CatkuBgkdBCI2A",
-                    "notes": "giuseppe.materni"
-                },
-                {
-                    "name": "ua260321",
-                    "key": "67-SlC0IuSaCuCABgNgkSgNdldlkCsgdAIt",
                     "notes": "giuseppe.materni"
                 }
             ]
@@ -240,11 +134,6 @@
                 {
                     "name": "260620",
                     "key": "67-rWgVNisiDDN7zV2ie2gEMrWG6MrjWN6hqj6sA5A5GififfhI",
-                    "notes": "giuseppe.materni"
-                },
-                {
-                    "name": "260628",
-                    "key": "67-M55sfsfIWrhEA2j26DAiDfPhNorj7ghjDVIgi7PfsNjGhqqV",
                     "notes": "giuseppe.materni"
                 }
             ]

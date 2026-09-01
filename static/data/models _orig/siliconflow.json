@@ -1,0 +1,8 @@
+[
+  {"provider":"siliconflow","model":"Qwen/Qwen2.5-72B-Instruct","name":"Qwen 2.5 72B","windowSize":128},
+  {"provider":"siliconflow","model":"Qwen/Qwen2.5-7B-Instruct","name":"Qwen 2.5 7B","windowSize":128},
+  {"provider":"siliconflow","model":"deepseek-ai/DeepSeek-V3","name":"DeepSeek V3","windowSize":128},
+  {"provider":"siliconflow","model":"deepseek-ai/DeepSeek-R1","name":"DeepSeek R1","windowSize":128},
+  {"provider":"siliconflow","model":"meta-llama/Meta-Llama-3.1-70B-Instruct","name":"Llama 3.1 70B","windowSize":128},
+  {"provider":"siliconflow","model":"meta-llama/Meta-Llama-3.1-8B-Instruct","name":"Llama 3.1 8B","windowSize":128}
+]

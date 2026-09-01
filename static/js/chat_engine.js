@@ -19,6 +19,7 @@ import { createLlmPayload } from "./llmclient/index.js";
 import { ConversationMgr, MessageStore } from "./conversation_mgr.js";
 import { PromptMgr } from "./prompt_mgr.js";
 import { SettingsMgr } from "./settings_mgr.js";
+import { getDocuments } from "./uploader.js";
 
 // ============================================================================
 // COSTANTI
@@ -64,7 +65,7 @@ const _cancellableSleep = function(ms) {
 
 /**
  * Compone i messaggi del payload:
- * system prompt selezionato (se presente) + cronologia + domanda corrente.
+ * system prompt selezionato (se presente) + documenti caricati + cronologia + domanda corrente.
  * @param {Array<Object>} history - Messaggi salvati {role, content}.
  * @param {Object|null} systemPrompt - Prompt di sistema attivo {content}.
  * @param {string} question - Domanda corrente dell'utente.
@@ -77,13 +78,25 @@ const _composeMessages = function(history, systemPrompt, question) {
         messages.push({ role: "system", content: systemPrompt.content });
     }
 
+    // Inietta i documenti caricati come parte del contesto (prima della cronologia)
+    const documents = getDocuments();
+    if (documents.length > 0) {
+        const docBlocks = documents.map((doc) =>
+            "[Contenuto del documento: " + doc.fileName + "]\n" + doc.content + "\n[Fine documento]"
+        ).join("\n\n");
+        messages.push({
+            role: "system",
+            content: "=== DOCUMENTI CARICATI ===\n" + docBlocks + "\n=== FINE DOCUMENTI ==="
+        });
+    }
+
     for (const msg of history) {
         if (msg.role === "user" || msg.role === "assistant") {
             messages.push({ role: msg.role, content: msg.content });
         }
     }
 
-    const formattedQuestion = `# Domanda\n${question}`;
+    const formattedQuestion = "# Domanda\n" + question;
     messages.push({ role: "user", content: formattedQuestion });
 
     return messages;
@@ -203,6 +216,7 @@ export const ChatEngine = {
                 if (created && created.id) {
                     conversationId = created.id;
                     await SettingsMgr.setActiveConversationId(conversationId);
+                    await ConversationMgr.saveDocuments(conversationId, getDocuments());
                 }
             }
 

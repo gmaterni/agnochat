@@ -90,7 +90,10 @@ const openAppAsync = async function () {
         // 2. Inizializzazione Core Applicativo
         await AppMgr.initApp();
 
-        // 3. Configurazione Componenti Input/Output
+        // 3. Caricamento modelli selezionati da IndexedDB
+        await AppMgr.loadSelectedModels();
+
+        // 4. Configurazione Componenti Input/Output
         TextInput.init();
         TextInput._inputEl?.focus();
         TextOutput.init();

@@ -1,0 +1,8 @@
+[
+  {"provider":"gemini","model":"gemini-2.5-flash","name":"Gemini 2.5 Flash","windowSize":1024},
+  {"provider":"gemini","model":"gemini-3.1-flash-lite","name":"Gemini 3.1 Flash Lite","windowSize":1024},
+  {"provider":"gemini","model":"gemini-flash-latest","name":"Gemini Flash Latest","windowSize":1024},
+  {"provider":"gemini","model":"gemini-flash-lite-latest","name":"Gemini Flash Lite Latest","windowSize":1024},
+  {"provider":"gemini","model":"gemma-4-26b-a4b-it","name":"Gemma 4 26B","windowSize":256},
+  {"provider":"gemini","model":"gemma-4-31b-it","name":"Gemma 4 31B","windowSize":256}
+]

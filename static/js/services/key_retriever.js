@@ -21,7 +21,7 @@ export const IMPLEMENTED_CLIENTS = _IMPLEMENTED_CLIENTS;
  * @private
  */
 const _getSupportedProviders = async function() {
-    const { getProviderConfig } = await import("../llm_provider.js");
+    const { getProviderConfig } = await import("vanillallm/llm_provider.js");
     const config = getProviderConfig();
 
     if (Object.keys(config).length > 0) {
@@ -164,19 +164,25 @@ export async function addApiKey() {
             const provider = document.getElementById("key-sel-provider").value;
             const name = document.getElementById("key-inp-name").value;
             const key = document.getElementById("key-inp-key").value;
-            if (!provider || !name || !key) return await alert("Provider, Nome e Key obbligatori.");
+            if (!provider || !name || !key) {
+                alert("Provider, Nome e Key obbligatori.");
+                return;
+            }
 
             if (!db.providers[provider]) {
                 db.providers[provider] = { api_key_env: `${provider.toUpperCase()}_API_KEY`, exported_key: null, keys: [] };
             }
             const providerData = db.providers[provider];
-            if (providerData.keys.some(k => k.name === name)) return await alert(`Esiste già una chiave con nome '${name}' per ${provider}.`);
+            if (providerData.keys.some(k => k.name === name)) {
+                alert(`Esiste già una chiave con nome '${name}' per ${provider}.`);
+                return;
+            }
             
             providerData.keys.push({ name, key, notes: "" });
             if (!providerData.exported_key) {
                 providerData.exported_key = name;
                 // Aggiorna il client LLM "a caldo"
-                const { LlmProvider } = await import("../llm_provider.js");
+                const { LlmProvider } = await import("vanillallm/llm_provider.js");
                 await LlmProvider.updateClient(provider);
             }
 
@@ -192,7 +198,7 @@ export async function addApiKey() {
             await saveDb();
 
             // Aggiorna il client LLM "a caldo"
-            const { LlmProvider } = await import("../llm_provider.js");
+            const { LlmProvider } = await import("vanillallm/llm_provider.js");
             await LlmProvider.updateClient(provider);
         };
 
@@ -204,7 +210,7 @@ export async function addApiKey() {
                 providerData.exported_key = null;
             }
             await saveDb();
-            const { LlmProvider } = await import("../llm_provider.js");
+            const { LlmProvider } = await import("vanillallm/llm_provider.js");
             await LlmProvider.updateClient(provider);
         };
 

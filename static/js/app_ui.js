@@ -31,6 +31,7 @@ import { createLlmSelectionWindow } from "./llm/llm-selection.js";
 import { getLlmDb } from "./app_mgr.js";
 import { runUpdate as runLlmUpdate } from "./commands/update-llm.js";
 import { runReset as runLlmReset } from "./commands/reset-llm.js";
+import { documentUploader, getDocuments, removeDocument, clearDocuments, setOnDocumentsChanged, setDocuments } from "./uploader.js";
 import { UaSender } from "./services/sender.js";
 
 import "./services/uadialog.js";
@@ -405,6 +406,36 @@ const _setResponseHtml = function(html) {
     outputContainer.scrollTo({ top: outputContainer.scrollHeight, behavior: "smooth" });
 };
 
+const _escapeHtml = function(str) {
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+};
+
+const renderDocBar = function() {
+    const docBar = document.getElementById("doc-bar");
+    if (!docBar) return;
+    const docs = getDocuments();
+    if (docs.length === 0) {
+        docBar.innerHTML = "";
+        docBar.style.display = "none";
+        return;
+    }
+    docBar.style.display = "flex";
+    docBar.innerHTML = docs.map(doc => {
+        const escName = _escapeHtml(doc.fileName);
+        return `<span class="doc-item tt-top" data-tt="${escName}">
+          <svg class="doc-icon" viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,19L8,15H10.5V12H13.5V15H16L12,19Z"/></svg>
+          <button class="doc-remove" data-doc-name="${escName}" title="Rimuovi">
+            <svg class="icon-remove" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/></svg>
+          </button>
+        </span>`;
+    }).join("");
+};
+
 const _updateThemeAsync = async function(theme) {
     const isLight = theme === "light";
     document.body.classList.toggle("theme-light", isLight);
@@ -446,6 +477,7 @@ const _actionNewConversationAsync = async function() {
     // Notifica avvio conversazione al worker di analytics
     await UaSender.sendEventAsync("vanillallm", "startConversation");
 
+    clearDocuments();
     _setResponseHtml("");
     UaLog.log(">>> Nuova conversazione creata. <<<");
 };
@@ -496,6 +528,7 @@ const _actionListConversationsAsync = async function() {
         const currentActiveId = await SettingsMgr.getActiveConversationId();
         if (currentActiveId === id) {
             await SettingsMgr.setActiveConversationId(null);
+            clearDocuments();
             _setResponseHtml("");
         }
         wnds.winfo.close();
@@ -735,13 +768,8 @@ export const Commands = {
 
 export const TextInput = {
     _inputEl: null,
-    _fileInputEl: null,
     init: function() {
         TextInput._inputEl = document.querySelector(".text-input");
-        TextInput._fileInputEl = document.getElementById("doc-upload-input");
-        if (TextInput._fileInputEl) {
-            TextInput._fileInputEl.addEventListener("change", TextInput._handleFileSelect);
-        }
     },
     handleEnter: function(event) {
         if (event.key === "Enter" && !event.shiftKey) {
@@ -751,41 +779,6 @@ export const TextInput = {
     },
     clear: function() {
         if (TextInput._inputEl) { TextInput._inputEl.value = ""; TextInput._inputEl.focus(); }
-    },
-    triggerFileUpload: function() {
-        if (TextInput._fileInputEl) {
-            TextInput._fileInputEl.value = "";
-            TextInput._fileInputEl.click();
-        }
-    },
-    _handleFileSelect: async function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        try {
-            const { processFile, SUPPORTED_TYPES } = await import("vanillallm/document_processor.js");
-            const ext = "." + file.name.split(".").pop().toLowerCase();
-            if (!SUPPORTED_TYPES.includes(ext)) {
-                await alert(`Tipo di file non supportato: ${ext}`);
-                return;
-            }
-            
-            const content = await processFile(file);
-            const formatted = `[Contenuto del documento: ${file.name}]\n${content}\n[Fine documento]\n\n`;
-            TextInput.insertAtCursor(formatted);
-        } catch (error) {
-            console.error("Errore upload documento:", error);
-            await alert(`Errore durante l'elaborazione del documento:\n${error.message}`);
-        } finally {
-            event.target.value = "";
-        }
-    },
-    insertAtCursor: function(text) {
-        if (!TextInput._inputEl) return;
-        const start = TextInput._inputEl.selectionStart;
-        const end = TextInput._inputEl.selectionEnd;
-        TextInput._inputEl.setRangeText(text, start, end, "end");
-        TextInput._inputEl.focus();
     },
     _checkProviderReady: async function() {
         const config = LlmProvider.getConfig();
@@ -865,12 +858,17 @@ export const showHtmlThread = async function() {
     const conversationId = await SettingsMgr.getActiveConversationId();
     if (!conversationId) {
         _setResponseHtml("");
+        setDocuments([]);
+        renderDocBar();
         _updateEditLastButton([]);
         return;
     }
     const messages = await MessageStore.list(conversationId);
     _setResponseHtml(messages2html(messages));
     _updateEditLastButton(messages);
+    const docs = await ConversationMgr.loadDocuments(conversationId);
+    setDocuments(docs);
+    renderDocBar();
 };
 
 // ============================================================================
@@ -1196,7 +1194,7 @@ export const bindEventListener = function() {
         "btn-copy-output": TextOutput.copyAsync,
         "btn-copy-output-toolbar": TextOutput.copyAsync,
         "btn-clear-output": function() { _setResponseHtml(""); },
-        "btn-upload-doc": TextInput.triggerFileUpload
+        "btn-upload-doc": function() { documentUploader.open(); }
     };
 
     Object.entries(ids).forEach(([id, fn]) => {
@@ -1230,6 +1228,28 @@ export const bindEventListener = function() {
 
     // Azioni
     HelpPopup.bind("btn-action-send", "<strong>Invia Messaggio</strong><br>Invia la domanda al modello attivo mantenendo la memoria della conversazione.");
+
+    // --- DOC BAR: event delegation per rimozione singola ---
+    const docBar = document.getElementById("doc-bar");
+    if (docBar) {
+        docBar.addEventListener("click", function(e) {
+            const btn = e.target.closest(".doc-remove");
+            if (!btn) return;
+            const name = btn.getAttribute("data-doc-name");
+            if (name) {
+                removeDocument(name);
+            }
+        });
+    }
+
+    // --- DOC BAR: callback per aggiornamento automatico e persistenza ---
+    setOnDocumentsChanged(async function(docs) {
+        renderDocBar();
+        const activeId = await SettingsMgr.getActiveConversationId();
+        if (activeId) {
+            ConversationMgr.saveDocuments(activeId, docs);
+        }
+    });
     HelpPopup.bind("btn-copy-output", "<strong>Copia Output</strong><br>Copia il testo dell'output della chat negli appunti.");
     HelpPopup.bind("btn-copy-output-toolbar", "<strong>Copia Output</strong><br>Copia il testo dell'output della chat negli appunti.");
     HelpPopup.bind("btn-clear-output", "<strong>Cancella Output</strong><br>Svuota la vista dell'output senza cancellare la cronologia della conversazione.");

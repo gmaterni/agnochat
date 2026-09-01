@@ -1,14 +1,13 @@
 /**
- * llm_updater.js - Procedura di aggiornamento del repository LLM.
+ * llm_updater.js - Scoperta modelli disponibili e test LLM.
  *
  * Modulo puro: nessuna UI, nessun riferimento al DOM.
- * Si occupa solo di:
- *   1. Leggere/salvare il repository dei modelli accettati su IndexedDB
- *   2. Testare in sequenza ogni modello di ogni provider con chiave attiva
- *      inviando un prompt di prova e misurando tempo ed esito
- *   3. Calcolare un voto di qualità (7-10) per i modelli che superano il test
+ * Si occupa di:
+ *   1. Fornire fetchAvailableModels per scoprire modelli senza testarli
+ *   2. Test di un singolo modello (testModel) e voto qualità (computeVote)
  *
  * UI (voce di menu, finestra risultati) in app_ui.js.
+ * Il comando "Aggiorna LLM" completo è in commands/update-llm.js.
  *
  * @module llm_updater
  * @version 1.0.0
@@ -19,18 +18,18 @@
 
 import { LlmProvider } from "./llm_provider.js";
 import { getApiKey, IMPLEMENTED_CLIENTS } from "./services/key_retriever.js";
-import { UaDb } from "./services/uadb.js";
-import { DATA_KEYS } from "./services/data_keys.js";
 import { UaLog } from "./services/ualog3.js";
 import { createLlmPayload, createMessage } from "./llmclient/index.js";
 import { discoverModels, hasFetcher } from "./llmlist/index.js";
+import { loadProviderModels } from "vanillallm/llm/llm-catalog.js";
+import { TEST_SYSTEM_PROMPT, TEST_USER_PROMPT } from "vanillallm/llm/test-prompts.js";
 
 // ============================================================================
 // COSTANTI
 // ============================================================================
 
 /** Prompt di prova fisso, uguale per tutti i modelli per rendere confrontabili tempi e voti. */
-const TEST_PROMPT = "Spiega in non più di 5 righe cos'è il teorema di Pitagora, includendo un esempio numerico con numeri interi.";
+const TEST_QUESTION = "Spiega in non più di 5 righe cos'è il teorema di Pitagora, includendo un esempio numerico con numeri interi.";
 
 /** Soglia massima di risposta per considerare superato il test (millisecondi). */
 const TEST_TIMEOUT_MS = 20000;
@@ -91,50 +90,23 @@ const isChatModel = function(model) {
 
 /**
  * Carica il catalogo grezzo di provider/modelli direttamente dai file
- * (manifest.json + .txt), senza applicare il filtro del repository:
+ * (.txt), senza applicare il filtro del repository:
  * la procedura deve poter scoprire anche i modelli non ancora accettati.
+ * I provider sono quelli con client implementato in llmclient: chi non ha
+ * file ha 0 modelli, nessun errore.
  * @returns {Promise<Object<string, Array<string>>>}
  */
 const _loadRawCatalog = async function() {
     const catalog = {};
 
-    let providers = [];
-    try {
-        const manifestRes = await fetch(`./data/models/manifest.json`);
-        if (manifestRes.ok) {
-            providers = await manifestRes.json();
+    for (const p of IMPLEMENTED_CLIENTS) {
+        const models = await loadProviderModels(p);
+        if (models.length === 0) {
+            continue;
         }
-    } catch (_) {}
-
-    if (providers.length === 0) {
-        providers = IMPLEMENTED_CLIENTS;
-    }
-
-    for (const p of providers) {
-        try {
-            const response = await fetch(`./data/models/${p}.txt`);
-            if (!response.ok) {
-                continue;
-            }
-            const text = await response.text();
-            const lines = text.split("\n").filter(function(line) {
-                return line.trim() !== "";
-            });
-
-            const models = [];
-            lines.forEach(function(line) {
-                const name = line.split("|")[0];
-                if (name && name.trim()) {
-                    models.push(name.trim());
-                }
-            });
-
-            if (models.length > 0) {
-                catalog[p] = models;
-            }
-        } catch (e) {
-            console.warn(`Impossibile caricare i modelli per ${p}:`, e);
-        }
+        catalog[p] = models.map(function(m) {
+            return m.name;
+        });
     }
 
     return catalog;
@@ -154,128 +126,11 @@ const _withTimeout = function(promise, ms) {
         promise.then(function(value) {
             clearTimeout(timer);
             resolve(value);
-        }).catch(function() {
+        }).catch(function(error) {
             clearTimeout(timer);
+            console.error("llm_updater._withTimeout:", error);
             resolve(null);
         });
-    });
-};
-
-// ============================================================================
-// API PUBBLICA — Repository
-// ============================================================================
-
-/**
- * Struttura del repository su IndexedDB:
- *   { new:    { "<provider>": ["<model>", ...], ... },
- *     active: { "<provider>": ["<model>", ...], ... } }
- * - "new": modelli superati dal test (Aggiorna LLM), in attesa di selezione.
- * - "active": modelli attualmente nell'albero di scelta LLM (Seleziona LLM).
- */
-
-/**
- * Legge l'intera struttura del repository da IndexedDB.
- * Migra automaticamente il vecchio formato piatto
- * ({ "<provider>": ["<model>", ...], ... }) al nuovo formato {new, active},
- * spostando i modelli in "active" (preservando l'albero attuale) e
- * persistendo la migrazione.
- * Restituisce { new: {}, active: {} } se assente o corrotto.
- * @returns {Promise<{new: Object, active: Object}>}
- */
-export const readRepository = async function() {
-    const repo = await UaDb.readJson(DATA_KEYS.KEY_LLM_REPOSITORY);
-
-    if (!repo || typeof repo !== "object" || Array.isArray(repo)) {
-        return { new: {}, active: {} };
-    }
-
-    const cleanSection = function(section) {
-        if (!section || typeof section !== "object" || Array.isArray(section)) {
-            return {};
-        }
-        const cleaned = {};
-        for (const provider of Object.keys(section)) {
-            if (Array.isArray(section[provider])) {
-                cleaned[provider] = section[provider];
-            }
-        }
-        return cleaned;
-    };
-
-    // Nuovo formato: { new, active }
-    if (repo.new !== undefined || repo.active !== undefined) {
-        return {
-            new: cleanSection(repo.new),
-            active: cleanSection(repo.active)
-        };
-    }
-
-    // Vecchio formato piatto: { "<provider>": ["<model>", ...], ... }
-    // I modelli accettati rappresentavano l'albero attivo → migra in "active".
-    const migratedActive = cleanSection(repo);
-    const migrated = {
-        new: {},
-        active: migratedActive
-    };
-    await UaDb.saveJson(DATA_KEYS.KEY_LLM_REPOSITORY, migrated);
-    return migrated;
-};
-
-/**
- * Legge i modelli superati dal test ("new"), pronti per la selezione.
- * @returns {Promise<Object>} { "<provider>": ["<model>", ...], ... }
- */
-export const readNewModels = async function() {
-    const repo = await readRepository();
-    return repo.new;
-};
-
-/**
- * Legge i modelli attivi ("active"), quelli mostrati nell'albero di scelta.
- * @returns {Promise<Object>} { "<provider>": ["<model>", ...], ... }
- */
-export const readActiveModels = async function() {
-    const repo = await readRepository();
-    return repo.active;
-};
-
-/**
- * Salva l'intera struttura del repository su IndexedDB (salvataggio atomico).
- * @param {{new: Object, active: Object}} repo
- * @returns {Promise<void>}
- */
-export const saveRepository = async function(repo) {
-    const current = await readRepository();
-    const next = {
-        new: (repo && repo.new) || current.new,
-        active: (repo && repo.active) || current.active
-    };
-    await UaDb.saveJson(DATA_KEYS.KEY_LLM_REPOSITORY, next);
-};
-
-/**
- * Aggiorna i modelli "new" (superati dal test), preservando gli "active".
- * @param {Object} newModels - { "<provider>": ["<model>", ...], ... }
- * @returns {Promise<void>}
- */
-export const setNewModels = async function(newModels) {
-    const current = await readRepository();
-    await UaDb.saveJson(DATA_KEYS.KEY_LLM_REPOSITORY, {
-        new: newModels || {},
-        active: current.active
-    });
-};
-
-/**
- * Aggiorna i modelli "active" (selezionati nell'albero), preservando i "new".
- * @param {Object} activeModels - { "<provider>": ["<model>", ...], ... }
- * @returns {Promise<void>}
- */
-export const setActiveModels = async function(activeModels) {
-    const current = await readRepository();
-    await UaDb.saveJson(DATA_KEYS.KEY_LLM_REPOSITORY, {
-        new: current.new,
-        active: activeModels || {}
     });
 };
 
@@ -287,10 +142,10 @@ export const setActiveModels = async function(activeModels) {
  * Calcola il voto di qualità (7-10) di una risposta al prompt di prova.
  * Euristica locale: si parte da 10 e si applicano penalità per risposta
  * lenta o breve. I bocciati (errore, timeout, contenuto vuoto) non
- * arrivano mai a questa funzione, quindi il minimo effettivo è 7.
+ * arrivano mai a questa funzione, quindi il minimo effettivo è 6.
  * @param {string} responseText - Contenuto risposto dal modello.
  * @param {number} elapsedMs - Tempo di risposta in millisecondi.
- * @returns {number} Voto da 7 a 10.
+ * @returns {number} Voto da 6 a 10.
  */
 export const computeVote = function(responseText, elapsedMs) {
     let vote = 10;
@@ -307,7 +162,7 @@ export const computeVote = function(responseText, elapsedMs) {
         vote -= 1;
     }
 
-    return Math.max(7, vote);
+    return Math.max(6, vote);
 };
 
 // ============================================================================
@@ -341,9 +196,12 @@ export const testModel = async function(provider, model) {
         };
     }
 
-    const payload = createLlmPayload(model, [createMessage("user", TEST_PROMPT)], {
+    const payload = createLlmPayload(model, [
+        createMessage("system", TEST_SYSTEM_PROMPT),
+        createMessage("user", TEST_USER_PROMPT.replace("{QUESTION}", TEST_QUESTION))
+    ], {
         temperature: 0.3,
-        max_tokens: 256
+        max_tokens: 512
     });
 
     const started = performance.now();
@@ -366,7 +224,7 @@ export const testModel = async function(provider, model) {
         });
         rr = await _withTimeout(Promise.race([sendPromise, cancelPromise]), TEST_TIMEOUT_MS);
     } catch (e) {
-        console.error(`testModel (${provider}/${model}):`, e);
+        console.error("testModel (" + provider + "/" + model + "):", e);
         return {
             provider, model,
             ok: false,
@@ -399,12 +257,12 @@ export const testModel = async function(provider, model) {
 
     if (!rr.ok) {
         const err = rr.error || {};
-        const typePart = err.type ? `${err.type}: ` : "";
+        const typePart = err.type ? err.type + ": " : "";
         return {
             provider, model,
             ok: false,
             elapsedMs,
-            reason: `errore del provider (${typePart}${err.message || "errore sconosciuto"})`
+            reason: "errore del provider (" + typePart + (err.message || "errore sconosciuto") + ")"
         };
     }
 
@@ -424,115 +282,6 @@ export const testModel = async function(provider, model) {
         elapsedMs,
         response
     };
-};
-
-// ============================================================================
-// API PUBBLICA — Procedura di aggiornamento
-// ============================================================================
-
-/**
- * Esegue la procedura di aggiornamento: testa in sequenza ogni modello di
- * ogni provider del catalogo grezzo che ha una chiave API attiva, tracciando
- * l'avanzamento in UaLog.
- * @returns {Promise<Array<Object>>} Risultati ordinati per provider:
- *                                   [{ provider, model, ok, vote?, elapsedMs?, reason?, response? }]
- */
-export const runUpdate = async function() {
-    _resetCancel();
-
-    const previousConfig = LlmProvider.getConfig();
-    const fileCatalog = await _loadRawCatalog();
-    const catalog = {};
-    const results = [];
-    let testedCount = 0;
-
-    for (const provider of IMPLEMENTED_CLIENTS) {
-        if (_cancelRequested) {
-            break;
-        }
-        const apiKey = await getApiKey(provider);
-        if (!apiKey) {
-            UaLog.log(`${provider} saltato (nessuna chiave).`);
-            continue;
-        }
-        if (hasFetcher(provider)) {
-            try {
-                const discovered = await discoverModels(provider, apiKey);
-                const chatModels = discovered.filter(function(m) {
-                    return isChatModel(m.id);
-                });
-                console.debug(`[llm-update] Discovery ${provider}: ${discovered.length} modelli ricevuti (${chatModels.length} chat)`, discovered.map(function(m) {
-                    return { id: m.id, contextWindow: m.contextWindow };
-                }));
-                LlmProvider.setModelsFromDiscovery(provider, chatModels);
-                catalog[provider] = chatModels.map(function(m) {
-                    return m.id;
-                });
-                UaLog.log(`${provider}: elenco ${catalog[provider].length} modelli.`);
-            } catch (e) {
-                const reason = e.userMessage || e.message || "errore sconosciuto";
-                UaLog.log(`${provider}: discovery fallita (${e.type || "Error"}). ${reason}`);
-                console.warn(`[llm-update] Discovery ${provider} fallita:`, e);
-                catalog[provider] = (fileCatalog[provider] || []).filter(function(m) {
-                    return isChatModel(m);
-                });
-            }
-        } else if (fileCatalog[provider]) {
-            catalog[provider] = fileCatalog[provider].filter(function(m) {
-                return isChatModel(m);
-            });
-        }
-    }
-
-    for (const provider of Object.keys(catalog)) {
-        if (_cancelRequested) {
-            break;
-        }
-        for (const model of catalog[provider]) {
-            if (_cancelRequested) {
-                break;
-            }
-            UaLog.log(`test ${provider}/${model}...`);
-            console.debug(`[llm-update] Request test ${provider}/${model} avviata (prompt di prova).`);
-            const outcome = await testModel(provider, model);
-            testedCount++;
-            console.debug(`[llm-update] Request test ${provider}/${model} completata`, outcome);
-
-            if (outcome.ok) {
-                const vote = computeVote(outcome.response, outcome.elapsedMs);
-                outcome.vote = vote;
-                UaLog.log(`${provider}/${model} OK (${(outcome.elapsedMs / 1000).toFixed(1)}s, voto ${vote}).`);
-            } else {
-                const timePart = outcome.elapsedMs != null ? ` (${(outcome.elapsedMs / 1000).toFixed(1)}s)` : "";
-                UaLog.log(`${provider}/${model} bocciato${timePart}: ${outcome.reason}.`);
-            }
-
-            results.push(outcome);
-
-            if (outcome.cancelled) {
-                break;
-            }
-        }
-        if (results.some(function(r) { return r.cancelled; })) {
-            break;
-        }
-    }
-
-    results.sort(function(a, b) {
-        const byProvider = a.provider.localeCompare(b.provider);
-        if (byProvider !== 0) return byProvider;
-        return a.model.localeCompare(b.model);
-    });
-
-    if (_cancelRequested) {
-        UaLog.log(`interrotto dall'utente — ${testedCount} modelli testati su ${Object.keys(catalog).length} provider.`);
-    } else {
-        UaLog.log(`completato — ${testedCount} modelli testati su ${Object.keys(catalog).length} provider.`);
-    }
-    if (previousConfig.provider && previousConfig.model) {
-        LlmProvider.setActive(previousConfig.provider, previousConfig.model);
-    }
-    return results;
 };
 
 // ============================================================================
@@ -564,7 +313,7 @@ export const fetchAvailableModels = async function() {
                     return isChatModel(m.id);
                 });
             } catch (e) {
-                console.warn(`fetchAvailableModels: discovery fallita per ${provider} [${e.type || "Error"}]:`, e.userMessage || e.message);
+                console.warn("fetchAvailableModels: discovery fallita per " + provider + " [" + (e.type || "Error") + "]", e.userMessage || e.message);
                 available[provider] = (fileCatalog[provider] || []).map(function(id) {
                     return { id: id, contextWindow: 0 };
                 }).filter(function(m) {
@@ -588,15 +337,8 @@ export const fetchAvailableModels = async function() {
 // ============================================================================
 
 export const LlmUpdater = {
-    readRepository,
-    saveRepository,
-    readNewModels,
-    readActiveModels,
-    setNewModels,
-    setActiveModels,
     computeVote,
     testModel,
-    runUpdate,
     cancelUpdate,
     fetchAvailableModels
 };

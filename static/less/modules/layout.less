@@ -9,8 +9,9 @@
     flex: 1; min-height: 0; padding: 0.5vh 0.5vw 1vh 0.5vw;
     .output-wrapper {
       border-radius: 20px; position: relative; width: 100%; height: 100%;
+      display: flex; flex-direction: column;
       .text-out {
-        box-sizing: border-box; border: none; padding: 2px; margin: 0; width: 100%; height: 100%; border-radius: 10px; overflow-y: auto; outline: none;
+        box-sizing: border-box; border: none; padding: 2px; margin: 0; width: 100%; flex: 1; min-height: 0; border-radius: 10px; overflow-y: auto; outline: none;
         .pre-text, .div-text { box-sizing: border-box; white-space: pre-wrap; word-wrap: break-word; font-family: @fsans; font-size: @fsize-out; line-height: 1.6; padding: 10px; margin: 0; height: 100%; overflow-y: auto; scroll-behavior: smooth; }
         .div-text {
           width: 100%; overflow-x: hidden;
@@ -104,6 +105,23 @@
               margin: 0 !important;
               padding: 0 !important;
             }
+          }
+        }
+      }
+      .doc-bar {
+        display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 8px;
+        flex-shrink: 0; border-radius: 8px;
+        .doc-item {
+          display: flex; align-items: center; gap: 3px;
+          flex-shrink: 0; padding: 2px 6px; border-radius: 6px;
+          cursor: default; white-space: nowrap;
+          .doc-icon { width: 14px; height: 14px; flex-shrink: 0; }
+          .doc-remove {
+            display: flex; align-items: center; justify-content: center;
+            width: 14px; height: 14px; border: none; background: none;
+            cursor: pointer; padding: 0; opacity: 0.6;
+            .icon-remove { width: 10px; height: 10px; }
+            &:hover { opacity: 1; }
           }
         }
       }

@@ -72,14 +72,14 @@ export const createLlmSelectionWindow = function(db) {
         // Header con close button e pulsanti azione
         const ttSave = "Salva: sostituisce completamente la selezione corrente con i modelli selezionati";
         const ttAdd = "Aggiungi: unisce i modelli selezionati a quelli gi\u00E0 presenti nell'albero (non rimuove quelli esistenti)";
-        const ttCancel = "Annulla: chiude la finestra senza modifiche";
+        const ttCancel = "Annulla: deseleziona tutti i modelli per iniziare una nuova selezione";
         jfh.append('<div class="btn-wrapper llm-btn-wrapper">');
         jfh.append('<span class="llm-header-btns">');
-        jfh.append("<button class=\"btn-success tt-left\" data-tt=\"" + ttSave + "\" onclick=\"llmSelectionSave()\">Salva</button>");
-        jfh.append("<button class=\"btn-yellow tt-left\" data-tt=\"" + ttAdd + "\" onclick=\"llmSelectionAdd()\">Aggiungi</button>");
-        jfh.append("<button class=\"btn-danger tt-left\" data-tt=\"" + ttCancel + "\" onclick=\"llmSelectionCancel()\">Annulla</button>");
+        jfh.append("<button class=\"btn-success tt-top\" data-tt=\"" + ttSave + "\" onclick=\"llmSelectionSave()\">Salva</button>");
+        jfh.append("<button class=\"btn-yellow tt-top\" data-tt=\"" + ttAdd + "\" onclick=\"llmSelectionAdd()\">Aggiungi</button>");
+        jfh.append("<button class=\"btn-danger tt-top\" data-tt=\"" + ttCancel + "\" onclick=\"llmSelectionReset()\">Annulla</button>");
         jfh.append('</span>');
-        jfh.append('<button class="btn-close tt-left" data-tt="Chiudi" onclick="llmSelectionCancel()">X</button>');
+        jfh.append('<button class="btn-close tt-left" data-tt="Chiudi" onclick="llmSelectionClose()">X</button>');
         jfh.append('</div>');
 
         // Contenuto scrollabile
@@ -354,7 +354,21 @@ export const createLlmSelectionWindow = function(db) {
             await alert("Aggiunta completata: " + selectedModels.length + " modelli aggiunti all'albero.");
         };
 
-        window.llmSelectionCancel = function() {
+        window.llmSelectionReset = function() {
+            const winEl = UaWindowAdm.get(_windowId).getElement();
+            if (!winEl) return;
+            winEl.querySelectorAll(".llm-model-check").forEach(function(cb) {
+                cb.checked = false;
+                const row = cb.closest(".llm-row");
+                if (row) row.classList.remove("selected");
+            });
+            winEl.querySelectorAll(".llm-provider-check").forEach(function(cb) {
+                cb.checked = false;
+                cb.indeterminate = false;
+            });
+        };
+
+        window.llmSelectionClose = function() {
             UaWindowAdm.get(_windowId).close();
         };
     };

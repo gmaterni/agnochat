@@ -233,6 +233,35 @@ class BaseClient {
     this.abortController = new AbortController();
     const signal = this.abortController.signal;
 
+    // Debug: mostra il testo della request inviata al provider LLM.
+    try {
+      let dbgMessages;
+      if (Array.isArray(payload.messages)) {
+        // Formato OpenAI-style
+        dbgMessages = payload.messages
+          .map((m) => `[${m.role}] ${m.content}`)
+          .join("\n");
+      } else if (payload.contents && Array.isArray(payload.contents)) {
+        // Formato Gemini (contents + system_instruction)
+        const lines = [];
+        if (payload.system_instruction && payload.system_instruction.parts) {
+          lines.push(`[system] ${payload.system_instruction.parts.map((p) => p.text).join(" ")}`);
+        }
+        for (const c of payload.contents) {
+          const text = c.parts
+            ? c.parts.map((p) => p.text || p.inlineData ? "[immagine]" : "").join(" ")
+            : "";
+          lines.push(`[${c.role}] ${text}`);
+        }
+        dbgMessages = lines.join("\n");
+      } else {
+        dbgMessages = JSON.stringify(payload, null, 2);
+      }
+      console.debug(`[LLM REQUEST] ${this.constructor.name} ${url}\n${dbgMessages}`);
+    } catch (e) {
+      console.debug("[LLM REQUEST]", payload);
+    }
+
     const timeoutMs = timeout * 1000;
     const timeoutId = setTimeout(() => {
       if (this.abortController) {
@@ -265,6 +294,28 @@ class BaseClient {
         result = this._createResult(false, null, null, httpErr);
       } else {
         const respJson = await response.json();
+
+        // Debug: log della risposta completa dell'LLM
+        try {
+          let dbgResponse;
+          if (respJson.choices && Array.isArray(respJson.choices)) {
+            // Formato OpenAI-style
+            dbgResponse = respJson.choices
+              .map((c, i) => `[choice ${i}] ${c.message?.role || "assistant"}: ${c.message?.content || JSON.stringify(c.message)}`)
+              .join("\n");
+          } else if (respJson.candidates && Array.isArray(respJson.candidates)) {
+            // Formato Gemini
+            dbgResponse = respJson.candidates
+              .map((c, i) => `[candidate ${i}] ${c.content?.parts?.map((p) => p.text || "").join(" ") || JSON.stringify(c)}`)
+              .join("\n");
+          } else {
+            dbgResponse = JSON.stringify(respJson, null, 2);
+          }
+          console.debug(`[LLM RESPONSE] ${this.constructor.name}\n${dbgResponse}`);
+        } catch (e) {
+          console.debug("[LLM RESPONSE]", respJson);
+        }
+
         result = this._createResult(true, respJson);
       }
     } catch (error) {

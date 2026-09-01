@@ -108,6 +108,40 @@ export const ConversationMgr = {
         } catch (err) {
             return _logErr("delete", err);
         }
+    },
+
+    /**
+     * Salva i documenti associati a una conversazione.
+     * @param {number} convId - Id conversazione.
+     * @param {Array<Object>} docs - Array di documenti da salvare.
+     * @returns {Promise<boolean>}
+     */
+    saveDocuments: async function(convId, docs) {
+        try {
+            await ConversationMgr.update(convId, {
+                documents: JSON.stringify(docs)
+            });
+            return true;
+        } catch (err) {
+            return _logErr("saveDocuments", err);
+        }
+    },
+
+    /**
+     * Carica i documenti associati a una conversazione.
+     * @param {number} convId - Id conversazione.
+     * @returns {Promise<Array<Object>>} Array di documenti o array vuoto.
+     */
+    loadDocuments: async function(convId) {
+        try {
+            const row = await _db.conversations.get(convId);
+            if (row && row.documents) {
+                return JSON.parse(row.documents);
+            }
+            return [];
+        } catch (err) {
+            return _logErr("loadDocuments", err) || [];
+        }
     }
 };
 
