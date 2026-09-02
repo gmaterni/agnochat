@@ -131,6 +131,8 @@ export const runUpdate = async function() {
         }
     }
 
+    UaLog.log("");
+
     const testResults = new Map();
     const results = [];
 

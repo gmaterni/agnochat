@@ -288,6 +288,16 @@ export const LlmProvider = {
     },
 
     /**
+     * Svuota il catalogo in memoria. Usato per ripristinare lo stato
+     * della selezione dopo operazioni che modificano _providerModels
+     * (es. Aggiorna LLM) senza toccare selected-models.
+     * @returns {void}
+     */
+    clearProviderModels: function() {
+        _providerModels = {};
+    },
+
+    /**
      * Assicura che i modelli selezionati dall'utente siano presenti in
      * _providerModels con i loro dati completi (windowSize, name, ecc.).
      * Viene chiamato PRIMA di applySelectionFilter per evitare che modelli

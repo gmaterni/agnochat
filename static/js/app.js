@@ -16,7 +16,6 @@ import { bindEventListener, showHtmlThread, wnds, Commands, TextInput, TextOutpu
 import { AppMgr } from "./app_mgr.js";
 import { UaSender } from "./services/sender.js";
 import { formatErrorPrefix } from "./services/error_utils.js";
-import { migrateAppDatabase } from "./services/db_migrate.js";
 
 import "./services/uadialog.js";
 
@@ -80,10 +79,7 @@ const openAppAsync = async function () {
         console.info("openAppAsync: avvio inizializzazione...");
         console.info(`openAppAsync: versione ${APP_VERSION}`);
 
-        // 1. Migrazione database (one-shot, vanillallm -> agnochat)
-        await migrateAppDatabase();
-
-        // 2. Inizializzazione UI e Log
+        // 1. Inizializzazione UI e Log
         wnds.init();
         UaLog.setXY(40, 6).setZ(111).new();
 

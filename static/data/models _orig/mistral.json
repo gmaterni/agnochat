@@ -1,8 +1,0 @@
-[
-  {"provider":"mistral","model":"mistral-large-latest","name":"Mistral Large","windowSize":256},
-  {"provider":"mistral","model":"mistral-medium-latest","name":"Mistral Medium","windowSize":256},
-  {"provider":"mistral","model":"mistral-small-latest","name":"Mistral Small","windowSize":256},
-  {"provider":"mistral","model":"ministral-14b-latest","name":"Ministral 14B","windowSize":256},
-  {"provider":"mistral","model":"devstral-medium-latest","name":"Devstral Medium","windowSize":256},
-  {"provider":"mistral","model":"devstral-latest","name":"Devstral","windowSize":256}
-]

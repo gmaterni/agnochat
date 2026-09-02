@@ -1228,6 +1228,20 @@ const _actionLlmUpdateAsync = async function() {
 
         _waitSpinner.hide();
         await alert(`Aggiorna LLM completato.\n\nScaricati e testati: ${results.length}\nSuperati il test: ${passed.length}`);
+
+        // Ripristina il catalogo in memoria alla sola selezione salvata:
+        // l'aggiornamento non deve alterare l'albero di attivazione.
+        const db = getLlmDb();
+        const selected = db ? await db.getSelected() : [];
+        LlmProvider.clearProviderModels();
+        if (selected && selected.length > 0) {
+            LlmProvider.ensureSelectedModels(selected);
+            LlmProvider.applySelectionFilter(selected);
+        }
+        LlmProvider.validateActive();
+        updateActiveModelDisplay();
+
+        await _showSelectLlm({ startUnselected: true });
     } catch (error) {
         console.error("_actionLlmUpdateAsync:", error);
         _waitSpinner.hide();
@@ -1238,8 +1252,10 @@ const _actionLlmUpdateAsync = async function() {
 
 /**
  * Mostra la finestra "Seleziona LLM" usando il modulo dedicato.
+ * @param {Object} [options] - Opzioni di apertura passate alla finestra
+ *   (es. { startUnselected: true } dopo "Aggiorna LLM").
  */
-const _showSelectLlm = async function() {
+const _showSelectLlm = async function(options) {
     const db = getLlmDb();
     if (!db) {
         UaLog.log("ERRORE: Database LLM non inizializzato.");
@@ -1247,7 +1263,7 @@ const _showSelectLlm = async function() {
     }
 
     try {
-        const selectionWindow = createLlmSelectionWindow(db);
+        const selectionWindow = createLlmSelectionWindow(db, options);
         await selectionWindow.show();
     } catch (error) {
         console.error("_showSelectLlm:", error);

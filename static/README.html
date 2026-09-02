@@ -598,13 +598,6 @@
         const sunIcon = themeBtn.querySelector('.icon-sun');
         const moonIcon = themeBtn.querySelector('.icon-moon');
 
-        // Migra il tema salvato con la vecchia chiave, se presente
-        const legacyTheme = localStorage.getItem('vanillallm-theme');
-        if (legacyTheme !== null) {
-            localStorage.setItem('agnochat-theme', legacyTheme);
-            localStorage.removeItem('vanillallm-theme');
-        }
-
         // Carica tema salvato
         const savedTheme = localStorage.getItem('agnochat-theme') || 'dark';
         body.setAttribute('data-theme', savedTheme);

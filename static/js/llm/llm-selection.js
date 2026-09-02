@@ -42,17 +42,21 @@ const HEADER_COLS = '<col style="width: 68%;"><col style="width: 8%;"><col style
 /**
  * Crea la finestra di selezione LLM stile window-info.
  * @param {Object} db - Istanza del database LLM (llmDb)
+ * @param {Object} [options] - Opzioni di apertura.
+ * @param {boolean} [options.startUnselected=false] - Se true, apre la finestra
+ *   con tutti i modelli deselezionati, senza modificare la selezione salvata.
  * @returns {Object} API: { show() }
  */
-export const createLlmSelectionWindow = function(db) {
+export const createLlmSelectionWindow = function(db, options) {
     let _windowId = "llm-selection-window";
+    const startUnselected = !!(options && options.startUnselected);
 
     /**
      * Mostra la finestra modale con tabella LLM compatta.
      */
     const show = async function() {
         const state = await _loadStateAsync();
-        const selectedIds = _buildSelectedIds(state.selected);
+        const selectedIds = startUnselected ? new Set() : _buildSelectedIds(state.selected);
         const discoveredMap = _buildDiscoveredMap(state.discovered);
         const providers = _collectProviders(state.discovered, state.providerConfig);
 
