@@ -266,6 +266,9 @@
     color: @text;
     box-shadow: 0 0 0 2px @wnd-border-shadow;
   }
+  #llm-selection-window .window-info {
+    border: 1px solid @wnd-border-shadow;
+  }
   .window-text {
     pre.pre-text,
     div.div-text {
@@ -525,6 +528,12 @@
   .btn-theme-toggle svg {
     stroke: @dark-menu-fg;
   }
+  .btn-theme-toggle {
+    border-color: @dark-menu-fg;
+  }
+  .head-wrapper .provider-settings {
+    color: #f6a623;
+  }
 }
 
 // -------------------
@@ -626,5 +635,11 @@
 
   .btn-theme-toggle svg {
     stroke: @light-text;
+  }
+  .btn-theme-toggle {
+    border-color: @light-text;
+  }
+  .head-wrapper .provider-settings {
+    color: #d4880f;
   }
 }
