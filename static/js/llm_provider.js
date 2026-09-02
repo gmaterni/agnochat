@@ -25,7 +25,7 @@ import {
 } from "./llmclient/index.js";
 import { DATA_KEYS } from "./services/data_keys.js";
 import { UaDb } from "./services/uadb.js";
-import { loadProviderModels } from "vanillallm/llm/llm-catalog.js";
+import { loadProviderModels } from "agnochat/llm/llm-catalog.js";
 
 // ============================================================================
 // COSTANTI

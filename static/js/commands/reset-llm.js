@@ -9,12 +9,12 @@
 
 "use strict";
 
-import { llmDb } from "vanillallm/llm/llm-db.js";
-import { LlmProvider } from "vanillallm/llm_provider.js";
-import { updateActiveModelDisplay } from "vanillallm/app_ui.js";
-import { UaLog } from "vanillallm/services/ualog3.js";
-import { IMPLEMENTED_CLIENTS } from "vanillallm/services/key_retriever.js";
-import { loadProviderModels } from "vanillallm/llm/llm-catalog.js";
+import { llmDb } from "agnochat/llm/llm-db.js";
+import { LlmProvider } from "agnochat/llm_provider.js";
+import { updateActiveModelDisplay } from "agnochat/app_ui.js";
+import { UaLog } from "agnochat/services/ualog3.js";
+import { IMPLEMENTED_CLIENTS } from "agnochat/services/key_retriever.js";
+import { loadProviderModels } from "agnochat/llm/llm-catalog.js";
 
 /**
  * Legge i modelli di default dai file .txt in static/data/models/

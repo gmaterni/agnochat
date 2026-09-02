@@ -22,7 +22,7 @@ export const IMPLEMENTED_CLIENTS = _IMPLEMENTED_CLIENTS;
  * @private
  */
 const _getSupportedProviders = async function() {
-    const { getProviderConfig } = await import("vanillallm/llm_provider.js");
+    const { getProviderConfig } = await import("agnochat/llm_provider.js");
     const config = getProviderConfig();
 
     if (Object.keys(config).length > 0) {
@@ -226,7 +226,7 @@ const _handleAddKey = async function(db, saveDb) {
     providerData.keys.push({ name, key, notes: "" });
     if (!providerData.exported_key) {
         providerData.exported_key = name;
-        const { LlmProvider } = await import("vanillallm/llm_provider.js");
+        const { LlmProvider } = await import("agnochat/llm_provider.js");
         await LlmProvider.updateClient(provider);
     }
 
@@ -241,7 +241,7 @@ const _handleSetActiveKey = async function(provider, keyName, db, saveDb, render
     db.providers[provider].exported_key = keyName;
     await saveDb();
 
-    const { LlmProvider } = await import("vanillallm/llm_provider.js");
+    const { LlmProvider } = await import("agnochat/llm_provider.js");
     await LlmProvider.updateClient(provider);
 };
 
@@ -253,7 +253,7 @@ const _handleDeleteKey = async function(provider, keyName, db, saveDb) {
         providerData.exported_key = null;
     }
     await saveDb();
-    const { LlmProvider } = await import("vanillallm/llm_provider.js");
+    const { LlmProvider } = await import("agnochat/llm_provider.js");
     await LlmProvider.updateClient(provider);
 };
 

@@ -7,7 +7,7 @@
  */
 export const help0_html = `
 <div class="text">
-    <p class="center help-title">Elenco Comandi vanillallm</p>
+    <p class="center help-title">Elenco Comandi agnochat</p>
 
     <p class="center help-subtitle">
         Passa il mouse su ogni comando per un aiuto contestuale.

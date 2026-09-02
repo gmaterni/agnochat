@@ -21,8 +21,8 @@ import { getApiKey, IMPLEMENTED_CLIENTS } from "./services/key_retriever.js";
 import { UaLog } from "./services/ualog3.js";
 import { createLlmPayload, createMessage } from "./llmclient/index.js";
 import { discoverModels, hasFetcher } from "./llmlist/index.js";
-import { loadProviderModels } from "vanillallm/llm/llm-catalog.js";
-import { TEST_SYSTEM_PROMPT, TEST_USER_PROMPT } from "vanillallm/llm/test-prompts.js";
+import { loadProviderModels } from "agnochat/llm/llm-catalog.js";
+import { TEST_SYSTEM_PROMPT, TEST_USER_PROMPT } from "agnochat/llm/test-prompts.js";
 
 // ============================================================================
 // COSTANTI

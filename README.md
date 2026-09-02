@@ -1,12 +1,12 @@
 <!-- @format -->
 
-# vanillallm: Chat LLM Pura, 100% Client-Side
+# agnochat: Chat LLM Pura, 100% Client-Side
 
 **Versione:** 1.0.0
 
-**vanillallm** è un'applicazione web di chat con modelli linguistici (LLM) che opera interamente nel browser dell'utente. Nasce da RagIndex, da cui eredita layout, gestione provider/modelli/chiavi e librerie interne, lasciando fuori la pipeline RAG: nessuna indicizzazione, nessun worker — solo chat.
+**agnochat** è un'applicazione web di chat con modelli linguistici (LLM) che opera interamente nel browser dell'utente. Nasce da RagIndex, da cui eredita layout, gestione provider/modelli/chiavi e librerie interne, lasciando fuori la pipeline RAG: nessuna indicizzazione, nessun worker — solo chat.
 
-> 🚀 **Scopri di più**: per una presentazione delle funzionalità e dei caratteri originali del progetto, consulta la pagina [static/vanillallm.html](static/vanillallm.html).
+> 🚀 **Scopri di più**: per una presentazione delle funzionalità e dei caratteri originali del progetto, consulta la pagina [static/agnochat.html](static/agnochat.html).
 
 ## Setup Rapido
 
@@ -39,10 +39,10 @@ Tutto l'applicativo vive in `static/`:
 - **UI Controller**: `static/js/app_ui.js` (rendering thread con markdown, menu, gestione finestre ed eventi).
 - **Core applicativo**: `app_mgr.js` (config/provider attivi), `chat_engine.js` (payload, retry, stop), `conversation_mgr.js` (conversazioni/messaggi), `prompt_mgr.js` (prompt di sistema), `settings_mgr.js` (preferenze persistenti).
 - **LLM Clients**: `static/js/llmclient/` (6 provider: Gemini, Mistral, Groq, OpenRouter, Cerebras, SiliconFlow) + `llm_provider.js` (provider attivo, chiavi) + `llmlist/` (discovery modelli live) + `llm_updater.js` (repository modelli accettati).
-- **Database Locale**: `static/js/services/idb_mgr.js` + `uadb.js` + `db_instance.js` (persistenza via Dexie.js; database `vanillallm`: `conversations`, `messages`, `prompts`, `settings`).
+- **Database Locale**: `static/js/services/idb_mgr.js` + `uadb.js` + `db_instance.js` (persistenza via Dexie.js; database `agnochat`: `conversations`, `messages`, `prompts`, `settings`).
 - **Servizi**: `services/sender.js` (telemetria), `services/config.js` (flag ambiente locale), `services/key_retriever.js` (seed/gestione chiavi), librerie UA (`uajtfh.js`, `uawindow.js`, `uadrag.js`, `uadialog.js`, `ualog3.js`).
 - **Vendor** (copie locali, nessun CDN): `dexie.js`, `marked.min.js`, `less.js`.
 - **Stili**: `static/less/style.less` + `static/less/modules/` compilati a runtime da `less.js`.
 
 ---
-*vanillallm è un progetto focalizzato sulla semplicità, sulla privacy e sull'efficienza dell'AI lato client.*
+*agnochat è un progetto focalizzato sulla semplicità, sulla privacy e sull'efficienza dell'AI lato client.*

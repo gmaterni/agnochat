@@ -19,4 +19,4 @@ export { OpenRouterClient } from './openrouter_client.js';
 export { CerebrasClient } from './cerebras_client.js';
 export { SiliconFlowClient } from './siliconflow_client.js';
 export { validateMessage, validatePayload, createMessage, createLlmPayload } from './models.js';
-export { PROVIDER_CONFIG } from 'vanillallm/llm_provider.js';
+export { PROVIDER_CONFIG } from 'agnochat/llm_provider.js';

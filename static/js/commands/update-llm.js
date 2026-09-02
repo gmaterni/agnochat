@@ -8,14 +8,14 @@
 
 "use strict";
 
-import { llmDb } from "vanillallm/llm/llm-db.js";
-import { createLlmLogger } from "vanillallm/llm/llm-logging.js";
-import { LlmProvider } from "vanillallm/llm_provider.js";
-import { getApiKey, IMPLEMENTED_CLIENTS } from "vanillallm/services/key_retriever.js";
-import { discoverModels, hasFetcher } from "vanillallm/llmlist/index.js";
-import { UaLog } from "vanillallm/services/ualog3.js";
-import { loadProviderModels } from "vanillallm/llm/llm-catalog.js";
-import { LlmUpdater } from "vanillallm/llm_updater.js";
+import { llmDb } from "agnochat/llm/llm-db.js";
+import { createLlmLogger } from "agnochat/llm/llm-logging.js";
+import { LlmProvider } from "agnochat/llm_provider.js";
+import { getApiKey, IMPLEMENTED_CLIENTS } from "agnochat/services/key_retriever.js";
+import { discoverModels, hasFetcher } from "agnochat/llmlist/index.js";
+import { UaLog } from "agnochat/services/ualog3.js";
+import { loadProviderModels } from "agnochat/llm/llm-catalog.js";
+import { LlmUpdater } from "agnochat/llm_updater.js";
 
 /** Numero di token contenuti in un kilotoken (conversione delle finestre di contesto). */
 const TOKENS_PER_K = 1024;

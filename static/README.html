@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico">
-    <title>vanillallm - Guida Utente</title>
+    <title>agnochat - Guida Utente</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -240,7 +240,7 @@
 <body data-theme="dark">
     <div class="container">
         <header>
-            <h1>vanillallm - Guida Utente</h1>
+            <h1>agnochat - Guida Utente</h1>
             <button class="theme-toggle" id="theme-btn" title="Cambia Tema">
                 <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="5" />
@@ -255,7 +255,7 @@
         <section class="section">
             <h2>Introduzione</h2>
             <p>
-                <strong>vanillallm</strong> è un'applicazione di chat con modelli linguistici (LLM) progettata per essere
+                <strong>agnochat</strong> è un'applicazione di chat con modelli linguistici (LLM) progettata per essere
                 <strong>100% client-side</strong>. Significa che tutto il codice esegue direttamente nel tuo browser,
                 senza bisogno di server o installazioni complesse.
             </p>
@@ -271,7 +271,7 @@
 
         <section class="section">
             <h2>Prima Configurazione</h2>
-            <p>Segui questi passaggi per iniziare a usare vanillallm:</p>
+            <p>Segui questi passaggi per iniziare a usare agnochat:</p>
 
             <div class="step">
                 <span class="step-number">1</span>
@@ -588,7 +588,7 @@
         </section>
 
         <footer>
-            vanillallm è un progetto focalizzato sulla semplicità, sulla privacy e sull'AI lato client.
+            agnochat è un progetto focalizzato sulla semplicità, sulla privacy e sull'AI lato client.
         </footer>
     </div>
 
@@ -598,8 +598,15 @@
         const sunIcon = themeBtn.querySelector('.icon-sun');
         const moonIcon = themeBtn.querySelector('.icon-moon');
 
+        // Migra il tema salvato con la vecchia chiave, se presente
+        const legacyTheme = localStorage.getItem('vanillallm-theme');
+        if (legacyTheme !== null) {
+            localStorage.setItem('agnochat-theme', legacyTheme);
+            localStorage.removeItem('vanillallm-theme');
+        }
+
         // Carica tema salvato
-        const savedTheme = localStorage.getItem('vanillallm-theme') || 'dark';
+        const savedTheme = localStorage.getItem('agnochat-theme') || 'dark';
         body.setAttribute('data-theme', savedTheme);
         sunIcon.style.display = savedTheme === 'light' ? 'none' : 'block';
         moonIcon.style.display = savedTheme === 'light' ? 'block' : 'none';
@@ -609,7 +616,7 @@
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
             body.setAttribute('data-theme', newTheme);
-            localStorage.setItem('vanillallm-theme', newTheme);
+            localStorage.setItem('agnochat-theme', newTheme);
             
             sunIcon.style.display = newTheme === 'light' ? 'none' : 'block';
             moonIcon.style.display = newTheme === 'light' ? 'block' : 'none';

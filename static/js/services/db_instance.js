@@ -4,10 +4,10 @@
 import Dexie from "./vendor/dexie.js";
 
 /**
- * Istanza Dexie unica dell'applicazione vanillallm.
- * Nome database: "vanillallm" (nessun isolamento per utente: niente login).
+ * Istanza Dexie unica dell'applicazione agnochat.
+ * Nome database: "agnochat" (nessun isolamento per utente: niente login).
  */
-const dbInstance = new Dexie("vanillallm");
+const dbInstance = new Dexie("agnochat");
 
 dbInstance.version(1).stores({
     kvStore: "id",

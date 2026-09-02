@@ -11,11 +11,11 @@
 
 "use strict";
 
-import { UaWindowAdm } from "vanillallm/services/uawindow.js";
-import { UaJtfh } from "vanillallm/services/uajtfh.js";
-import { UaLog } from "vanillallm/services/ualog3.js";
-import { LlmProvider } from "vanillallm/llm_provider.js";
-import { updateActiveModelDisplay, refreshProviderTree } from "vanillallm/app_ui.js";
+import { UaWindowAdm } from "agnochat/services/uawindow.js";
+import { UaJtfh } from "agnochat/services/uajtfh.js";
+import { UaLog } from "agnochat/services/ualog3.js";
+import { LlmProvider } from "agnochat/llm_provider.js";
+import { updateActiveModelDisplay, refreshProviderTree } from "agnochat/app_ui.js";
 
 // ============================================================================
 // COSTANTI

@@ -465,7 +465,7 @@ const _actionNewConversationAsync = async function() {
     await SettingsMgr.setActiveConversationId(created.id);
 
     // Notifica avvio conversazione al worker di analytics
-    await UaSender.sendEventAsync("vanillallm", "startConversation");
+    await UaSender.sendEventAsync("agnochat", "startConversation");
 
     clearDocuments();
     _setResponseHtml("");

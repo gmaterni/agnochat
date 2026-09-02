@@ -10,7 +10,7 @@
 // ============================================================================
 
 /**
- * Oggetto contenente tutte le chiavi di storage usate da vanillallm.
+ * Oggetto contenente tutte le chiavi di storage usate da agnochat.
  */
 export const DATA_KEYS = {
     /**
