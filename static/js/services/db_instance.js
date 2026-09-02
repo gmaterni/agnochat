@@ -17,4 +17,16 @@ dbInstance.version(1).stores({
     prompts: "++id"
 });
 
-export { dbInstance };
+/**
+ * Svuota tutte le tabelle del database.
+ * Usato dal reset totale dell'applicazione.
+ */
+const clearAllTables = async function() {
+    try {
+        await Promise.all(dbInstance.tables.map(function(t) { return t.clear(); }));
+    } catch (err) {
+        console.error("clearAllTables:", err);
+    }
+};
+
+export { dbInstance, clearAllTables };

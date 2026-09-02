@@ -36,7 +36,8 @@ const FETCHERS = {
  * @returns {boolean}
  */
 export const hasFetcher = function(provider) {
-    return typeof FETCHERS[provider] === "function";
+    const exists = typeof FETCHERS[provider] === "function";
+    return exists;
 };
 
 /**
@@ -50,7 +51,8 @@ export const discoverModels = async function(provider, apiKey) {
     if (!fetcher) {
         throw new Error(`Nessun fetcher per il provider "${provider}"`);
     }
-    return fetcher(apiKey);
+    const models = fetcher(apiKey);
+    return models;
 };
 
 /**

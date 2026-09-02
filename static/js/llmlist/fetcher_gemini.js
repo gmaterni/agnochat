@@ -23,7 +23,8 @@ const API_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const isTextModel = function(m) {
     const raw = (m && m.raw) || m || {};
     const actions = raw.supportedActions || raw.supported_actions || raw.supportedGenerationMethods || [];
-    return actions.includes("generateContent");
+    const supportsText = actions.includes("generateContent");
+    return supportsText;
 };
 
 /**
@@ -32,26 +33,24 @@ const isTextModel = function(m) {
  * @returns {Promise<Array<{id: string, contextWindow: number}>>}
  */
 export const fetchGeminiModels = async function(apiKey) {
-    const response = await fetch(`${API_URL}?key=${encodeURIComponent(apiKey)}`);
+    const encodedKey = encodeURIComponent(apiKey);
+    const response = await fetch(`${API_URL}?key=${encodedKey}`);
     if (!response.ok) {
         throw new Error(`Gemini: HTTP ${response.status}`);
     }
     const data = await response.json();
-    const models = (data.models || []).map(function(m) {
-        return {
-            id: (m.name || "").replace(/^models\//, ""),
-            inputTokenLimit: m.inputTokenLimit || m.input_token_limit || 0,
-            raw: m
-        };
-    });
+    const models = (data.models || []).map(m => ({
+        id: (m.name || "").replace(/^models\//, ""),
+        inputTokenLimit: m.inputTokenLimit || m.input_token_limit || 0,
+        raw: m
+    }));
 
     const fetcher = new ModelFetcher("gemini");
     const filtered = fetcher.filterAndSortModels(models, isTextModel);
 
-    return filtered.map(function(m) {
-        return {
-            id: m.id,
-            contextWindow: m.inputTokenLimit
-        };
-    });
+    const mapped = filtered.map(m => ({
+        id: m.id,
+        contextWindow: m.inputTokenLimit
+    }));
+    return mapped;
 };

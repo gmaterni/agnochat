@@ -72,29 +72,3 @@ export const help0_html = `
     </div>
 </div>
 `;
-
-/**
- * HTML per il QuickStart.
- * Guida passo-passo al flusso completo.
- */
-export const help2_html = `
-<div class="text">
-    <p class="center help-title">Guida Passo-Passo</p>
-
-    <div>
-        <strong class="help-phase-1">Fase 1 &mdash; Configurare il Provider</strong>
-        <p>Premi il pulsante <strong>LLM</strong> nella barra superiore per selezionare provider e modello attivo. Dal menu, <strong>Seleziona LLM</strong> permette di scegliere quali modelli compaiono nell'albero. Se il provider non ha una chiave attiva, usa <strong>Gestisci API Key</strong> per aggiungerla.</p>
-    </div>
-
-    <div>
-        <strong class="help-phase-2">Fase 2 &mdash; Impostare un Prompt di Sistema (opzionale)</strong>
-        <p>Dal <strong>menu laterale</strong> (icona hamburger) vai su <strong>Prompt di Sistema &gt; Nuovo Prompt</strong>, crea un prompt con nome e contenuto, poi selezionalo come attivo per orientare il comportamento del modello.</p>
-    </div>
-
-    <div>
-        <strong class="help-phase-3">Fase 3 &mdash; Iniziare a Conversare</strong>
-        <p>Scrivi la tua domanda nella casella di input in basso e premi il pulsante <strong>Invia</strong> (o <strong>Invio</strong> sulla tastiera). La risposta del modello viene salvata nella conversazione attiva e la cronologia &egrave; sempre visibile nel thread.</p>
-        <p><em>Nota:</em> Tutti i dati (conversazioni, messaggi, prompt, configurazione) sono salvati localmente nel browser tramite IndexedDB.</p>
-    </div>
-</div>
-`;

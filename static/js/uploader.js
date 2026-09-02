@@ -74,7 +74,8 @@ export function addDocument(fileName, content, ext) {
  * @returns {Array<Object>} Array di documenti
  */
 export function getDocuments() {
-    return [..._documents];
+    const docs = [..._documents];
+    return docs;
 }
 
 /**
@@ -96,9 +97,11 @@ export function removeDocument(fileName) {
     if (idx >= 0) {
         _documents.splice(idx, 1);
         if (_onDocumentsChanged) _onDocumentsChanged([..._documents]);
-        return true;
+        const removed = true;
+        return removed;
     }
-    return false;
+    const removed = false;
+    return removed;
 }
 
 // ============================================================================
@@ -115,12 +118,13 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const FileReaderUtil = {
     readTextFile: function(file) {
-        return new Promise(function(resolve, reject) {
+        const readPromise = new Promise(function(resolve, reject) {
             const reader = new FileReader();
             reader.onload = (event) => resolve(event.target.result);
             reader.onerror = (error) => reject(new Error("Errore lettura file: " + (error.message || "")));
             reader.readAsText(file);
         });
+        return readPromise;
     }
 };
 
@@ -138,7 +142,6 @@ class PdfHandler {
     async loadPdfJs() {
         if (window["pdfjs-dist/build/pdf"]) {
             this.pdfjsLib = window["pdfjs-dist/build/pdf"];
-            this.pdfjsLib.GlobalWorkerOptions.workerSrc = "js/services/vendor/pdf.worker.min.js";
             return;
         }
         this.scriptElement = document.createElement("script");
@@ -207,7 +210,8 @@ class DocxHandler {
     async extractTextFromDocx(file) {
         const arrayBuffer = await file.arrayBuffer();
         const result = await this.mammoth.extractRawText({ arrayBuffer });
-        return result.value;
+        const text = result.value;
+        return text;
     }
 
     cleanup() {
@@ -249,7 +253,8 @@ class OdtHandler {
         const xmlDoc = parser.parseFromString(contentXml, "text/xml");
         const paragraphs = xmlDoc.getElementsByTagName("text:p");
 
-        return Array.from(paragraphs).map((p) => p.textContent).join("\n");
+        const text = Array.from(paragraphs).map((p) => p.textContent).join("\n");
+        return text;
     }
 
     cleanup() {
@@ -262,12 +267,12 @@ class OdtHandler {
 // UPLOADER
 // ============================================================================
 
-export const documentUploader = {
-    dragoverHandler: null,
-    dropHandler: null,
-
-    open() {
-        const htmlContent = `
+/**
+ * Costruisce l'HTML della finestra di upload.
+ * @returns {string} HTML della finestra.
+ */
+const _buildUploadHtml = function() {
+    const htmlContent = `
       <div class="window-text">
         <div class="btn-wrapper">
          <button class="btn-close tt-left " data-tt="Chiudi">X</button>
@@ -290,6 +295,137 @@ export const documentUploader = {
         </div>
       </div>
     `;
+    return htmlContent;
+};
+
+/**
+ * Raccoglie i file trascinati (con supporto directory) dalla drop-zone.
+ * @param {DataTransfer} dataTransfer - Dati del trascinamento.
+ * @returns {Promise<Array<Object>>} File raccolti.
+ */
+const _collectDroppedFilesAsync = async function(dataTransfer) {
+    const items = dataTransfer.items;
+    const files = [];
+
+    if (items) {
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i].webkitGetAsEntry();
+            if (item) {
+                await documentUploader.traverseFileTree(item, files);
+            }
+        }
+    } else {
+        for (const file of dataTransfer.files) {
+            files.push(file);
+        }
+    }
+
+    return files;
+};
+
+/**
+ * Associa gli eventi di drag & drop alla drop-zone.
+ * @param {HTMLElement} dropZone - Elemento drop-zone.
+ * @param {HTMLElement} fileInput - Input file nascosto.
+ */
+const _bindDropZoneEvents = function(dropZone, fileInput) {
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add("drag-over");
+    });
+
+    dropZone.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove("drag-over");
+    });
+
+    dropZone.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove("drag-over");
+
+        const files = await _collectDroppedFilesAsync(e.dataTransfer);
+
+        if (files.length > 0) {
+            await documentUploader.handleMultipleFiles(files);
+        }
+    });
+};
+
+/**
+ * Associa l'evento di selezione file all'input file.
+ * @param {HTMLElement} fileInput - Input file.
+ */
+const _bindFileInputEvent = function(fileInput) {
+    fileInput.addEventListener("change", async (e) => {
+        if (e.target.files.length > 0) {
+            const files = Array.from(e.target.files);
+            await documentUploader.handleMultipleFiles(files);
+        }
+    });
+};
+
+/**
+ * Aggiorna la barra di avanzamento del caricamento.
+ * @param {HTMLElement} progressBar - Barra di avanzamento.
+ * @param {HTMLElement} progressText - Testo dell'avanzamento.
+ * @param {number} index - Indice del file corrente (0-based).
+ * @param {number} total - Numero totale di file.
+ */
+const _updateProgress = function(progressBar, progressText, index, total) {
+    const percentage = Math.round(((index + 1) / total) * 100);
+    progressText.textContent = (index + 1) + " / " + total + " file processati";
+    progressBar.style.width = percentage + "%";
+    progressBar.textContent = percentage + "%";
+};
+
+/**
+ * Filtra i file mantenendo solo quelli con estensione supportata.
+ * @param {Array<Object>} files - File selezionati dall'utente.
+ * @returns {Array<Object>} File con estensione supportata.
+ */
+const _filterValidFiles = function(files) {
+    const validFiles = files.filter((file) => {
+        const ext = file.name.split(".").pop().toLowerCase();
+        const isSupported = SUPPORTED_EXTENSIONS.includes(ext);
+        return isSupported;
+    });
+    return validFiles;
+};
+
+/**
+ * Processa i file validi uno a uno aggiornando le statistiche.
+ * @param {Array<Object>} files - File validi da processare.
+ * @param {Object} stats - Statistiche {total, success, errors, errorFiles}.
+ * @param {HTMLElement} progressBar - Barra di avanzamento.
+ * @param {HTMLElement} progressText - Testo dell'avanzamento.
+ */
+const _processFilesAsync = async function(files, stats, progressBar, progressText) {
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        _updateProgress(progressBar, progressText, i, stats.total);
+
+        const result = await documentUploader.handleFile(file);
+
+        if (result.status === "success") {
+            stats.success++;
+        } else if (result.status === "error") {
+            stats.errors++;
+            stats.errorFiles.push({ name: file.name, error: result.error });
+        }
+    }
+};
+
+export const documentUploader = {
+    dragoverHandler: null,
+    dropHandler: null,
+
+    open() {
+        const htmlContent = _buildUploadHtml();
 
         const uploadWindow = UaWindowAdm.create(WINDOW_ID);
         uploadWindow.drag();
@@ -298,16 +434,15 @@ export const documentUploader = {
         uploadWindow.addClassStyle("upload-window");
         uploadWindow.setHtml(htmlContent);
 
-        document.getElementById(WINDOW_ID).addEventListener("click", (e) => {
-            if (e.target.classList.contains("btn-close")) {
-                uploadWindow.close();
-            }
-        });
+        const winEl = document.getElementById(WINDOW_ID);
+        const closeBtn = winEl.querySelector(".btn-close");
+        if (closeBtn) {
+            closeBtn.addEventListener("click", () => documentUploader.close());
+        }
 
         uploadWindow.show();
 
         const dropZone = document.getElementById("drop-zone");
-        const dropZoneText = document.getElementById("drop-zone-text");
         const fileInput = document.getElementById("id_fileupload");
         const fileListContainer = document.getElementById("file-list-container");
         const progressContainer = document.getElementById("progress-container");
@@ -315,52 +450,8 @@ export const documentUploader = {
         fileListContainer.innerHTML = "";
         progressContainer.style.display = "none";
 
-        dropZone.addEventListener("click", () => fileInput.click());
-
-        dropZone.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.add("drag-over");
-        });
-
-        dropZone.addEventListener("dragleave", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.remove("drag-over");
-        });
-
-        dropZone.addEventListener("drop", async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.remove("drag-over");
-
-            const items = e.dataTransfer.items;
-            const files = [];
-
-            if (items) {
-                for (let i = 0; i < items.length; i++) {
-                    const item = items[i].webkitGetAsEntry();
-                    if (item) {
-                        await this.traverseFileTree(item, files);
-                    }
-                }
-            } else {
-                for (const file of e.dataTransfer.files) {
-                    files.push(file);
-                }
-            }
-
-            if (files.length > 0) {
-                await this.handleMultipleFiles(files);
-            }
-        });
-
-        fileInput.addEventListener("change", async (e) => {
-            if (e.target.files.length > 0) {
-                const files = Array.from(e.target.files);
-                await this.handleMultipleFiles(files);
-            }
-        });
+        _bindDropZoneEvents(dropZone, fileInput);
+        _bindFileInputEvent(fileInput);
 
         this.dragoverHandler = (e) => e.preventDefault();
         this.dropHandler = (e) => e.preventDefault();
@@ -370,15 +461,16 @@ export const documentUploader = {
 
     async traverseFileTree(item, files) {
         if (item.isFile) {
-            return new Promise((resolve) => {
+            const filePromise = new Promise((resolve) => {
                 item.file((file) => {
                     files.push(file);
                     resolve();
                 });
             });
+            return filePromise;
         } else if (item.isDirectory) {
             const dirReader = item.createReader();
-            return new Promise((resolve) => {
+            const entriesPromise = new Promise((resolve) => {
                 dirReader.readEntries(async (entries) => {
                     for (const entry of entries) {
                         await this.traverseFileTree(entry, files);
@@ -386,14 +478,12 @@ export const documentUploader = {
                     resolve();
                 });
             });
+            return entriesPromise;
         }
     },
 
     async handleMultipleFiles(files) {
-        const validFiles = files.filter((file) => {
-            const ext = file.name.split(".").pop().toLowerCase();
-            return SUPPORTED_EXTENSIONS.includes(ext);
-        });
+        const validFiles = _filterValidFiles(files);
 
         if (validFiles.length === 0) {
             await alert("Nessun file valido trovato. Formati supportati: .txt, .md, .pdf, .docx, .odt");
@@ -418,22 +508,7 @@ export const documentUploader = {
             errorFiles: []
         };
 
-        for (let i = 0; i < validFiles.length; i++) {
-            const file = validFiles[i];
-            const percentage = Math.round(((i + 1) / stats.total) * 100);
-            progressText.textContent = (i + 1) + " / " + stats.total + " file processati";
-            progressBar.style.width = percentage + "%";
-            progressBar.textContent = percentage + "%";
-
-            const result = await this.handleFile(file, true);
-
-            if (result.status === "success") {
-                stats.success++;
-            } else if (result.status === "error") {
-                stats.errors++;
-                stats.errorFiles.push({ name: file.name, error: result.error });
-            }
-        }
+        await _processFilesAsync(validFiles, stats, progressBar, progressText);
 
         progressText.textContent = stats.success + " documenti aggiunti al contesto, " + stats.errors + " errori";
         progressBar.style.width = "100%";
@@ -445,7 +520,7 @@ export const documentUploader = {
         }
     },
 
-    handleFile(file, silent = false) {
+    handleFile(file) {
         const fileName = file.name;
         const fileListContainer = document.getElementById("file-list-container");
 
@@ -455,13 +530,13 @@ export const documentUploader = {
             fileItem.className = "file-list-item error";
             fileItem.textContent = fileName + " - " + err;
             fileListContainer.appendChild(fileItem);
-            return Promise.resolve({ status: "error", error: err, fileName });
+            const errorResult = Promise.resolve({ status: "error", error: err, fileName });
+            return errorResult;
         }
 
         const fileExtension = file.name.split(".").pop().toLowerCase();
 
-        const self = this;
-        return (async function() {
+        const result = (async function() {
             let text;
             try {
                 if (fileExtension === "pdf") {
@@ -490,7 +565,6 @@ export const documentUploader = {
                     throw new Error("Il documento non contiene testo leggibile.");
                 }
 
-                // MEMORIZZA nel document store (NON inserisce nel textarea)
                 addDocument(fileName, cleanedText, fileExtension);
 
                 const fileItem = document.createElement("div");
@@ -498,7 +572,8 @@ export const documentUploader = {
                 fileItem.textContent = fileName + " - Aggiunto al contesto";
                 fileListContainer.appendChild(fileItem);
 
-                return { status: "success", fileName };
+                const successResult = { status: "success", fileName };
+                return successResult;
             } catch (error) {
                 const errorMsg = error.message || "Errore sconosciuto";
                 console.error("uploader.handleFile:", errorMsg);
@@ -508,16 +583,18 @@ export const documentUploader = {
                 fileItem.textContent = fileName + " - " + errorMsg;
                 fileListContainer.appendChild(fileItem);
 
-                return { status: "error", error: errorMsg, fileName };
+                const errorResult = { status: "error", error: errorMsg, fileName };
+                return errorResult;
             }
         })();
+        return result;
     },
 
     close() {
         window.removeEventListener("dragover", this.dragoverHandler);
         window.removeEventListener("drop", this.dropHandler);
+        this.dragoverHandler = null;
+        this.dropHandler = null;
         UaWindowAdm.close(WINDOW_ID);
     }
 };
-
-export default { documentUploader, addDocument, getDocuments, clearDocuments, removeDocument, setOnDocumentsChanged, setDocuments };

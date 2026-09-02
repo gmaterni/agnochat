@@ -23,7 +23,7 @@ const _memorySelected = new Map();
  * @returns {Promise<IDBDatabase>}
  */
 const _openDB = function() {
-    return new Promise(function(resolve, reject) {
+    const promise = new Promise(function(resolve, reject) {
         if (typeof indexedDB === "undefined") {
             _useMemoryFallback = true;
             console.warn("llm-db: IndexedDB non disponibile, uso fallback in-memory");
@@ -60,6 +60,7 @@ const _openDB = function() {
             resolve(null);
         };
     });
+    return promise;
 };
 
 /**
@@ -67,6 +68,7 @@ const _openDB = function() {
  * @returns {Promise<void>}
  */
 export const init = async function() {
+    if (_db || _useMemoryFallback) return;
     await _openDB();
 };
 
@@ -85,7 +87,7 @@ export const saveDiscovered = async function(models) {
         return;
     }
 
-    return new Promise(function(resolve, reject) {
+    const promise = new Promise(function(resolve, reject) {
         const tx = _db.transaction(STORE_DISCOVERED, "readwrite");
         const store = tx.objectStore(STORE_DISCOVERED);
 
@@ -103,6 +105,7 @@ export const saveDiscovered = async function(models) {
             reject(tx.error);
         };
     });
+    return promise;
 };
 
 /**
@@ -115,7 +118,7 @@ export const getDiscovered = async function() {
         return result;
     }
 
-    return new Promise(function(resolve, reject) {
+    const promise = new Promise(function(resolve, reject) {
         const tx = _db.transaction(STORE_DISCOVERED, "readonly");
         const store = tx.objectStore(STORE_DISCOVERED);
         const request = store.getAll();
@@ -127,6 +130,7 @@ export const getDiscovered = async function() {
             reject(request.error);
         };
     });
+    return promise;
 };
 
 /**
@@ -144,7 +148,7 @@ export const saveSelected = async function(models) {
         return;
     }
 
-    return new Promise(function(resolve, reject) {
+    const promise = new Promise(function(resolve, reject) {
         const tx = _db.transaction(STORE_SELECTED, "readwrite");
         const store = tx.objectStore(STORE_SELECTED);
 
@@ -162,6 +166,7 @@ export const saveSelected = async function(models) {
             reject(tx.error);
         };
     });
+    return promise;
 };
 
 /**
@@ -180,7 +185,7 @@ export const addSelected = async function(models) {
         return;
     }
 
-    return new Promise(function(resolve, reject) {
+    const promise = new Promise(function(resolve, reject) {
         const tx = _db.transaction(STORE_SELECTED, "readwrite");
         const store = tx.objectStore(STORE_SELECTED);
 
@@ -212,6 +217,7 @@ export const addSelected = async function(models) {
 
         putNext(models, 0);
     });
+    return promise;
 };
 
 /**
@@ -224,7 +230,7 @@ export const getSelected = async function() {
         return result;
     }
 
-    return new Promise(function(resolve, reject) {
+    const promise = new Promise(function(resolve, reject) {
         const tx = _db.transaction(STORE_SELECTED, "readonly");
         const store = tx.objectStore(STORE_SELECTED);
         const request = store.getAll();
@@ -236,6 +242,7 @@ export const getSelected = async function() {
             reject(request.error);
         };
     });
+    return promise;
 };
 
 /**
@@ -248,7 +255,7 @@ export const clearSelected = async function() {
         return;
     }
 
-    return new Promise(function(resolve, reject) {
+    const promise = new Promise(function(resolve, reject) {
         const tx = _db.transaction(STORE_SELECTED, "readwrite");
         const store = tx.objectStore(STORE_SELECTED);
         store.clear();
@@ -259,6 +266,7 @@ export const clearSelected = async function() {
             reject(tx.error);
         };
     });
+    return promise;
 };
 
 /**
@@ -272,20 +280,16 @@ export const close = function() {
 };
 
 /**
- * Factory per creare l'istanza del database (singleton).
- * @returns {Object} API del database
+ * Singleton database LLM (stessa API della precedente createLlmDB).
+ * Ogni init() consecutivo non apre connessioni duplicate.
  */
-export const createLlmDB = function() {
-    return {
-        init,
-        saveDiscovered,
-        getDiscovered,
-        saveSelected,
-        getSelected,
-        addSelected,
-        clearSelected,
-        close
-    };
+export const llmDb = {
+    init,
+    saveDiscovered,
+    getDiscovered,
+    saveSelected,
+    getSelected,
+    addSelected,
+    clearSelected,
+    close
 };
-
-export default { createLlmDB };

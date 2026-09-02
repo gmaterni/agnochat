@@ -27,21 +27,18 @@ export const fetchGroqModels = async function(apiKey) {
         throw new Error(`Groq: HTTP ${response.status}`);
     }
     const data = await response.json();
-    const models = (data.data || []).map(function(m) {
-        return {
-            id: m.id,
-            contextLength: m.context_length || 8192,
-            raw: m
-        };
-    });
+    const models = (data.data || []).map(m => ({
+        id: m.id,
+        contextLength: m.context_length || 8192,
+        raw: m
+    }));
 
     const fetcher = new ModelFetcher("groq");
     const filtered = fetcher.filterAndSortModels(models);
 
-    return filtered.map(function(m) {
-        return {
-            id: m.id,
-            contextWindow: m.contextLength
-        };
-    });
+    const mapped = filtered.map(m => ({
+        id: m.id,
+        contextWindow: m.contextLength
+    }));
+    return mapped;
 };

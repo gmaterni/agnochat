@@ -12,15 +12,7 @@
 "use strict";
 
 import { dbInstance as _db } from "./services/db_instance.js";
-
-// ============================================================================
-// FUNZIONI PRIVATE
-// ============================================================================
-
-const _logErr = function(op, err) {
-    console.error(`conversation_mgr.${op}:`, err);
-    return null;
-};
+import { logDbError } from "./services/error_utils.js";
 
 // ============================================================================
 // API PUBBLICA — Conversazioni
@@ -42,9 +34,11 @@ export const ConversationMgr = {
         };
         try {
             const id = await _db.conversations.add(conversation);
-            return { id, ...conversation };
+            const created = { id, ...conversation };
+            return created;
         } catch (err) {
-            return _logErr("create", err);
+            const result = logDbError("conversation_mgr", "create", err);
+            return result;
         }
     },
 
@@ -57,7 +51,8 @@ export const ConversationMgr = {
             const rows = await _db.conversations.orderBy("updatedAt").reverse().toArray();
             return rows;
         } catch (err) {
-            return _logErr("list", err);
+            const result = logDbError("conversation_mgr", "list", err);
+            return result;
         }
     },
 
@@ -71,7 +66,8 @@ export const ConversationMgr = {
             const row = await _db.conversations.get(id);
             return row;
         } catch (err) {
-            return _logErr("get", err);
+            const result = logDbError("conversation_mgr", "get", err);
+            return result;
         }
     },
 
@@ -87,9 +83,11 @@ export const ConversationMgr = {
                 ...changes,
                 updatedAt: new Date().toISOString()
             });
-            return true;
+            const success = true;
+            return success;
         } catch (err) {
-            return _logErr("update", err);
+            const result = logDbError("conversation_mgr", "update", err);
+            return result;
         }
     },
 
@@ -104,9 +102,11 @@ export const ConversationMgr = {
                 await _db.messages.where("conversationId").equals(id).delete();
                 await _db.conversations.delete(id);
             });
-            return true;
+            const success = true;
+            return success;
         } catch (err) {
-            return _logErr("delete", err);
+            const result = logDbError("conversation_mgr", "delete", err);
+            return result;
         }
     },
 
@@ -121,9 +121,11 @@ export const ConversationMgr = {
             await ConversationMgr.update(convId, {
                 documents: JSON.stringify(docs)
             });
-            return true;
+            const success = true;
+            return success;
         } catch (err) {
-            return _logErr("saveDocuments", err);
+            const result = logDbError("conversation_mgr", "saveDocuments", err);
+            return result;
         }
     },
 
@@ -136,11 +138,14 @@ export const ConversationMgr = {
         try {
             const row = await _db.conversations.get(convId);
             if (row && row.documents) {
-                return JSON.parse(row.documents);
+                const documents = JSON.parse(row.documents);
+                return documents;
             }
-            return [];
+            const result = [];
+            return result;
         } catch (err) {
-            return _logErr("loadDocuments", err) || [];
+            const result = logDbError("conversation_mgr", "loadDocuments", err) || [];
+            return result;
         }
     }
 };
@@ -168,9 +173,11 @@ export const MessageStore = {
         try {
             const id = await _db.messages.add(message);
             await ConversationMgr.update(conversationId, {});
-            return { id, ...message };
+            const created = { id, ...message };
+            return created;
         } catch (err) {
-            return _logErr("add", err);
+            const result = logDbError("conversation_mgr", "add", err);
+            return result;
         }
     },
 
@@ -187,7 +194,8 @@ export const MessageStore = {
                 .sortBy("createdAt");
             return rows;
         } catch (err) {
-            return _logErr("list", err);
+            const result = logDbError("conversation_mgr", "list", err);
+            return result;
         }
     },
 
@@ -205,23 +213,11 @@ export const MessageStore = {
                 .and(m => m.id >= fromMessageId)
                 .delete();
             await ConversationMgr.update(conversationId, {});
-            return true;
+            const success = true;
+            return success;
         } catch (err) {
-            return _logErr("removeFrom", err);
-        }
-    },
-
-    /**
-     * Cancella tutti i messaggi di una conversazione.
-     * @param {number} conversationId - Id conversazione.
-     * @returns {Promise<boolean>}
-     */
-    deleteByConversation: async function(conversationId) {
-        try {
-            await _db.messages.where("conversationId").equals(conversationId).delete();
-            return true;
-        } catch (err) {
-            return _logErr("deleteByConversation", err);
+            const result = logDbError("conversation_mgr", "removeFrom", err);
+            return result;
         }
     }
 };

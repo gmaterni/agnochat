@@ -15,6 +15,7 @@ import { UaLog } from "./services/ualog3.js";
 import { bindEventListener, showHtmlThread, wnds, Commands, TextInput, TextOutput, getTheme, updateActiveModelDisplay } from "./app_ui.js";
 import { AppMgr } from "./app_mgr.js";
 import { UaSender } from "./services/sender.js";
+import { formatErrorPrefix } from "./services/error_utils.js";
 
 import "./services/uadialog.js";
 
@@ -27,11 +28,9 @@ const APP_VERSION = "1.0.0";
 
 /** @type {string} URL del worker per l'invio eventi analytics. */
 const WORKER_URL = "https://wwwanalyzer-backend.workerua.workers.dev";
-// Disabilitazione log non necessari
-// Scommentare la riga qui sotto per silenziare console.debug
-// console.debug = () => { };
-// console.info = () => { };
-// console.warn = () => { };
+
+/** Codice di errore che indica l'interruzione manuale dell'utente. */
+const ERROR_CODE_CANCELLED = 499;
 
 // ============================================================================
 // GESTIONE ERRORI GLOBALE
@@ -55,13 +54,11 @@ window.onunhandledrejection = function (event) {
     const error = event.reason;
 
     // Codice 499 indica un'interruzione manuale dell'utente, da ignorare
-    if (error && error.code === 499) {
+    if (error && error.code === ERROR_CODE_CANCELLED) {
         return;
     }
 
-    const msg = error.message || error;
-    const codePrefix = error.code ? `[${error.code}] ` : "";
-    const alertMsg = `ERRORE ASINCRONO (Promise):\n${codePrefix}${msg}`;
+    const alertMsg = formatErrorPrefix(error, "ERRORE ASINCRONO (Promise)");
 
     alert(alertMsg);
 };
@@ -84,7 +81,6 @@ const openAppAsync = async function () {
 
         // 1. Inizializzazione UI e Log
         wnds.init();
-        Commands.init();
         UaLog.setXY(40, 6).setZ(111).new();
 
         // 2. Inizializzazione Core Applicativo
@@ -96,7 +92,6 @@ const openAppAsync = async function () {
         // 4. Configurazione Componenti Input/Output
         TextInput.init();
         TextInput._inputEl?.focus();
-        TextOutput.init();
 
         // 4. Associazione Event Listener e gestione Menu
         bindEventListener();

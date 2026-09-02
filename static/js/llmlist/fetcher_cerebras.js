@@ -20,12 +20,15 @@ const API_URL = "https://api.cerebras.ai/v1/models";
  */
 const getContextWindow = function(modelId) {
     if (modelId.includes("llama-3.1") || modelId.includes("llama-3.3")) {
-        return 131072;
+        const result = 131072;
+        return result;
     }
     if (modelId.includes("llama3")) {
-        return 8192;
+        const result = 8192;
+        return result;
     }
-    return 8192;
+    const result = 8192;
+    return result;
 };
 
 /**
@@ -41,17 +44,14 @@ export const fetchCerebrasModels = async function(apiKey) {
         throw new Error(`Cerebras: HTTP ${response.status}`);
     }
     const data = await response.json();
-    const models = (data.data || []).map(function(m) {
-        return { id: m.id, raw: m };
-    });
+    const models = (data.data || []).map(m => ({ id: m.id, raw: m }));
 
     const fetcher = new ModelFetcher("cerebras");
     const filtered = fetcher.filterAndSortModels(models);
 
-    return filtered.map(function(m) {
-        return {
-            id: m.id,
-            contextWindow: getContextWindow(m.id)
-        };
-    });
+    const mapped = filtered.map(m => ({
+        id: m.id,
+        contextWindow: getContextWindow(m.id)
+    }));
+    return mapped;
 };

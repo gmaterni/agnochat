@@ -9,8 +9,7 @@
 "use strict";
 
 import { LlmProvider } from "./llm_provider.js";
-import { createLlmDB } from "./llm/llm-db.js";
-import { LlmUpdater } from "./llm_updater.js";
+import { llmDb } from "./llm/llm-db.js";
 
 // Istanza singleton del database LLM
 let _llmDb = null;
@@ -29,7 +28,7 @@ export const AppMgr = {
      * Inizializza l'applicazione.
      */
     initApp: async function() {
-        _llmDb = createLlmDB();
+        _llmDb = llmDb;
         await _llmDb.init();
 
         await LlmProvider.init();
@@ -72,6 +71,12 @@ export const AppMgr = {
         }
         // Se nessuna selezione salvata: NON leggere i .txt.
         // L'albero rimane vuoto finché l'utente non fa "Aggiorna LLM" o "Reset LLM".
+
+        // Riapplica la configurazione salvata ora che il catalogo è popolato:
+        // all'avvio loadConfig() girava con catalogo vuoto, la validazione
+        // falliva e la selezione utente veniva sostituita dal default
+        // (primo modello del primo provider).
+        await LlmProvider.loadConfig();
         LlmProvider.validateActive();
     }
 };

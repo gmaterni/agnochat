@@ -128,9 +128,7 @@ const _keepLatestVersions = function(models) {
         }
     }
 
-    const latest = Object.values(latestModels).map(function(entry) {
-        return entry.model;
-    });
+    const latest = Object.values(latestModels).map(entry => entry.model);
     return latest;
 };
 
@@ -277,9 +275,7 @@ export const fetchOpenRouterModels = async function(apiKey) {
     // 5. Filtro, deduplica e ordinamento come nello script Python
     const filtered = rawModels.filter(_isTextFreeModel);
     const latest = _keepLatestVersions(filtered);
-    latest.sort(function(a, b) {
-        return String(a.id).localeCompare(String(b.id));
-    });
+    latest.sort((a, b) => String(a.id).localeCompare(String(b.id)));
 
     const models = latest.map(function(m) {
         const item = { id: m.id, contextWindow: m.context_length || 0 };

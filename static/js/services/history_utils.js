@@ -16,10 +16,6 @@
 // COSTANTI DI MODULO
 // ============================================================================
 
-/** Prefissi per ruoli nei messaggi. */
-export const QUESTION_PREFIX = "question:";
-export const ANSWER_PREFIX = "answer:";
-
 /** Ruoli dei messaggi nel formato standard OpenAI. */
 export const ROLE_USER = "user";
 export const ROLE_ASSISTANT = "assistant";
@@ -38,7 +34,8 @@ export const ROLE_SYSTEM = "system";
 const _isValidMessage = function(msg) {
     if (typeof msg !== "object" || msg === null) {
         console.error("_isValidMessage: input non è un oggetto valido");
-        return false;
+        const valid = false;
+        return valid;
     }
 
     const hasRole = "role" in msg;
@@ -63,7 +60,8 @@ const _isValidMessage = function(msg) {
 const _normalizeContent = function(content) {
     // Fail Fast
     if (typeof content !== "string") {
-        return "";
+        const empty = "";
+        return empty;
     }
 
     // Sostituisce 3 o più ritorni a capo con esattamente 2
@@ -81,7 +79,8 @@ const _normalizeContent = function(content) {
  */
 export const cleanLlmResponse = function(text) {
     if (!text) {
-        return "";
+        const empty = "";
+        return empty;
     }
 
     let cleaned = text.trim();
@@ -123,7 +122,8 @@ export const cleanLlmResponse = function(text) {
 const _parseMarkdown = function(text) {
     // Fail Fast
     if (!text) {
-        return "";
+        const empty = "";
+        return empty;
     }
 
     let result = "";
@@ -154,7 +154,8 @@ const _formatMessageHtml = function(role, content) {
     // Fail Fast
     if (!role || content === undefined) {
         console.error("_formatMessageHtml: parametri mancanti");
-        return "<div>ERROR: Missing Params</div>";
+        const errorHtml = "<div>ERROR: Missing Params</div>";
+        return errorHtml;
     }
 
     let html = "";
@@ -175,35 +176,32 @@ const _formatMessageHtml = function(role, content) {
     return html;
 };
 
-/**
- * Formatta un messaggio per la visualizzazione in testo puro.
- * 
- * @param {string} role    - Ruolo del messaggio.
- * @param {string} content - Contenuto testuale.
- * @returns {string} Testo formattato.
- */
-const _formatMessageText = function(role, content) {
-    let text = "";
-    const trimmedContent = content.trim();
-
-    if (role === ROLE_ASSISTANT) {
-        text = `Assistant:\n${trimmedContent}\n`;
-    } else if (role === ROLE_USER) {
-        text = `User:\n${trimmedContent}`;
-    } else if (role === ROLE_SYSTEM) {
-        text = `System:\n${trimmedContent}`;
-    } else {
-        console.error(`_formatMessageText: ruolo non riconosciuto (${role})`);
-        text = `ERROR: ${role}`;
-    }
-
-    // Return Strict
-    return text;
-};
-
 // ============================================================================
 // API PUBBLICA
 // ============================================================================
+
+/**
+ * Escapa i caratteri HTML speciali in una stringa.
+ * Previeni XSS quando i contenuti utente vengono inseriti nel DOM.
+ *
+ * @param {string} text - Testo da escapare.
+ * @returns {string} Testo con i caratteri HTML escapati.
+ */
+export const escapeHtml = function(text) {
+    if (!text) {
+        const empty = "";
+        return empty;
+    }
+
+    const escaped = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+    return escaped;
+};
 
 /**
  * Converte un array di messaggi in HTML per la cronologia.
@@ -214,7 +212,8 @@ const _formatMessageText = function(role, content) {
 export const messages2html = function(history) {
     // Fail Fast
     if (!history || !Array.isArray(history)) {
-        return "";
+        const empty = "";
+        return empty;
     }
 
     const htmlParts = [];
@@ -246,44 +245,6 @@ export const messages2html = function(history) {
 };
 
 /**
- * Converte un array di messaggi in una stringa di testo puro.
- * 
- * @param {Array} history - Elenco di messaggi {role, content}.
- * @returns {string} Stringa di testo.
- */
-export const messages2text = function(history) {
-    // Fail Fast
-    if (!history || !Array.isArray(history)) {
-        return "";
-    }
-
-    const textParts = [];
-
-    for (const msg of history) {
-        if (_isValidMessage(msg)) {
-            const role = msg.role;
-            let rawContent = msg.content;
-
-            // Pulisce le risposte dell'assistente
-            if (role === ROLE_ASSISTANT) {
-                rawContent = cleanLlmResponse(rawContent);
-            }
-
-            const content = _normalizeContent(rawContent);
-
-            const partText = _formatMessageText(role, content);
-            textParts.push(partText);
-        }
-    }
-
-    const joinedText = textParts.join("\n====================\n");
-    const result = joinedText.replace(/\n{2,}/g, "\n");
-
-    // Return Strict
-    return result;
-};
-
-/**
  * Formatta una stringa di testo puro aggiungendo indentazione e separatori.
  * 
  * @param {string} txt - Testo da formattare.
@@ -292,7 +253,8 @@ export const messages2text = function(history) {
 export const textFormatter = function(txt) {
     // Fail Fast
     if (!txt) {
-        return "";
+        const empty = "";
+        return empty;
     }
 
     // Pulizia HTML (se presente)

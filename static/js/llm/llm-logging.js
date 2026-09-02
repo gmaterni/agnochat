@@ -25,7 +25,7 @@ export const createLlmLogger = function(logWindow) {
         }
     };
 
-    return {
+    const api = {
         /**
          * Inizio sezione provider.
          * @param {string} name
@@ -70,6 +70,7 @@ export const createLlmLogger = function(logWindow) {
             _append(line);
         }
     };
+    return api;
 };
 
 export default { createLlmLogger };

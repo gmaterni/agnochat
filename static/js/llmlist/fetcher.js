@@ -35,7 +35,8 @@ export class ModelFetcher {
             }
         }
 
-        return Array.from(latestModels.values()).map(item => item.model);
+        const mappedModels = Array.from(latestModels.values()).map(item => item.model);
+        return mappedModels;
     }
 
     /**
@@ -65,6 +66,7 @@ export class ModelFetcher {
             version = model.version;
         }
 
-        return { baseName, version };
+        const parsed = { baseName, version };
+        return parsed;
     }
 }

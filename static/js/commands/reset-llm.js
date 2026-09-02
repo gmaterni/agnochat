@@ -9,7 +9,7 @@
 
 "use strict";
 
-import { createLlmDB } from "vanillallm/llm/llm-db.js";
+import { llmDb } from "vanillallm/llm/llm-db.js";
 import { LlmProvider } from "vanillallm/llm_provider.js";
 import { updateActiveModelDisplay } from "vanillallm/app_ui.js";
 import { UaLog } from "vanillallm/services/ualog3.js";
@@ -48,7 +48,6 @@ const _readDefaultModels = async function() {
  * @returns {Promise<void>}
  */
 export const runReset = async function() {
-    const llmDb = createLlmDB();
     await llmDb.init();
 
     await llmDb.clearSelected();

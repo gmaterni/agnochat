@@ -20,7 +20,8 @@ const API_URL = "https://api.mistral.ai/v1/models";
  */
 const isChatModel = function(m) {
     const caps = m.capabilities || m.raw?.capabilities || {};
-    return caps.completion_chat === true || caps.completionChat === true;
+    const isChat = caps.completion_chat === true || caps.completionChat === true;
+    return isChat;
 };
 
 /**
@@ -42,21 +43,21 @@ export const fetchMistralModels = async function(apiKey) {
         if (id.includes("latest")) {
             version = "999";
         }
-        return {
+        const item = {
             id: id,
             version: version,
             contextLength: m.max_context_length || m.maxContextLength || 0,
             raw: m
         };
+        return item;
     });
 
     const fetcher = new ModelFetcher("mistral");
     const filtered = fetcher.filterAndSortModels(models, isChatModel);
 
-    return filtered.map(function(m) {
-        return {
-            id: m.id,
-            contextWindow: m.contextLength
-        };
-    });
+    const mapped = filtered.map(m => ({
+        id: m.id,
+        contextWindow: m.contextLength
+    }));
+    return mapped;
 };

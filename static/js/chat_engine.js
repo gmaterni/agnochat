@@ -20,6 +20,7 @@ import { ConversationMgr, MessageStore } from "./conversation_mgr.js";
 import { PromptMgr } from "./prompt_mgr.js";
 import { SettingsMgr } from "./settings_mgr.js";
 import { getDocuments } from "./uploader.js";
+import { formatErrorPrefix } from "./services/error_utils.js";
 
 // ============================================================================
 // COSTANTI
@@ -31,6 +32,9 @@ const RETRYABLE_STATUS_CODES = [408, 500, 502, 503, 504];
 const REQUEST_TIMEOUT_SEC = 90;
 const TEMPERATURE = 0.7;
 const MAX_TOKENS = 4000;
+
+/** Codice di errore che indica l'interruzione manuale dell'utente. */
+const ERROR_CODE_CANCELLED = 499;
 
 // ============================================================================
 // STATO PRIVATO
@@ -50,7 +54,7 @@ let _stopRequested = false;
 // ============================================================================
 
 const _cancellableSleep = function(ms) {
-    return new Promise(function(resolve) {
+    const sleepPromise = new Promise(function(resolve) {
         const interval = 100;
         let elapsed = 0;
         const timer = setInterval(function() {
@@ -61,6 +65,7 @@ const _cancellableSleep = function(ms) {
             }
         }, interval);
     });
+    return sleepPromise;
 };
 
 /**
@@ -113,7 +118,8 @@ const _sendRequest = async function(client, payload) {
     // Fail Fast
     if (!client || !payload) {
         console.error("_sendRequest: client o payload mancanti");
-        return null;
+        const outcome = null;
+        return outcome;
     }
 
     let result = null;
@@ -141,6 +147,84 @@ const _sendRequest = async function(client, payload) {
     }
 
     return result;
+};
+
+// ============================================================================
+// FUNZIONI PRIVATE (supporto a sendMessage)
+// ============================================================================
+
+/**
+ * Recupera la conversazione attiva, creandola se manca.
+ * @param {Array<Object>} documents - Documenti caricati da associare.
+ * @returns {Promise<number|null>} Id della conversazione attiva o null.
+ */
+const _ensureConversationAsync = async function(documents) {
+    let conversationId = await SettingsMgr.getActiveConversationId();
+    if (!conversationId) {
+        const created = await ConversationMgr.create();
+        if (created && created.id) {
+            conversationId = created.id;
+            await SettingsMgr.setActiveConversationId(conversationId);
+            await ConversationMgr.saveDocuments(conversationId, documents);
+        }
+    }
+    return conversationId;
+};
+
+/**
+ * Salva il messaggio utente e imposta il titolo automatico se è il primo.
+ * @param {number} conversationId - Id della conversazione attiva.
+ * @param {string} question - Domanda dell'utente.
+ */
+const _saveUserMessageAsync = async function(conversationId, question) {
+    await MessageStore.add(conversationId, "user", question);
+
+    // Titolo automatico dalla prima domanda
+    const conversation = await ConversationMgr.get(conversationId);
+    if (conversation && conversation.title === "Nuova conversazione") {
+        const questionShort = question.slice(0, 48);
+        const title = question.length > 48 ? `${questionShort}...` : question;
+        await ConversationMgr.update(conversationId, { title });
+    }
+};
+
+/**
+ * Carica la cronologia senza l'ultimo messaggio (la domanda corrente).
+ * @param {number|null} conversationId - Id della conversazione attiva.
+ * @returns {Promise<Array<Object>>}
+ */
+const _loadHistoryAsync = async function(conversationId) {
+    let history = [];
+    if (conversationId) {
+        const all = await MessageStore.list(conversationId);
+        history = all.slice(0, -1);
+    }
+    return history;
+};
+
+/**
+ * Persiste l'esito della risposta nella conversazione.
+ * @param {number|null} conversationId - Id della conversazione attiva.
+ * @param {Object} rr - Risultato standard {ok, data, error}.
+ */
+const _persistResultAsync = async function(conversationId, rr) {
+    if (rr.ok) {
+        if (conversationId) {
+            await MessageStore.add(conversationId, "assistant", rr.data || "");
+        }
+        return;
+    }
+
+    const err = rr.error || {};
+    // 499 (annullato): nessun messaggio salvato
+    if (err.code !== ERROR_CODE_CANCELLED && conversationId) {
+        if (err.type === "TokenLimitError") {
+            await MessageStore.add(conversationId, "system", "Input troppo lungo - Superato il limite di token");
+        } else {
+            const errPrefix = formatErrorPrefix(err, "Errore");
+            await MessageStore.add(conversationId, "system", errPrefix);
+        }
+    }
 };
 
 // ============================================================================
@@ -178,11 +262,13 @@ export const ChatEngine = {
     sendMessage: async function(question) {
         if (_busy) {
             console.warn("ChatEngine.sendMessage: richiesta già in corso");
-            return null;
+            const output = null;
+            return output;
         }
         if (!question || question.trim() === "") {
             console.error("ChatEngine.sendMessage: domanda vuota");
-            return null;
+            const output = null;
+            return output;
         }
 
         _busy = true;
@@ -193,7 +279,8 @@ export const ChatEngine = {
             const config = LlmProvider.getConfig();
             if (!config.provider || !config.model) {
                 console.error("ChatEngine.sendMessage: nessun provider/modello attivo");
-                return null;
+                const output = null;
+                return output;
             }
 
             // 2. Client LLM (null se manca la chiave)
@@ -210,34 +297,16 @@ export const ChatEngine = {
             _activeClient = client;
 
             // 3. Conversazione attiva (crea se manca)
-            let conversationId = await SettingsMgr.getActiveConversationId();
-            if (!conversationId) {
-                const created = await ConversationMgr.create();
-                if (created && created.id) {
-                    conversationId = created.id;
-                    await SettingsMgr.setActiveConversationId(conversationId);
-                    await ConversationMgr.saveDocuments(conversationId, getDocuments());
-                }
-            }
+            const documents = getDocuments();
+            const conversationId = await _ensureConversationAsync(documents);
 
             // 4. Salva il messaggio utente nella conversazione
             if (conversationId) {
-                await MessageStore.add(conversationId, "user", question);
-
-                // Titolo automatico dalla prima domanda
-                const conversation = await ConversationMgr.get(conversationId);
-                if (conversation && conversation.title === "Nuova conversazione") {
-                    const title = question.length > 48 ? `${question.slice(0, 48)}...` : question;
-                    await ConversationMgr.update(conversationId, { title });
-                }
+                await _saveUserMessageAsync(conversationId, question);
             }
 
             // 5. Cronologia (senza l'ultimo messaggio: è la domanda corrente)
-            let history = [];
-            if (conversationId) {
-                const all = await MessageStore.list(conversationId);
-                history = all.slice(0, -1);
-            }
+            const history = await _loadHistoryAsync(conversationId);
 
             // 6. Prompt di sistema attivo
             const systemPrompt = await PromptMgr.getActive();
@@ -261,23 +330,8 @@ export const ChatEngine = {
                 return result;
             }
 
-            // 9. Gestione esiti
-            if (rr.ok) {
-                if (conversationId) {
-                    await MessageStore.add(conversationId, "assistant", rr.data || "");
-                }
-            } else {
-                const err = rr.error || {};
-                // 499 (annullato): nessun messaggio salvato
-                if (err.code !== 499 && conversationId) {
-                    if (err.type === "TokenLimitError") {
-                        await MessageStore.add(conversationId, "system", "Input troppo lungo - Superato il limite di token");
-                    } else {
-                        const codePrefix = err.code ? `[${err.code}] ` : "";
-                        await MessageStore.add(conversationId, "system", `Errore: ${codePrefix}${err.message || "Errore sconosciuto"}`);
-                    }
-                }
-            }
+            // 9. Persistenza dell'esito
+            await _persistResultAsync(conversationId, rr);
 
             return rr;
         } finally {

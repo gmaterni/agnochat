@@ -32,10 +32,12 @@ const isTextChatModel = function(modelId) {
     const lower = (modelId || "").toLowerCase();
     for (const kw of EXCLUDE_KEYWORDS) {
         if (lower.includes(kw)) {
-            return false;
+            const result = false;
+            return result;
         }
     }
-    return true;
+    const result = true;
+    return result;
 };
 
 /**
@@ -46,58 +48,45 @@ const isTextChatModel = function(modelId) {
 const getContextWindow = function(modelId) {
     const lower = (modelId || "").toLowerCase();
 
+    let result = 8192;
+
     if (lower.includes("gemini-2.5") || lower.includes("gemini-3")) {
-        return 1048576;
+        result = 1048576;
+    } else if (lower.includes("gemma-4-31b") || lower.includes("gemma-4-26b")) {
+        result = 262144;
+    } else if (lower.includes("llama-3.1") || lower.includes("llama-3.3")) {
+        result = 131072;
+    } else if (lower.includes("qwen2.5") || lower.includes("qwen-2.5")) {
+        result = 131072;
+    } else if (lower.includes("deepseek-v2") || lower.includes("deepseek-v3")) {
+        result = 131072;
+    } else if (lower.includes("yi-1.5")) {
+        result = 131072;
+    } else if (lower.includes("llama3") || lower.includes("llama-3")) {
+        result = 8192;
+    } else if (lower.includes("qwen")) {
+        result = 32768;
+    } else if (lower.includes("mistral") || lower.includes("mixtral")) {
+        result = 32768;
+    } else if (lower.includes("deepseek")) {
+        result = 4096;
+    } else if (lower.includes("glm") || lower.includes("chatglm")) {
+        result = 128000;
+    } else if (lower.includes("internlm")) {
+        result = 32768;
+    } else if (lower.includes("baichuan")) {
+        result = 32768;
+    } else if (lower.includes("yi")) {
+        result = 32768;
+    } else if (lower.includes("phi")) {
+        result = 128000;
+    } else if (lower.includes("starcoder")) {
+        result = 16384;
+    } else if (lower.includes("codestral")) {
+        result = 32768;
     }
-    if (lower.includes("gemma-4-31b") || lower.includes("gemma-4-26b")) {
-        return 262144;
-    }
-    if (lower.includes("llama-3.1") || lower.includes("llama-3.3")) {
-        return 131072;
-    }
-    if (lower.includes("qwen2.5") || lower.includes("qwen-2.5")) {
-        return 131072;
-    }
-    if (lower.includes("deepseek-v2") || lower.includes("deepseek-v3")) {
-        return 131072;
-    }
-    if (lower.includes("yi-1.5")) {
-        return 131072;
-    }
-    if (lower.includes("llama3") || lower.includes("llama-3")) {
-        return 8192;
-    }
-    if (lower.includes("qwen")) {
-        return 32768;
-    }
-    if (lower.includes("mistral") || lower.includes("mixtral")) {
-        return 32768;
-    }
-    if (lower.includes("deepseek")) {
-        return 4096;
-    }
-    if (lower.includes("glm") || lower.includes("chatglm")) {
-        return 128000;
-    }
-    if (lower.includes("internlm")) {
-        return 32768;
-    }
-    if (lower.includes("baichuan")) {
-        return 32768;
-    }
-    if (lower.includes("yi")) {
-        return 32768;
-    }
-    if (lower.includes("phi")) {
-        return 128000;
-    }
-    if (lower.includes("starcoder")) {
-        return 16384;
-    }
-    if (lower.includes("codestral")) {
-        return 32768;
-    }
-    return 8192;
+
+    return result;
 };
 
 /**
@@ -113,22 +102,17 @@ export const fetchSiliconFlowModels = async function(apiKey) {
         throw new Error(`SiliconFlow: HTTP ${response.status}`);
     }
     const data = await response.json();
-    const models = (data.data || []).map(function(m) {
-        return {
-            id: m.id || "",
-            raw: m
-        };
-    });
+    const models = (data.data || []).map(m => ({
+        id: m.id || "",
+        raw: m
+    }));
 
     const fetcher = new ModelFetcher("siliconflow");
-    const filtered = fetcher.filterAndSortModels(models, function(m) {
-        return isTextChatModel(m.id);
-    });
+    const filtered = fetcher.filterAndSortModels(models, m => isTextChatModel(m.id));
 
-    return filtered.map(function(m) {
-        return {
-            id: m.id,
-            contextWindow: getContextWindow(m.id)
-        };
-    });
+    const mapped = filtered.map(m => ({
+        id: m.id,
+        contextWindow: getContextWindow(m.id)
+    }));
+    return mapped;
 };

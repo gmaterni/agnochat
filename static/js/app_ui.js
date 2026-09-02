@@ -3,7 +3,6 @@
  *
  * Gestisce l'interazione con il DOM, la creazione di finestre fluttuanti,
  * il sistema di comandi e l'aggiornamento dinamico della UI.
- * Adattato da ragindex: nessuna pipeline RAG, solo chat.
  *
  * @module  app_ui
  * @version 1.0.0
@@ -18,9 +17,9 @@ import { UaLog } from "./services/ualog3.js";
 import { help0_html } from "./services/help.js";
 import { UaDb } from "./services/uadb.js";
 import { DATA_KEYS } from "./services/data_keys.js";
-import { idbMgr } from "./services/idb_mgr.js";
+import { clearAllTables } from "./services/db_instance.js";
 import { LlmProvider, getProviderConfig } from "./llm_provider.js";
-import { textFormatter, messages2html } from "./services/history_utils.js";
+import { textFormatter, messages2html, escapeHtml } from "./services/history_utils.js";
 import { ConversationMgr, MessageStore } from "./conversation_mgr.js";
 import { PromptMgr } from "./prompt_mgr.js";
 import { SettingsMgr } from "./settings_mgr.js";
@@ -29,6 +28,7 @@ import { addApiKey, getApiKey, restoreDefaultApiKeys } from "./services/key_retr
 import { LlmUpdater } from "./llm_updater.js";
 import { createLlmSelectionWindow } from "./llm/llm-selection.js";
 import { getLlmDb } from "./app_mgr.js";
+import { formatErrorPrefix } from "./services/error_utils.js";
 import { runUpdate as runLlmUpdate } from "./commands/update-llm.js";
 import { runReset as runLlmReset } from "./commands/reset-llm.js";
 import { documentUploader, getDocuments, removeDocument, clearDocuments, setOnDocumentsChanged, setDocuments } from "./uploader.js";
@@ -44,15 +44,54 @@ const CSS_SPINNER_BG = "spinner-bg";
 const CSS_SHOW_SPINNER = "show-spinner";
 const CSS_MENU_OPEN = "menu-open";
 
+/** Codice di errore che indica l'interruzione manuale dell'utente. */
+const ERROR_CODE_CANCELLED = 499;
+
+/** Durata del feedback visivo "copiato" sul pulsante (millisecondi). */
+const COPIED_FEEDBACK_MS = 2000;
+
+/** Livelli z-index delle finestre fluttuanti principali. */
+const WINDOW_Z_MAIN = 12;
+const WINDOW_Z_INFO = 11;
+
+/** Posizione orizzontale (vw) delle finestre con e senza menu aperto. */
+const WINDOW_X_MENU_OPEN = 22;
+const WINDOW_X_DEFAULT = 2;
+
+/** Posizione verticale (vw) delle finestre fluttuanti. */
+const WINDOW_Y_VW = 6;
+
+/** Margine minimo del popup help rispetto ai bordi dello schermo (px). */
+const POPUP_MARGIN_PX = 10;
+
+/** Distanza del popup help dall'elemento di riferimento (px). */
+const POPUP_GAP_PX = 12;
+
+/** Spazio laterale del popup help rispetto al menu (px). */
+const POPUP_MENU_GAP_PX = 8;
+
+/** Ritardo prima della chiusura del popup help (millisecondi). */
+const POPUP_HIDE_DELAY_MS = 300;
+
+/** Durata della transizione di scomparsa del popup help (millisecondi). */
+const POPUP_FADE_MS = 200;
+
+/** Icona SVG del pulsante copia, condivisa da tutte le finestre che la usano. */
+const COPY_ICON_SVG = '<svg class="icon copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path></svg>';
+
 // ============================================================================
-// COMPONENTE SPINNER
+// COMPONENTE SPINNER (con STOP, per procedure interrompibili)
 // ============================================================================
 
 /**
- * Gestore dell'indicatore di caricamento (Spinner).
- * Utilizza una closure per incapsulare la logica.
+ * Crea un gestore di overlay spinner con pulsante STOP.
+ * @param {string} elementId - ID dell'elemento spinner nel DOM.
+ * @param {Function} stopHandler - Azione eseguita alla conferma dello STOP.
+ * @param {string} [stopMessage] - Messaggio della conferma dello STOP.
+ * @param {boolean} [hideOnStop=true] - Se nascondere lo spinner dopo lo STOP.
+ * @returns {{show: Function, hide: Function}}
  */
-const _Spinner = (function () {
+const _createSpinner = function(elementId, stopHandler, stopMessage = "Confermi lo STOP?", hideOnStop = true) {
   /**
    * Recupera gli elementi DOM necessari.
    * @returns {Object} Elementi outputArea, spinner e content.
@@ -60,8 +99,8 @@ const _Spinner = (function () {
   const _getElements = function () {
     const els = {
       outputArea: document.querySelector("#id-text-out .div-text"),
-      spinner: document.getElementById("spinner"),
-      spinnerContent: document.querySelector("#spinner .spinner-content"),
+      spinner: document.getElementById(elementId),
+      spinnerContent: document.querySelector(`#${elementId} .spinner-content`),
     };
     return els;
   };
@@ -74,10 +113,12 @@ const _Spinner = (function () {
     if (event) {
       event.stopPropagation();
     }
-    const confirmed = await confirm("Confermi lo STOP?");
+    const confirmed = await confirm(stopMessage);
     if (confirmed) {
-      ChatEngine.stop();
-      hide();
+      stopHandler();
+      if (hideOnStop) {
+        hide();
+      }
     }
   };
 
@@ -119,65 +160,24 @@ const _Spinner = (function () {
     }
   };
 
-  return {
-    show: show,
-    hide: hide,
-  };
-})();
-
-// ============================================================================
-// COMPONENTE SPINNER WAIT (con STOP, per procedure interrompibili)
-// ============================================================================
-
-/**
- * Interrompe la procedura di aggiornamento LLM dopo conferma.
- * @param {Event} event - L'evento click.
- */
-const _stopLlmUpdateAsync = async function(event) {
-    if (event) {
-        event.stopPropagation();
-    }
-    const confirmed = await confirm("Confermi lo STOP della procedura di aggiornamento LLM?");
-    if (confirmed) {
-        LlmUpdater.cancelUpdate();
-    }
+  const api = { show: show, hide: hide };
+  return api;
 };
 
-/**
- * Mostra l'overlay di attesa "spinner-wait" (con pulsante STOP).
- */
-const _showWaitSpinner = function() {
-    const outputArea = document.querySelector("#id-text-out .div-text");
-    if (outputArea) {
-        outputArea.classList.add(CSS_SPINNER_BG);
-    }
-    const wait = document.getElementById("spinner-wait");
-    if (wait) {
-        wait.classList.add(CSS_SHOW_SPINNER);
-        const content = wait.querySelector(".spinner-content");
-        if (content) {
-            content.addEventListener("click", _stopLlmUpdateAsync);
-        }
-    }
-};
+/** Spinner della chat: lo STOP interrompe la risposta in corso. */
+const _Spinner = _createSpinner("spinner", function() {
+  ChatEngine.stop();
+});
 
-/**
- * Nasconde l'overlay di attesa "spinner-wait".
- */
-const _hideWaitSpinner = function() {
-    const outputArea = document.querySelector("#id-text-out .div-text");
-    if (outputArea) {
-        outputArea.classList.remove(CSS_SPINNER_BG);
-    }
-    const wait = document.getElementById("spinner-wait");
-    if (wait) {
-        wait.classList.remove(CSS_SHOW_SPINNER);
-        const content = wait.querySelector(".spinner-content");
-        if (content) {
-            content.removeEventListener("click", _stopLlmUpdateAsync);
-        }
-    }
-};
+/** Spinner della procedura di aggiornamento LLM: lo STOP annulla il test in corso. */
+const _waitSpinner = _createSpinner(
+  "spinner-wait",
+  function() {
+    LlmUpdater.cancelUpdate();
+  },
+  "Confermi lo STOP della procedura di aggiornamento LLM?",
+  false
+);
 
 // ============================================================================
 // FACTORY FINESTRE
@@ -210,17 +210,15 @@ const _UaWindowFactory = function(id, contentClass, copyMethodName, showCopy = t
     const show = function(content, delAll = true) {
         if (delAll) wnds.closeAll();
 
-        _win.drag().setZ(12);
+        _win.drag().setZ(WINDOW_Z_MAIN);
 
         const isMenuOpen = document.body.classList.contains(CSS_MENU_OPEN);
-        const xPos = isMenuOpen ? 22 : 2;
-        _win.vw_vh().setXY(xPos, 6, 1);
+        const xPos = isMenuOpen ? WINDOW_X_MENU_OPEN : WINDOW_X_DEFAULT;
+        _win.vw_vh().setXY(xPos, WINDOW_Y_VW, 1);
 
         const copyBtnHtml = showCopy ? `
                     <button class="btn-copy wcp tt-left" data-tt="Copia" onclick="wnds.${copyMethodName}.copy()">
-                        <svg class="icon copy-icon" viewBox="0 0 24 24">
-                            <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path>
-                        </svg>
+                        ${COPY_ICON_SVG}
                     </button>
                     <button class="btn-close wcl tt-left" data-tt="Chiudi" onclick="wnds.${copyMethodName}.close()">X</button>
                     ` : `
@@ -262,14 +260,14 @@ const _UaWindowInfoFactory = function(id) {
     const show = function(content, delAll = true) {
         if (delAll) wnds.closeAll();
 
-        _win.drag().setZ(11);
+        _win.drag().setZ(WINDOW_Z_INFO);
         // Ripristina la larghezza di default: le finestre specializzate
         // (es. editor dei prompt) possono fissarla dopo la show().
         _win.setStyle({ width: "auto" });
 
         const isMenuOpen = document.body.classList.contains(CSS_MENU_OPEN);
-        const xPos = isMenuOpen ? 22 : 2;
-        _win.vw_vh().setXY(xPos, 6, -1);
+        const xPos = isMenuOpen ? WINDOW_X_MENU_OPEN : WINDOW_X_DEFAULT;
+        _win.vw_vh().setXY(xPos, WINDOW_Y_VW, -1);
 
         const innerContent = typeof content === "string" ? `<div>${content}</div>` : (content.innerHTML || content);
 
@@ -337,26 +335,26 @@ const HelpPopup = (function() {
         if (isMenu) {
             const menuBox = document.querySelector(".menu-box");
             const menuRect = menuBox.getBoundingClientRect();
-            left = menuRect.right + 8;
+            left = menuRect.right + POPUP_MENU_GAP_PX;
             top = rect.top + (rect.height / 2) - (pHeight / 2);
         } else {
-            top = rect.top - pHeight - 12;
+            top = rect.top - pHeight - POPUP_GAP_PX;
             left = rect.left + (rect.width / 2) - (pWidth / 2);
 
-            if (top < 10 || el.closest(".head-wrapper")) {
-                top = rect.bottom + 12;
+            if (top < POPUP_MARGIN_PX || el.closest(".head-wrapper")) {
+                top = rect.bottom + POPUP_GAP_PX;
             }
         }
 
-        if (left < 10) left = 10;
-        if (left + pWidth > window.innerWidth - 10) {
-            left = window.innerWidth - pWidth - 10;
+        if (left < POPUP_MARGIN_PX) left = POPUP_MARGIN_PX;
+        if (left + pWidth > window.innerWidth - POPUP_MARGIN_PX) {
+            left = window.innerWidth - pWidth - POPUP_MARGIN_PX;
         }
 
-        if (top + pHeight > window.innerHeight - 10) {
-            top = rect.top - pHeight - 12;
+        if (top + pHeight > window.innerHeight - POPUP_MARGIN_PX) {
+            top = rect.top - pHeight - POPUP_GAP_PX;
         }
-        if (top < 10) top = 10;
+        if (top < POPUP_MARGIN_PX) top = POPUP_MARGIN_PX;
 
         _popupEl.style.top = `${top}px`;
         _popupEl.style.left = `${left}px`;
@@ -372,10 +370,10 @@ const HelpPopup = (function() {
                 _popupEl.classList.remove("visible");
                 setTimeout(function() {
                     _popupEl.style.display = "none";
-                }, 200);
+                }, POPUP_FADE_MS);
             }
             _hideTimer = null;
-        }, 300);
+        }, POPUP_HIDE_DELAY_MS);
     };
 
     const bind = function(id, text) {
@@ -406,15 +404,6 @@ const _setResponseHtml = function(html) {
     outputContainer.scrollTo({ top: outputContainer.scrollHeight, behavior: "smooth" });
 };
 
-const _escapeHtml = function(str) {
-    return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-};
-
 const renderDocBar = function() {
     const docBar = document.getElementById("doc-bar");
     if (!docBar) return;
@@ -426,13 +415,14 @@ const renderDocBar = function() {
     }
     docBar.style.display = "flex";
     docBar.innerHTML = docs.map(doc => {
-        const escName = _escapeHtml(doc.fileName);
-        return `<span class="doc-item tt-top" data-tt="${escName}">
+        const escName = escapeHtml(doc.fileName);
+        const itemHtml = `<span class="doc-item tt-top" data-tt="${escName}">
           <svg class="doc-icon" viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,19L8,15H10.5V12H13.5V15H16L12,19Z"/></svg>
           <button class="doc-remove" data-doc-name="${escName}" title="Rimuovi">
             <svg class="icon-remove" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/></svg>
           </button>
         </span>`;
+        return itemHtml;
     }).join("");
 };
 
@@ -501,7 +491,8 @@ const _actionListConversationsAsync = async function() {
             const activeMark = isActive ? ' <span class="status-presente">(attiva)</span>' : "";
             const date = new Date(c.updatedAt).toLocaleString("it-IT");
             jfh.append('<tr>');
-            jfh.append(`<td>${c.title || "Senza titolo"}${activeMark}</td>`);
+            const title = escapeHtml(c.title || "Senza titolo");
+            jfh.append(`<td>${title}${activeMark}</td>`);
             jfh.append(`<td>${date}</td>`);
             jfh.append('<td>');
             jfh.append(`<button class="btn-success" onclick="wnds.viewConversation(${c.id})">Visualizza</button>`);
@@ -514,80 +505,106 @@ const _actionListConversationsAsync = async function() {
 
     jfh.append('</div>');
 
-    wnds.viewConversation = async function(id) {
-        const conv = await ConversationMgr.get(id);
-        const messages = await MessageStore.list(id);
-        
-        if (!messages || messages.length === 0) {
-            await alert("Nessun messaggio in questa conversazione.");
-            return;
-        }
-
-        const conversationHtml = messages2html(messages);
-        const jfhView = UaJtfh();
-        jfhView.append('<div class="data-dialog">');
-        jfhView.append(`<h4>${conv.title || "Senza titolo"}</h4>`);
-        jfhView.append('<div class="conversation-view">');
-        jfhView.append(conversationHtml);
-        jfhView.append('</div>');
-        jfhView.append('</div>');
-
-        wnds.winfo.show(jfhView.html());
-        
-        const convWin = UaWindowAdm.get("id-wnd-info");
-        if (convWin) convWin.setStyle({ width: "70vw" });
-
-        // Aggiungi pulsante Copy nella btn-wrapper
-        const container = convWin.getElement();
-        if (container) {
-            const btnWrapper = container.querySelector(".btn-wrapper");
-            if (btnWrapper) {
-                const copyBtn = document.createElement("button");
-                copyBtn.className = "btn-copy tt-left";
-                copyBtn.setAttribute("data-tt", "Copia");
-                copyBtn.innerHTML = '<svg class="icon copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path></svg>';
-                copyBtn.onclick = async function() {
-                    try {
-                        const text = messages.map(m => {
-                            const role = m.role === "user" ? "Tu" : "Assistente";
-                            return `[${role}]\n${m.content}`;
-                        }).join("\n\n");
-                        await navigator.clipboard.writeText(text);
-                        copyBtn.classList.add("copied");
-                        setTimeout(() => copyBtn.classList.remove("copied"), 2000);
-                    } catch (err) {
-                        console.error("viewConversation.copy:", err);
-                    }
-                };
-                btnWrapper.insertBefore(copyBtn, btnWrapper.firstChild);
-            }
-        }
-    };
-
-    wnds.selectConversation = async function(id) {
-        await SettingsMgr.setActiveConversationId(id);
-        await showHtmlThread();
-        wnds.winfo.close();
-        UaLog.log(">>> Conversazione selezionata. <<<");
-    };
-
-    wnds.deleteConversation = async function(id) {
-        const conv = await ConversationMgr.get(id);
-        const name = conv && conv.title ? conv.title : "Senza titolo";
-        if (!await confirm(`Eliminare la conversazione "${name}" e tutti i suoi messaggi?`)) return;
-        await ConversationMgr.delete(id);
-        const currentActiveId = await SettingsMgr.getActiveConversationId();
-        if (currentActiveId === id) {
-            await SettingsMgr.setActiveConversationId(null);
-            clearDocuments();
-            _setResponseHtml("");
-        }
-        wnds.winfo.close();
-        await _actionListConversationsAsync();
-        UaLog.log(">>> Conversazione eliminata. <<<");
-    };
+    wnds.viewConversation = _showConversationViewAsync;
+    wnds.selectConversation = _selectConversationAsync;
+    wnds.deleteConversation = _deleteConversationAsync;
 
     wnds.winfo.show(jfh.html());
+};
+
+/**
+ * Mostra i messaggi di una conversazione in una finestra con pulsante copia.
+ * @param {number} id - Id della conversazione.
+ */
+const _showConversationViewAsync = async function(id) {
+    const conv = await ConversationMgr.get(id);
+    const messages = await MessageStore.list(id);
+
+    if (!messages || messages.length === 0) {
+        await alert("Nessun messaggio in questa conversazione.");
+        return;
+    }
+
+    const conversationHtml = messages2html(messages);
+    const jfhView = UaJtfh();
+    const viewTitle = escapeHtml(conv.title || "Senza titolo");
+    jfhView.append('<div class="data-dialog">');
+    jfhView.append(`<h4>${viewTitle}</h4>`);
+    jfhView.append('<div class="conversation-view">');
+    jfhView.append(conversationHtml);
+    jfhView.append('</div>');
+    jfhView.append('</div>');
+
+    wnds.winfo.show(jfhView.html());
+
+    const convWin = UaWindowAdm.get("id-wnd-info");
+    if (convWin) convWin.setStyle({ width: "70vw" });
+
+    // Aggiungi pulsante Copy nella btn-wrapper
+    const container = convWin.getElement();
+    if (container) {
+        const btnWrapper = container.querySelector(".btn-wrapper");
+        if (btnWrapper) {
+            const copyBtn = document.createElement("button");
+            copyBtn.className = "btn-copy tt-left";
+            copyBtn.setAttribute("data-tt", "Copia");
+            copyBtn.innerHTML = COPY_ICON_SVG;
+            copyBtn.onclick = () => _copyConversationAsync(copyBtn, messages);
+            btnWrapper.insertBefore(copyBtn, btnWrapper.firstChild);
+        }
+    }
+};
+
+/**
+ * Copia la conversazione negli appunti e mostra il feedback sul pulsante.
+ * @param {HTMLElement} copyBtn - Pulsante copia.
+ * @param {Array<Object>} messages - Messaggi della conversazione.
+ */
+const _copyConversationAsync = async function(copyBtn, messages) {
+    try {
+        const text = messages.map(m => {
+            const role = m.role === "user" ? "Tu" : "Assistente";
+            const line = `[${role}]\n${m.content}`;
+            return line;
+        }).join("\n\n");
+        await navigator.clipboard.writeText(text);
+        copyBtn.classList.add("copied");
+        setTimeout(() => copyBtn.classList.remove("copied"), COPIED_FEEDBACK_MS);
+    } catch (err) {
+        console.error("viewConversation.copy:", err);
+    }
+};
+
+/**
+ * Attiva una conversazione come attiva.
+ * @param {number} id - Id della conversazione.
+ */
+const _selectConversationAsync = async function(id) {
+    await SettingsMgr.setActiveConversationId(id);
+    await showHtmlThread();
+    wnds.winfo.close();
+    UaLog.log(">>> Conversazione selezionata. <<<");
+};
+
+/**
+ * Elimina una conversazione e i suoi messaggi dopo conferma.
+ * @param {number} id - Id della conversazione.
+ */
+const _deleteConversationAsync = async function(id) {
+    const conv = await ConversationMgr.get(id);
+    const name = conv && conv.title ? conv.title : "Senza titolo";
+    const convName = escapeHtml(name);
+    if (!await confirm(`Eliminare la conversazione "${convName}" e tutti i suoi messaggi?`)) return;
+    await ConversationMgr.delete(id);
+    const currentActiveId = await SettingsMgr.getActiveConversationId();
+    if (currentActiveId === id) {
+        await SettingsMgr.setActiveConversationId(null);
+        clearDocuments();
+        _setResponseHtml("");
+    }
+    wnds.winfo.close();
+    await _actionListConversationsAsync();
+    UaLog.log(">>> Conversazione eliminata. <<<");
 };
 
 /**
@@ -623,20 +640,15 @@ const _showPromptEditorAsync = function(prompt) {
     const isEdit = !!prompt;
 
     jfh.append('<div class="data-dialog">');
-    jfh.append(`<h4>${isEdit ? "Modifica Prompt" : "Nuovo Prompt"}</h4>`);
+    const editorTitle = isEdit ? "Modifica Prompt" : "Nuovo Prompt";
+    jfh.append(`<h4>${editorTitle}</h4>`);
     jfh.append('<div class="ak-form">');
     jfh.append('<div class="ak-form-row"><div><label class="ak-label">Nome</label></div></div>');
-    jfh.append(`<input type="text" id="prompt-inp-name" class="ak-input-key" value="${isEdit ? prompt.name : ''}" placeholder="Nome del prompt">`);
+    const promptName = isEdit ? escapeHtml(prompt.name) : '';
+    jfh.append(`<input type="text" id="prompt-inp-name" class="ak-input-key" value="${promptName}" placeholder="Nome del prompt">`);
 
     if (!isEdit) {
-        jfh.append('<div class="ak-form-row"><div><label class="ak-label">Esempi</label></div></div>');
-        jfh.append('<select id="prompt-inp-examples" class="ak-input-key" onchange="wnds.handlePromptExample(this.value)">');
-        jfh.append('<option value="">— Scegli un prompt di sistema di esempio —</option>');
-        PROMPT_EXAMPLES.forEach((example, index) => {
-            const optionHtml = `<option value="${index}">${example.name}</option>`;
-            jfh.append(optionHtml);
-        });
-        jfh.append('</select>');
+        _appendPromptExampleOptions(jfh);
     }
 
     jfh.append('<div class="ak-form-row"><div><label class="ak-label">Contenuto</label></div></div>');
@@ -646,36 +658,8 @@ const _showPromptEditorAsync = function(prompt) {
     jfh.append('<button class="btn-danger ak-btn-del" onclick="wnds.winfo.close()">Annulla</button>');
     jfh.append('</div></div></div>');
 
-    wnds.handleSavePrompt = async function() {
-        const name = document.getElementById("prompt-inp-name").value.trim();
-        const content = document.getElementById("prompt-inp-content").value;
-        if (!name || !content.trim()) {
-            alert("Nome e contenuto obbligatori.");
-            return;
-        }
-        if (isEdit) {
-            await PromptMgr.update(prompt.id, { name, content });
-        } else {
-            const created = await PromptMgr.create(name, content);
-            if (created && created.id) {
-                const activeId = await PromptMgr.getActiveId();
-                if (!activeId) await PromptMgr.setActive(created.id);
-            }
-        }
-        wnds.winfo.close();
-        await _actionListPromptsAsync();
-    };
-
-    wnds.handlePromptExample = function(index) {
-        const exampleIndex = Number(index);
-        const example = PROMPT_EXAMPLES[exampleIndex];
-        if (!example) return;
-
-        const nameInput = document.getElementById("prompt-inp-name");
-        const contentInput = document.getElementById("prompt-inp-content");
-        if (nameInput) nameInput.value = example.name;
-        if (contentInput) contentInput.value = example.content;
-    };
+    wnds.handleSavePrompt = () => _savePromptAsync(prompt, isEdit);
+    wnds.handlePromptExample = _applyPromptExample;
 
     wnds.winfo.show(jfh.html());
 
@@ -687,6 +671,61 @@ const _showPromptEditorAsync = function(prompt) {
         const textarea = document.getElementById("prompt-inp-content");
         if (textarea) textarea.value = prompt.content;
     }
+};
+
+/**
+ * Aggiunge il selettore dei prompt di sistema di esempio alla finestra editor.
+ * @param {Object} jfh - Istanza UaJtfh della finestra editor.
+ */
+const _appendPromptExampleOptions = function(jfh) {
+    jfh.append('<div class="ak-form-row"><div><label class="ak-label">Esempi</label></div></div>');
+    jfh.append('<select id="prompt-inp-examples" class="ak-input-key" onchange="wnds.handlePromptExample(this.value)">');
+    jfh.append('<option value="">— Scegli un prompt di sistema di esempio —</option>');
+    PROMPT_EXAMPLES.forEach((example, index) => {
+        const optionHtml = `<option value="${index}">${example.name}</option>`;
+        jfh.append(optionHtml);
+    });
+    jfh.append('</select>');
+};
+
+/**
+ * Salva il prompt di sistema letto dai campi della finestra editor.
+ * @param {Object|null} prompt - Prompt in modifica o null per crearne uno nuovo.
+ * @param {boolean} isEdit - True se si sta modificando un prompt esistente.
+ */
+const _savePromptAsync = async function(prompt, isEdit) {
+    const name = document.getElementById("prompt-inp-name").value.trim();
+    const content = document.getElementById("prompt-inp-content").value;
+    if (!name || !content.trim()) {
+        alert("Nome e contenuto obbligatori.");
+        return;
+    }
+    if (isEdit) {
+        await PromptMgr.update(prompt.id, { name, content });
+    } else {
+        const created = await PromptMgr.create(name, content);
+        if (created && created.id) {
+            const activeId = await PromptMgr.getActiveId();
+            if (!activeId) await PromptMgr.setActive(created.id);
+        }
+    }
+    wnds.winfo.close();
+    await _actionListPromptsAsync();
+};
+
+/**
+ * Applica un prompt di sistema di esempio ai campi della finestra editor.
+ * @param {string|number} index - Indice dell'esempio scelto.
+ */
+const _applyPromptExample = function(index) {
+    const exampleIndex = Number(index);
+    const example = PROMPT_EXAMPLES[exampleIndex];
+    if (!example) return;
+
+    const nameInput = document.getElementById("prompt-inp-name");
+    const contentInput = document.getElementById("prompt-inp-content");
+    if (nameInput) nameInput.value = example.name;
+    if (contentInput) contentInput.value = example.content;
 };
 
 /**
@@ -707,9 +746,11 @@ const _actionListPromptsAsync = async function() {
             const isActive = p.id === activeId;
             const activeMark = isActive ? ' <span class="status-presente">(attivo)</span>' : "";
             jfh.append('<tr>');
-            jfh.append(`<td>${p.name}${activeMark}</td>`);
+            const promptName = escapeHtml(p.name);
+            jfh.append(`<td>${promptName}${activeMark}</td>`);
             jfh.append('<td>');
-            jfh.append(`<button class="btn-success" onclick="wnds.activatePrompt(${p.id})">${isActive ? "Attivo" : "Attiva"}</button>`);
+            const actionLabel = isActive ? "Attivo" : "Attiva";
+            jfh.append(`<button class="btn-success" onclick="wnds.activatePrompt(${p.id})">${actionLabel}</button>`);
             jfh.append(`<button class="btn-warning btn-ml5" onclick="wnds.editPrompt(${p.id})">Modifica</button>`);
             jfh.append(`<button class="btn-danger btn-ml5" onclick="wnds.deletePrompt(${p.id})">Elimina</button>`);
             jfh.append('</td></tr>');
@@ -721,32 +762,53 @@ const _actionListPromptsAsync = async function() {
     jfh.append('<button class="btn-success" onclick="wnds.newPrompt()">Nuovo Prompt</button>');
     jfh.append('</div></div>');
 
-    wnds.activatePrompt = async function(id) {
-        await PromptMgr.setActive(id);
-        wnds.winfo.close();
-        await _actionListPromptsAsync();
-        UaLog.log(">>> Prompt di sistema selezionato. <<<");
-    };
-
-    wnds.editPrompt = async function(id) {
-        const prompt = await PromptMgr.get(id);
-        if (prompt) _showPromptEditorAsync(prompt);
-    };
-
-    wnds.deletePrompt = async function(id) {
-        const prompt = await PromptMgr.get(id);
-        if (!await confirm(`Eliminare il prompt "${prompt.name}"?`)) return;
-        await PromptMgr.delete(id);
-        wnds.winfo.close();
-        await _actionListPromptsAsync();
-        UaLog.log(">>> Prompt eliminato. <<<");
-    };
-
-    wnds.newPrompt = async function() {
-        _showPromptEditorAsync(null);
-    };
+    wnds.activatePrompt = _activatePromptAsync;
+    wnds.editPrompt = _editPromptAsync;
+    wnds.deletePrompt = _deletePromptAsync;
+    wnds.newPrompt = _newPrompt;
 
     wnds.winfo.show(jfh.html());
+};
+
+/**
+ * Attiva un prompt di sistema come attivo.
+ * @param {number} id - Id del prompt.
+ */
+const _activatePromptAsync = async function(id) {
+    await PromptMgr.setActive(id);
+    wnds.winfo.close();
+    await _actionListPromptsAsync();
+    UaLog.log(">>> Prompt di sistema selezionato. <<<");
+};
+
+/**
+ * Apre l'editor per modificare un prompt di sistema esistente.
+ * @param {number} id - Id del prompt.
+ */
+const _editPromptAsync = async function(id) {
+    const prompt = await PromptMgr.get(id);
+    if (prompt) _showPromptEditorAsync(prompt);
+};
+
+/**
+ * Elimina un prompt di sistema dopo conferma.
+ * @param {number} id - Id del prompt.
+ */
+const _deletePromptAsync = async function(id) {
+    const prompt = await PromptMgr.get(id);
+    const promptName = escapeHtml(prompt.name);
+    if (!await confirm(`Eliminare il prompt "${promptName}"?`)) return;
+    await PromptMgr.delete(id);
+    wnds.winfo.close();
+    await _actionListPromptsAsync();
+    UaLog.log(">>> Prompt eliminato. <<<");
+};
+
+/**
+ * Apre l'editor per creare un nuovo prompt di sistema.
+ */
+const _newPrompt = function() {
+    _showPromptEditorAsync(null);
 };
 
 // ============================================================================
@@ -754,16 +816,14 @@ const _actionListPromptsAsync = async function() {
 // ============================================================================
 
 export const wnds = {
-    wdiv: null, wpre: null, winfo: null,
+    wdiv: null, winfo: null,
     init: function() {
         wnds.wdiv = _UaWindowFactory("id-wnd-div", "div-text", "wdiv", false);
-        wnds.wpre = _UaWindowFactory("id-wnd-pre", "pre-text", "wpre");
         wnds.winfo = _UaWindowInfoFactory("id-wnd-info");
         window.wnds = wnds;
     },
     closeAll: function() {
         if (wnds.wdiv) wnds.wdiv.close();
-        if (wnds.wpre) wnds.wpre.close();
         if (wnds.winfo) wnds.winfo.close();
     },
     editLastQuestion: async function() {
@@ -791,7 +851,6 @@ export const wnds = {
 // ============================================================================
 
 export const Commands = {
-    init: function() {},
     help: function() { wnds.wdiv.show(help0_html); },
     readme: function() { window.open("README.html", "_blank"); },
     log: function() {
@@ -808,8 +867,7 @@ export const Commands = {
         const msg2 = "SECONDO AVVISO: conferma definitiva.\n\nTutti i dati verranno persi. L'applicazione tornerà allo stato iniziale.\n\nProcedere?";
         if (!await confirm(msg2)) return;
         localStorage.clear();
-        await idbMgr.clearAll();
-        await UaDb.clear();
+        await clearAllTables();
         location.reload();
     }
 };
@@ -836,15 +894,18 @@ export const TextInput = {
         const config = LlmProvider.getConfig();
         if (!config || !config.provider) {
             await alert("Nessun provider configurato. Selezionare un provider LLM.");
-            return false;
+            const ready = false;
+            return ready;
         }
         const provider = config.provider;
         const apiKey = await getApiKey(provider);
         if (!apiKey) {
             await alert(`API key mancante per il provider "${provider}".\nAggiungere una chiave valida in Gestisci API Key.`);
-            return false;
+            const ready = false;
+            return ready;
         }
-        return true;
+        const ready = true;
+        return ready;
     },
     sendMessageAsync: async function() {
         if (!TextInput._inputEl) return;
@@ -855,17 +916,18 @@ export const TextInput = {
         _Spinner.show();
         try {
             const rr = await ChatEngine.sendMessage(query);
-            if (rr && rr.ok === false && rr.error && rr.error.code !== 499) {
+            if (rr && rr.ok === false && rr.error && rr.error.code !== ERROR_CODE_CANCELLED) {
                 const err = rr.error;
-                const codePrefix = err.code ? `[${err.code}] ` : "";
-                await alert(`ERRORE CRITICO:\n${codePrefix}${err.message || "Errore sconosciuto"}`);
+                const errMsg = formatErrorPrefix(err, "ERRORE CRITICO");
+                await alert(errMsg);
             }
             await showHtmlThread();
             TextInput.clear();
         } catch (error) {
-            if (error && error.code === 499) return;
+            if (error && error.code === ERROR_CODE_CANCELLED) return;
             const errCode = error.code ? `[${error.code}] ` : "";
-            await alert(`ERRORE CRITICO:\n${errCode}${error.message || error}`);
+            const errorText = error.message || error;
+            await alert(`ERRORE CRITICO:\n${errCode}${errorText}`);
         } finally {
             _Spinner.hide();
         }
@@ -877,7 +939,6 @@ export const TextInput = {
 // ============================================================================
 
 export const TextOutput = {
-    init: function() {},
     copyAsync: async function() {
         const outputEl = document.querySelector("#id-text-out .div-text");
         const rawText = outputEl ? outputEl.textContent.trim() : "";
@@ -885,7 +946,7 @@ export const TextOutput = {
         try {
             await navigator.clipboard.writeText(textFormatter(rawText));
             const btn = document.getElementById("btn-copy-output");
-            if (btn) { btn.classList.add("copied"); setTimeout(() => btn.classList.remove("copied"), 2000); }
+            if (btn) { btn.classList.add("copied"); setTimeout(() => btn.classList.remove("copied"), COPIED_FEEDBACK_MS); }
         } catch (err) { console.error("TextOutput.copyAsync:", err); }
     }
 };
@@ -957,7 +1018,8 @@ const _buildProviderTreeHtml = function() {
     const container = wnd.getElement();
 
     if (!container) {
-        return "";
+        const emptyHtml = "";
+        return emptyHtml;
     }
 
     const jfh = UaJtfh();
@@ -970,37 +1032,60 @@ const _buildProviderTreeHtml = function() {
 
     for (const providerName in providerConfig) {
         const provider = providerConfig[providerName];
-        const isActive = providerName === currentConfig.provider;
-        const icon = isActive ? "&#9660;" : "&#9658;";
-        const activeClass = isActive ? "active" : "";
-        const visibleClass = isActive ? " model-list--visible" : "";
-
-        jfh.append(`<li class="provider-node">`)
-           .append(`  <span class="${activeClass}" data-provider="${providerName}">`)
-           .append(`    ${icon} ${providerName}`)
-           .append(`  </span>`)
-           .append(`  <ul class="model-list${visibleClass}">`);
-
-        Object.keys(provider.models).forEach(function(modelName) {
-            const modelData = provider.models[modelName];
-            const isActiveModel = isActive && modelName === currentConfig.model;
-            const activeModelClass = isActiveModel ? " active" : "";
-
-            jfh.append(`    <li class="model-node${activeModelClass}"`)
-               .append(`        data-provider="${providerName}"`)
-               .append(`        data-model="${modelName}">`)
-               .append(`      ${modelName} (${modelData.windowSize}k)`)
-               .append(`    </li>`);
-        });
-
-        jfh.append(`  </ul>`)
-           .append(`</li>`);
+        _appendProviderNode(jfh, providerName, provider, currentConfig);
     }
 
     jfh.append(`</ul>`);
 
     const treeHtml = jfh.html();
     return treeHtml;
+};
+
+/**
+ * Aggiunge il nodo di un provider (intestazione e lista modelli) all'albero.
+ * @param {Object} jfh - Istanza UaJtfh dell'albero.
+ * @param {string} providerName - Nome del provider.
+ * @param {Object} provider - Dati del provider {models}.
+ * @param {Object} currentConfig - Configurazione attiva {provider, model}.
+ */
+const _appendProviderNode = function(jfh, providerName, provider, currentConfig) {
+    const isActive = providerName === currentConfig.provider;
+    const icon = isActive ? "&#9660;" : "&#9658;";
+    const activeClass = isActive ? "active" : "";
+    const visibleClass = isActive ? " model-list--visible" : "";
+
+    jfh.append(`<li class="provider-node">`)
+       .append(`  <span class="${activeClass}" data-provider="${providerName}">`)
+       .append(`    ${icon} ${providerName}`)
+       .append(`  </span>`)
+       .append(`  <ul class="model-list${visibleClass}">`);
+
+    _appendModelNodes(jfh, providerName, provider.models, isActive, currentConfig.model);
+
+    jfh.append(`  </ul>`)
+       .append(`</li>`);
+};
+
+/**
+ * Aggiunge i nodi dei modelli di un provider all'albero.
+ * @param {Object} jfh - Istanza UaJtfh dell'albero.
+ * @param {string} providerName - Nome del provider.
+ * @param {Object} models - Mappa modello → dati {windowSize}.
+ * @param {boolean} isActive - True se il provider è quello attivo.
+ * @param {string} activeModel - Modello attivo.
+ */
+const _appendModelNodes = function(jfh, providerName, models, isActive, activeModel) {
+    Object.keys(models).forEach(function(modelName) {
+        const modelData = models[modelName];
+        const isActiveModel = isActive && modelName === activeModel;
+        const activeModelClass = isActiveModel ? " active" : "";
+
+        jfh.append(`    <li class="model-node${activeModelClass}"`)
+           .append(`        data-provider="${providerName}"`)
+           .append(`        data-model="${modelName}">`)
+           .append(`      ${modelName} (${modelData.windowSize}k)`)
+           .append(`    </li>`);
+    });
 };
 
 /**
@@ -1070,12 +1155,6 @@ const _onProviderModelSelect = async function(provider, model) {
 
     updateActiveModelDisplay();
 
-    if (_treeVisible) {
-        const treeHtml = _buildProviderTreeHtml();
-        const wnd = UaWindowAdm.get(TREE_CONTAINER_ID);
-        wnd.setHtml(treeHtml);
-        _addProviderTreeListeners();
-    }
     toggleProviderTree();
 };
 
@@ -1124,24 +1203,6 @@ export const refreshProviderTree = function() {
 // ============================================================================
 
 /**
- * Sincronizza lo stato della checkbox del provider in base ai suoi modelli:
- * selezionata se tutti selezionati, indeterminata se solo una parte.
- * @param {string} providerName
- */
-const _syncLlmProviderCheckbox = function(providerName) {
-    const container = wnds.winfo.getElement();
-    if (!container) return;
-
-    const modelChecks = Array.from(container.querySelectorAll(`.llm-model-check[data-provider="${providerName}"]`));
-    const providerCheck = container.querySelector(`.llm-provider-check[data-provider="${providerName}"]`);
-    if (!providerCheck || modelChecks.length === 0) return;
-
-    const checkedCount = modelChecks.filter(function(cb) { return cb.checked; }).length;
-    providerCheck.checked = checkedCount === modelChecks.length;
-    providerCheck.indeterminate = checkedCount > 0 && checkedCount < modelChecks.length;
-};
-
-/**
  * Gestore della voce di menu "Aggiorna LLM".
  * Usa il modulo dedicato per scoprire e testare i modelli, salva in IndexedDB.
  */
@@ -1153,24 +1214,25 @@ const _actionLlmUpdateAsync = async function() {
     const proceed = await confirm("Avviare la procedura di Aggiorna LLM? Verranno scaricati e testati i modelli di ogni provider con chiave attiva.\n\nIl test può richiedere del tempo. Confermi?");
     if (!proceed) return;
 
-    _showWaitSpinner();
+    _waitSpinner.show();
     try {
         const results = await runLlmUpdate();
 
-        const passed = results.filter(function(r) { return r.ok; });
+        const passed = results.filter(r => r.ok);
 
         if (results.length === 0) {
-            _hideWaitSpinner();
+            _waitSpinner.hide();
             await alert("Aggiorna LLM: nessun provider con chiave API attiva. Aggiungere una chiave in Gestisci API Key e riprovare.");
             return;
         }
 
-        _hideWaitSpinner();
+        _waitSpinner.hide();
         await alert(`Aggiorna LLM completato.\n\nScaricati e testati: ${results.length}\nSuperati il test: ${passed.length}`);
     } catch (error) {
         console.error("_actionLlmUpdateAsync:", error);
-        _hideWaitSpinner();
-        await alert(`ERRORE durante l'aggiornamento LLM:\n${error.message || error}`);
+        _waitSpinner.hide();
+        const errorText = error.message || error;
+        await alert(`ERRORE durante l'aggiornamento LLM:\n${errorText}`);
     }
 };
 
@@ -1216,7 +1278,8 @@ const _actionResetLlmAsync = async function() {
         await runLlmReset();
     } catch (error) {
         console.error("_actionResetLlmAsync:", error);
-        await alert(`ERRORE durante il reset LLM:\n${error.message || error}`);
+        const errorText = error.message || error;
+        await alert(`ERRORE durante il reset LLM:\n${errorText}`);
     }
 };
 
@@ -1225,8 +1288,16 @@ const _actionResetLlmAsync = async function() {
 // ============================================================================
 
 export const bindEventListener = function() {
+    _bindActionButtons();
+    _bindInputEvents();
+    _bindDocBarEvents();
+    _bindHelpPopups();
+};
 
-    // Pulsanti Header
+/**
+ * Associa i pulsanti e le voci di menu alle azioni corrispondenti.
+ */
+const _bindActionButtons = function() {
     const ids = {
         "btn-help": Commands.help,
         "btn-readme": Commands.readme,
@@ -1254,8 +1325,12 @@ export const bindEventListener = function() {
         const el = document.getElementById(id);
         if (el) el.onclick = fn;
     });
+};
 
-    // Eventi specifici per elementi con classi
+/**
+ * Associa gli eventi agli elementi di input (clear, text-input, menu).
+ */
+const _bindInputEvents = function() {
     const elClearInput = document.querySelector(".clear-input");
     if (elClearInput) elClearInput.onclick = TextInput.clear;
 
@@ -1271,19 +1346,12 @@ export const bindEventListener = function() {
             menuLabel.setAttribute("data-tt", isOpen ? "Close" : "Open");
         };
     }
+};
 
-    // --- INIZIALIZZAZIONE POPUP INFORMATIVI ---
-    // Header
-    HelpPopup.bind("btn-help", "<strong>Help</strong><br>Apre il manuale utente con l'elenco dei comandi dell'app.");
-    HelpPopup.bind("btn-readme", "<strong>README</strong><br>Apre la guida completa dell'applicazione in una nuova scheda.");
-    HelpPopup.bind("id_log", "<strong>Registro Eventi</strong><br>Mostra i messaggi di log dell'applicazione in tempo reale.");
-    HelpPopup.bind("btn-provider-settings", "<strong>Configurazione LLM</strong><br>Seleziona il provider AI e il modello specifico.");
-    // btn-theme-toggle usa tooltip CSS (data-tt) — dinamico in _updateThemeAsync
-
-    // Azioni
-    HelpPopup.bind("btn-action-send", "<strong>Invia Messaggio</strong><br>Invia la domanda al modello attivo mantenendo la memoria della conversazione.");
-
-    // --- DOC BAR: event delegation per rimozione singola ---
+/**
+ * Associa gli eventi della doc-bar (rimozione documento e persistenza).
+ */
+const _bindDocBarEvents = function() {
     const docBar = document.getElementById("doc-bar");
     if (docBar) {
         docBar.addEventListener("click", function(e) {
@@ -1296,7 +1364,6 @@ export const bindEventListener = function() {
         });
     }
 
-    // --- DOC BAR: callback per aggiornamento automatico e persistenza ---
     setOnDocumentsChanged(async function(docs) {
         renderDocBar();
         const activeId = await SettingsMgr.getActiveConversationId();
@@ -1304,6 +1371,21 @@ export const bindEventListener = function() {
             ConversationMgr.saveDocuments(activeId, docs);
         }
     });
+};
+
+/**
+ * Inizializza i tooltip informativi (HelpPopup) di pulsanti e voci di menu.
+ */
+const _bindHelpPopups = function() {
+    // Header
+    HelpPopup.bind("btn-help", "<strong>Help</strong><br>Apre il manuale utente con l'elenco dei comandi dell'app.");
+    HelpPopup.bind("btn-readme", "<strong>README</strong><br>Apre la guida completa dell'applicazione in una nuova scheda.");
+    HelpPopup.bind("id_log", "<strong>Registro Eventi</strong><br>Mostra i messaggi di log dell'applicazione in tempo reale.");
+    HelpPopup.bind("btn-provider-settings", "<strong>Configurazione LLM</strong><br>Seleziona il provider AI e il modello specifico.");
+    // btn-theme-toggle usa tooltip CSS (data-tt) — dinamico in _updateThemeAsync
+
+    // Azioni
+    HelpPopup.bind("btn-action-send", "<strong>Invia Messaggio</strong><br>Invia la domanda al modello attivo mantenendo la memoria della conversazione.");
     HelpPopup.bind("btn-copy-output", "<strong>Copia Output</strong><br>Copia il testo dell'output della chat negli appunti.");
     HelpPopup.bind("btn-copy-output-toolbar", "<strong>Copia Output</strong><br>Copia il testo dell'output della chat negli appunti.");
     HelpPopup.bind("btn-clear-output", "<strong>Cancella Output</strong><br>Svuota la vista dell'output senza cancellare la cronologia della conversazione.");

@@ -4,6 +4,7 @@
 import { UaJtfh } from "./uajtfh.js";
 import { UaDb } from "./uadb.js";
 import { DATA_KEYS } from "./data_keys.js";
+import { escapeHtml } from "./history_utils.js";
 
 const STORAGE_KEY = DATA_KEYS.KEY_API_KEYS;
 
@@ -46,14 +47,16 @@ export async function getApiKey(providerName) {
         const db = await UaDb.readJson(STORAGE_KEY);
 
         if (!db || !db.providers || !db.providers[providerName]) {
-            return null;
+            const notFound = null;
+            return notFound;
         }
 
         const providerData = db.providers[providerName];
         const activeKeyName = providerData.exported_key;
 
         if (!activeKeyName) {
-            return null;
+            const notFound = null;
+            return notFound;
         }
 
         const keyObj = providerData.keys.find(k => k.name === activeKeyName);
@@ -80,7 +83,7 @@ const INITIAL_DB = {
 export async function addApiKey() {
     let db = await UaDb.readJson(STORAGE_KEY) || JSON.parse(JSON.stringify(INITIAL_DB));
 
-    const render = async () => {
+    const render = async function() {
         const jfh = UaJtfh();
 
         // Uniamo i provider supportati con quelli già nel DB
@@ -96,12 +99,12 @@ export async function addApiKey() {
         // 1. Form Aggiunta
         jfh.append('<div class="ak-form">');
 
-        // Riga 1: etichette + bottone
+        // Riga 1: etichette
         jfh.append('<div class="ak-form-row">');
         jfh.append('<div><label class="ak-label">Provider</label></div>');
         jfh.append('<div><label class="ak-label">Nome (es. work)</label></div>');
         jfh.append('<div class="ak-grow"><label class="ak-label">API Key</label></div>');
-        jfh.append('<button class="ak-btn-add" onclick="wnds.handleAddKey()">Aggiungi</button>');
+        jfh.append('<button class="ak-btn-add" data-action="add-key">Aggiungi</button>');
         jfh.append('</div>');
 
         // Riga 2: input
@@ -148,11 +151,13 @@ export async function addApiKey() {
                         const keyPrefix = k.key.substring(0, 8);
                         const keySuffix = k.key.substring(k.key.length - 4);
                         const keyDisplay = `${keyPrefix}...${keySuffix}`;
+                        const keyNameEscaped = escapeHtml(k.name);
+                        const providerEscaped = escapeHtml(pName);
                         jfh.append(`<tr class="${rowClass}">`);
-                        jfh.append(`<td class="ak-cell-center"><input type="radio" name="group_${pName}" ${checkedAttr} class="ak-radio" onclick="wnds.handleSetActiveKey('${pName}', '${k.name}')"></td>`);
-                        jfh.append(`<td class="${nameClass}">${k.name}</td>`);
+                        jfh.append(`<td class="ak-cell-center"><input type="radio" name="group_${providerEscaped}" ${checkedAttr} class="ak-radio" data-action="set-active" data-provider="${providerEscaped}" data-keyname="${keyNameEscaped}"></td>`);
+                        jfh.append(`<td class="${nameClass}">${keyNameEscaped}</td>`);
                         jfh.append(`<td class="${keyClass}">${keyDisplay}</td>`);
-                        jfh.append(`<td class="ak-cell-center"><button class="btn-danger ak-btn-del" onclick="wnds.handleDeleteKey('${pName}', '${k.name}')">X</button></td>`);
+                        jfh.append(`<td class="ak-cell-center"><button class="btn-danger ak-btn-del" data-action="delete-key" data-provider="${providerEscaped}" data-keyname="${keyNameEscaped}">X</button></td>`);
                         jfh.append('</tr>');
                     });
                 }
@@ -160,64 +165,33 @@ export async function addApiKey() {
         }
         jfh.append('</tbody></table></div></div>');
 
-        wnds.handleAddKey = async () => {
-            const provider = document.getElementById("key-sel-provider").value;
-            const name = document.getElementById("key-inp-name").value;
-            const key = document.getElementById("key-inp-key").value;
-            if (!provider || !name || !key) {
-                alert("Provider, Nome e Key obbligatori.");
-                return;
-            }
-
-            if (!db.providers[provider]) {
-                db.providers[provider] = { api_key_env: `${provider.toUpperCase()}_API_KEY`, exported_key: null, keys: [] };
-            }
-            const providerData = db.providers[provider];
-            if (providerData.keys.some(k => k.name === name)) {
-                alert(`Esiste già una chiave con nome '${name}' per ${provider}.`);
-                return;
-            }
-            
-            providerData.keys.push({ name, key, notes: "" });
-            if (!providerData.exported_key) {
-                providerData.exported_key = name;
-                // Aggiorna il client LLM "a caldo"
-                const { LlmProvider } = await import("vanillallm/llm_provider.js");
-                await LlmProvider.updateClient(provider);
-            }
-
-            await saveDb();
-        };
-
-        wnds.handleSetActiveKey = async (provider, keyName) => {
-            if (!await confirm(`Attivare la chiave '${keyName}' per ${provider}?`)) {
-                await render();
-                return;
-            }
-            db.providers[provider].exported_key = keyName;
-            await saveDb();
-
-            // Aggiorna il client LLM "a caldo"
-            const { LlmProvider } = await import("vanillallm/llm_provider.js");
-            await LlmProvider.updateClient(provider);
-        };
-
-        wnds.handleDeleteKey = async (provider, keyName) => {
-            if (!await confirm(`Eliminare la chiave '${keyName}' di ${provider}?`)) return;
-            const providerData = db.providers[provider];
-            providerData.keys = providerData.keys.filter(k => k.name !== keyName);
-            if (providerData.exported_key === keyName) {
-                providerData.exported_key = null;
-            }
-            await saveDb();
-            const { LlmProvider } = await import("vanillallm/llm_provider.js");
-            await LlmProvider.updateClient(provider);
-        };
-
         wnds.winfo.show(jfh.html());
+
+        // Delega eventi sul container
+        const container = wnds.winfo.getElement();
+        if (container) {
+            container.addEventListener("click", async function(e) {
+                const target = e.target.closest("[data-action]");
+                if (!target) return;
+
+                const action = target.dataset.action;
+
+                if (action === "add-key") {
+                    await _handleAddKey(db, saveDb);
+                } else if (action === "set-active") {
+                    const provider = target.dataset.provider;
+                    const keyName = target.dataset.keyname;
+                    await _handleSetActiveKey(provider, keyName, db, saveDb, render);
+                } else if (action === "delete-key") {
+                    const provider = target.dataset.provider;
+                    const keyName = target.dataset.keyname;
+                    await _handleDeleteKey(provider, keyName, db, saveDb);
+                }
+            });
+        }
     };
 
-    const saveDb = async () => {
+    const saveDb = async function() {
         db.last_updated = new Date().toISOString();
         await UaDb.saveJson(STORAGE_KEY, db);
         await render();
@@ -226,7 +200,62 @@ export async function addApiKey() {
     await render();
 }
 
+// ============================================================================
+// HANDLER (private)
+// ============================================================================
 
+const _handleAddKey = async function(db, saveDb) {
+    const provider = document.getElementById("key-sel-provider").value;
+    const name = document.getElementById("key-inp-name").value;
+    const key = document.getElementById("key-inp-key").value;
+    if (!provider || !name || !key) {
+        alert("Provider, Nome e Key obbligatori.");
+        return;
+    }
+
+    if (!db.providers[provider]) {
+        const envKeyName = provider.toUpperCase() + "_API_KEY";
+        db.providers[provider] = { api_key_env: envKeyName, exported_key: null, keys: [] };
+    }
+    const providerData = db.providers[provider];
+    if (providerData.keys.some(k => k.name === name)) {
+        alert(`Esiste già una chiave con nome '${name}' per ${provider}.`);
+        return;
+    }
+
+    providerData.keys.push({ name, key, notes: "" });
+    if (!providerData.exported_key) {
+        providerData.exported_key = name;
+        const { LlmProvider } = await import("vanillallm/llm_provider.js");
+        await LlmProvider.updateClient(provider);
+    }
+
+    await saveDb();
+};
+
+const _handleSetActiveKey = async function(provider, keyName, db, saveDb, render) {
+    if (!await confirm(`Attivare la chiave '${keyName}' per ${provider}?`)) {
+        await render();
+        return;
+    }
+    db.providers[provider].exported_key = keyName;
+    await saveDb();
+
+    const { LlmProvider } = await import("vanillallm/llm_provider.js");
+    await LlmProvider.updateClient(provider);
+};
+
+const _handleDeleteKey = async function(provider, keyName, db, saveDb) {
+    if (!await confirm(`Eliminare la chiave '${keyName}' di ${provider}?`)) return;
+    const providerData = db.providers[provider];
+    providerData.keys = providerData.keys.filter(k => k.name !== keyName);
+    if (providerData.exported_key === keyName) {
+        providerData.exported_key = null;
+    }
+    await saveDb();
+    const { LlmProvider } = await import("vanillallm/llm_provider.js");
+    await LlmProvider.updateClient(provider);
+};
 
 /**
  * Decodifica le chiavi API offuscate con substitution cipher.
@@ -239,28 +268,36 @@ export async function addApiKey() {
  * @param {Object} data - Dati con chiavi offuscate.
  * @returns {Object} Dati con chiavi decodificate.
  */
-const decodeApiKeysJson = (data) => {
-    if (!data?.providers) return data;
+const decodeApiKeysJson = function(data) {
+    if (!data || !data.providers) return data;
 
     const ALPHABET_FROM = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     const ALPHABET_TO = "mKpX3vQwL8ZnR4yTbJxF1YHcU9AgNsI2oODh7eMzW5jV6ifqGrPECuS0Btaldk-_";
 
-    const decodeKey = (encodedKey) =>
-        [...encodedKey].map(char => {
+    const decodeKey = function(encodedKey) {
+        const chars = [...encodedKey];
+        const decoded = chars.map(function(char) {
             const index = ALPHABET_TO.indexOf(char);
-            return index !== -1 ? ALPHABET_FROM[index] : char;
-        }).join('');
+            const result = index !== -1 ? ALPHABET_FROM[index] : char;
+            return result;
+        });
+        const decodedKey = decoded.join("");
+        return decodedKey;
+    };
 
     const decodedData = JSON.parse(JSON.stringify(data));
 
-    Object.values(decodedData.providers).forEach(provider => {
-        provider.keys?.forEach(keyObj => {
-            if (keyObj.key) keyObj.key = decodeKey(keyObj.key);
-        });
+    Object.values(decodedData.providers).forEach(function(provider) {
+        if (provider.keys) {
+            provider.keys.forEach(function(keyObj) {
+                if (keyObj.key) keyObj.key = decodeKey(keyObj.key);
+            });
+        }
     });
 
     return decodedData;
 };
+
 export async function fetchApiKeys() {
     const URL = "./data/api_x.json";
     try {
@@ -281,7 +318,7 @@ export async function fetchApiKeys() {
 export async function restoreDefaultApiKeys() {
     const URL = "./data/api_x.json";
     if (!await confirm("Vuoi caricare le API Keys di default? Le chiavi attuali verranno sovrascritte.")) return;
-    
+
     try {
         await _loadDefaultKeys(URL);
         await alert("API Keys di default caricate con successo.");
@@ -305,12 +342,12 @@ async function _loadDefaultKeys(url) {
     const data = decodeApiKeysJson(rsp);
     if (data && data.providers) {
         // Filtra solo i provider con client implementato
-        Object.keys(data.providers).forEach(providerName => {
+        Object.keys(data.providers).forEach(function(providerName) {
             if (!_IMPLEMENTED_CLIENTS.includes(providerName)) {
                 delete data.providers[providerName];
             }
         });
-        Object.values(data.providers).forEach(provider => {
+        Object.values(data.providers).forEach(function(provider) {
             if (provider.keys && provider.keys.length > 0) {
                 provider.exported_key = provider.keys[0].name;
             }
@@ -320,4 +357,3 @@ async function _loadDefaultKeys(url) {
         console.debug("API Keys caricate e salvate nel DB.");
     }
 }
-

@@ -3,28 +3,22 @@
  * Scopre modelli dai provider, salva in IndexedDB, apre log automaticamente.
  *
  * @module commands/update-llm
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 "use strict";
 
-import { createLlmDB } from "vanillallm/llm/llm-db.js";
+import { llmDb } from "vanillallm/llm/llm-db.js";
 import { createLlmLogger } from "vanillallm/llm/llm-logging.js";
 import { LlmProvider } from "vanillallm/llm_provider.js";
 import { getApiKey, IMPLEMENTED_CLIENTS } from "vanillallm/services/key_retriever.js";
 import { discoverModels, hasFetcher } from "vanillallm/llmlist/index.js";
-import { createLlmPayload, createMessage } from "vanillallm/llmclient/index.js";
 import { UaLog } from "vanillallm/services/ualog3.js";
-import { TEST_SYSTEM_PROMPT, TEST_USER_PROMPT } from "vanillallm/llm/test-prompts.js";
 import { loadProviderModels } from "vanillallm/llm/llm-catalog.js";
+import { LlmUpdater } from "vanillallm/llm_updater.js";
 
-const TEST_TIMEOUT_MS = 20000;
-const VOTE_SLOW_MS = 10000;
-
-const NON_CHAT_KEYWORDS = [
-    "fim", "embedding", "reranker", "image", "video", "audio",
-    "speech", "tts", "starcoder", "codestral"
-];
+/** Numero di token contenuti in un kilotoken (conversione delle finestre di contesto). */
+const TOKENS_PER_K = 1024;
 
 let _cancelRequested = false;
 
@@ -38,10 +32,18 @@ const _resetCancel = function() {
 
 const _isChatModel = function(model) {
     const lower = model.toLowerCase();
-    for (const kw of NON_CHAT_KEYWORDS) {
-        if (lower.includes(kw)) return false;
+    const nonChatKeywords = [
+        "fim", "embedding", "reranker", "image", "video", "audio",
+        "speech", "tts", "starcoder", "codestral"
+    ];
+    for (const kw of nonChatKeywords) {
+        if (lower.includes(kw)) {
+            const result = false;
+            return result;
+        }
     }
-    return true;
+    const result = true;
+    return result;
 };
 
 const _loadRawCatalog = async function() {
@@ -57,35 +59,8 @@ const _loadRawCatalog = async function() {
     return catalog;
 };
 
-const _withTimeout = function(promise, ms) {
-    return new Promise(function(resolve) {
-        const timer = setTimeout(function() { resolve(null); }, ms);
-        promise.then(function(value) {
-            clearTimeout(timer);
-            resolve(value);
-        }).catch(function(error) {
-            clearTimeout(timer);
-            console.error("update-llm._withTimeout:", error);
-            resolve(null);
-        });
-    });
-};
-
-const _computeVote = function(responseText, elapsedMs) {
-    let vote = 10;
-    if (elapsedMs > VOTE_SLOW_MS) vote -= 1;
-    const len = (responseText || "").trim().length;
-    if (len < 80) vote -= 1;
-    if (len < 20) vote -= 1;
-    return Math.max(6, vote);
-};
-
-/**
- * Adapter per usare UaLog come logWindow per il logger.
- * @returns {Object} Oggetto con metodo appendLine
- */
 const _createUaLogAdapter = function() {
-    return {
+    const adapter = {
         appendLine: function(text) {
             UaLog.log(text);
         },
@@ -97,91 +72,12 @@ const _createUaLogAdapter = function() {
             if (!UaLog.active) UaLog.toggle();
         }
     };
+    return adapter;
 };
 
-const _testModel = async function(provider, model, logger) {
-    const ok = LlmProvider.setActive(provider, model);
-    if (!ok) {
-        const result1 = { provider, model, ok: false, reason: "modello non disponibile nel catalogo" };
-        return result1;
-    }
-
-    const client = await LlmProvider.getClient();
-    if (!client) {
-        const result2 = { provider, model, ok: false, reason: "chiave API non disponibile" };
-        return result2;
-    }
-
-    const payload = createLlmPayload(model, [
-        createMessage("system", TEST_SYSTEM_PROMPT),
-        createMessage("user", TEST_USER_PROMPT.replace("{QUESTION}", "Spiega in non più di 5 righe cos'è il teorema di Pitagora, includendo un esempio numerico con numeri interi."))
-    ], {
-        temperature: 0.3,
-        max_tokens: 512
-    });
-
-    const started = performance.now();
-    let rr = null;
-    try {
-        const sendPromise = client.sendRequest(payload);
-        const cancelPromise = new Promise(function(resolve) {
-            const timer = setInterval(function() {
-                if (_cancelRequested) {
-                    clearInterval(timer);
-                    client.cancelRequest();
-                    resolve({ cancelled: true });
-                }
-            }, 50);
-            sendPromise.then(function() { clearInterval(timer); }).catch(function() { clearInterval(timer); });
-        });
-        rr = await _withTimeout(Promise.race([sendPromise, cancelPromise]), TEST_TIMEOUT_MS);
-    } catch (e) {
-        console.error("testModel (" + provider + "/" + model + "):", e);
-        const elapsedMs = performance.now() - started;
-        const result3 = { provider, model, ok: false, elapsedMs: elapsedMs, reason: "errore imprevisto" };
-        return result3;
-    }
-
-    const elapsedMs = performance.now() - started;
-
-    if (rr === null) {
-        client.cancelRequest();
-        const result4 = { provider, model, ok: false, elapsedMs, reason: "timeout (>20s)" };
-        return result4;
-    }
-
-    if (rr.cancelled || _cancelRequested) {
-        client.cancelRequest();
-        const result5 = { provider, model, ok: false, elapsedMs, cancelled: true, reason: "interrotto dall'utente" };
-        return result5;
-    }
-
-    if (!rr.ok) {
-        const err = rr.error || {};
-        const code = err.status || err.code || 0;
-        const reason = "HTTP " + code + ": " + (err.message || "errore");
-        const result6 = { provider, model, ok: false, elapsedMs, reason: reason, httpCode: code };
-        return result6;
-    }
-
-    const response = (rr.data && String(rr.data).trim()) || "";
-    if (!response) {
-        const result7 = { provider, model, ok: false, elapsedMs, reason: "risposta vuota" };
-        return result7;
-    }
-
-    const result8 = { provider, model, ok: true, elapsedMs, response };
-    return result8;
-};
-
-/**
- * Esegue l'aggiornamento completo.
- * @returns {Promise<Array<Object>>}
- */
 export const runUpdate = async function() {
     _resetCancel();
 
-    const llmDb = createLlmDB();
     await llmDb.init();
 
     const logAdapter = _createUaLogAdapter();
@@ -213,9 +109,7 @@ export const runUpdate = async function() {
                 const discovered = await discoverModels(provider, apiKey);
                 const chatModels = discovered.filter(m => _isChatModel(m.id));
                 LlmProvider.setModelsFromDiscovery(provider, chatModels);
-                modelList = chatModels.map(function(m) {
-                    return { name: m.id, windowSize: Math.round((m.contextWindow || 0) / 1024) };
-                });
+                modelList = chatModels.map(m => ({ name: m.id, windowSize: Math.round((m.contextWindow || 0) / TOKENS_PER_K) }));
                 const msg1 = provider + ": elenco " + modelList.length + " modelli.";
                 UaLog.log(msg1);
             } catch (e) {
@@ -237,9 +131,7 @@ export const runUpdate = async function() {
         }
     }
 
-    // Mappa per salvare risultati test
     const testResults = new Map();
-
     const results = [];
 
     for (const provider of Object.keys(catalog)) {
@@ -253,15 +145,14 @@ export const runUpdate = async function() {
         for (const model of catalog[provider]) {
             if (_cancelRequested) break;
 
-            const outcome = await _testModel(provider, model, logger);
+            const outcome = await LlmUpdater.testModel(provider, model);
             testedCount++;
 
             if (outcome.ok) {
-                const vote = _computeVote(outcome.response, outcome.elapsedMs);
+                const vote = LlmUpdater.computeVote(outcome.response, outcome.elapsedMs);
                 outcome.vote = vote;
                 logger.modelResult(model, true);
                 okCount++;
-                // Salva risultato test per questo modello
                 testResults.set(provider + ":" + model, { elapsedMs: outcome.elapsedMs, vote });
             } else {
                 if (outcome.httpCode) {
@@ -270,7 +161,6 @@ export const runUpdate = async function() {
                     logger.modelResult(model, false);
                 }
                 errCount++;
-                // Salva anche fallimenti
                 testResults.set(provider + ":" + model, { elapsedMs: outcome.elapsedMs, vote: null, error: outcome.reason });
             }
 
@@ -284,7 +174,6 @@ export const runUpdate = async function() {
         if (results.some(r => r.cancelled)) break;
     }
 
-    // Aggiorna allDiscovered con risultati test
     for (const obj of allDiscovered) {
         const key = obj.provider + ":" + obj.model;
         const testResult = testResults.get(key);
@@ -297,11 +186,7 @@ export const runUpdate = async function() {
 
     await llmDb.saveDiscovered(allDiscovered);
 
-    results.sort((a, b) => {
-        const byProvider = a.provider.localeCompare(b.provider);
-        if (byProvider !== 0) return byProvider;
-        return a.model.localeCompare(b.model);
-    });
+    results.sort((a, b) => a.provider.localeCompare(b.provider) || a.model.localeCompare(b.model));
 
     if (_cancelRequested) {
         const msg3 = "interrotto — " + testedCount + " modelli testati.";

@@ -15,13 +15,6 @@ import { UaDb } from "./services/uadb.js";
 import { DATA_KEYS } from "./services/data_keys.js";
 
 // ============================================================================
-// COSTANTI
-// ============================================================================
-
-/** Chiave settings per la conversazione attiva. */
-const KEY_ACTIVE_CONVERSATION = "active_conversation_id";
-
-// ============================================================================
 // API PUBBLICA
 // ============================================================================
 
@@ -37,7 +30,8 @@ export const SettingsMgr = {
      */
     getTheme: async function() {
         const theme = await UaDb.read(DATA_KEYS.KEY_THEME);
-        return theme || "dark";
+        const resolvedTheme = theme || "dark";
+        return resolvedTheme;
     },
 
     /**
@@ -48,10 +42,12 @@ export const SettingsMgr = {
     setTheme: async function(theme) {
         try {
             await UaDb.save(DATA_KEYS.KEY_THEME, theme);
-            return true;
+            const success = true;
+            return success;
         } catch (err) {
             console.error("SettingsMgr.setTheme:", err);
-            return false;
+            const success = false;
+            return success;
         }
     },
 
@@ -64,8 +60,9 @@ export const SettingsMgr = {
      * @returns {Promise<number|null>}
      */
     getActiveConversationId: async function() {
-        const id = await UaDb.read(KEY_ACTIVE_CONVERSATION);
-        return id || null;
+        const id = await UaDb.read(DATA_KEYS.KEY_ACTIVE_CONVERSATION_ID);
+        const activeId = id || null;
+        return activeId;
     },
 
     /**
@@ -76,14 +73,16 @@ export const SettingsMgr = {
     setActiveConversationId: async function(id) {
         try {
             if (id === null || id === undefined) {
-                await UaDb.delete(KEY_ACTIVE_CONVERSATION);
+                await UaDb.delete(DATA_KEYS.KEY_ACTIVE_CONVERSATION_ID);
             } else {
-                await UaDb.save(KEY_ACTIVE_CONVERSATION, id);
+                await UaDb.save(DATA_KEYS.KEY_ACTIVE_CONVERSATION_ID, id);
             }
-            return true;
+            const success = true;
+            return success;
         } catch (err) {
             console.error("SettingsMgr.setActiveConversationId:", err);
-            return false;
+            const success = false;
+            return success;
         }
     }
 };

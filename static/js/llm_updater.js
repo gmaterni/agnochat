@@ -37,6 +37,9 @@ const TEST_TIMEOUT_MS = 20000;
 /** Oltre questa durata la risposta è considerata lenta ai fini del voto (millisecondi). */
 const VOTE_SLOW_MS = 10000;
 
+/** Intervallo di polling del flag di cancellazione durante il test (millisecondi). */
+const CANCEL_POLL_MS = 50;
+
 /**
  * Marchi di modelli non-chat (completamento codice, embedding, ecc.) da
  * escludere dal test: non rispondono a un prompt di chat.
@@ -78,10 +81,12 @@ const isChatModel = function(model) {
     const lower = model.toLowerCase();
     for (const kw of NON_CHAT_KEYWORDS) {
         if (lower.includes(kw)) {
-            return false;
+            const result = false;
+            return result;
         }
     }
-    return true;
+    const result = true;
+    return result;
 };
 
 // ============================================================================
@@ -104,9 +109,7 @@ const _loadRawCatalog = async function() {
         if (models.length === 0) {
             continue;
         }
-        catalog[p] = models.map(function(m) {
-            return m.name;
-        });
+        catalog[p] = models.map(m => m.name);
     }
 
     return catalog;
@@ -118,20 +121,17 @@ const _loadRawCatalog = async function() {
  * @param {number} ms
  * @returns {Promise<Object|null>}
  */
-const _withTimeout = function(promise, ms) {
-    return new Promise(function(resolve) {
-        const timer = setTimeout(function() {
+const _withTimeout = async function(promise, ms) {
+    let timer;
+    const timeoutPromise = new Promise(function(resolve) {
+        timer = setTimeout(function() {
             resolve(null);
         }, ms);
-        promise.then(function(value) {
-            clearTimeout(timer);
-            resolve(value);
-        }).catch(function(error) {
-            clearTimeout(timer);
-            console.error("llm_updater._withTimeout:", error);
-            resolve(null);
-        });
     });
+
+    const result = await Promise.race([promise, timeoutPromise]);
+    clearTimeout(timer);
+    return result;
 };
 
 // ============================================================================
@@ -162,7 +162,8 @@ export const computeVote = function(responseText, elapsedMs) {
         vote -= 1;
     }
 
-    return Math.max(6, vote);
+    const clampedVote = Math.max(6, vote);
+    return clampedVote;
 };
 
 // ============================================================================
@@ -180,20 +181,22 @@ export const computeVote = function(responseText, elapsedMs) {
 export const testModel = async function(provider, model) {
     const ok = LlmProvider.setActive(provider, model);
     if (!ok) {
-        return {
+        const notInCatalog = {
             provider, model,
             ok: false,
             reason: "modello non disponibile nel catalogo"
         };
+        return notInCatalog;
     }
 
     const client = await LlmProvider.getClient();
     if (!client) {
-        return {
+        const missingApiKey = {
             provider, model,
             ok: false,
             reason: "chiave API non disponibile"
         };
+        return missingApiKey;
     }
 
     const payload = createLlmPayload(model, [
@@ -208,80 +211,86 @@ export const testModel = async function(provider, model) {
     let rr = null;
     try {
         const sendPromise = client.sendRequest(payload);
+        let _cancelResolve = null;
         const cancelPromise = new Promise(function(resolve) {
-            const timer = setInterval(function() {
-                if (_cancelRequested) {
-                    clearInterval(timer);
-                    client.cancelRequest();
-                    resolve({ cancelled: true });
-                }
-            }, 50);
-            sendPromise.then(function() {
-                clearInterval(timer);
-            }).catch(function() {
-                clearInterval(timer);
-            });
+            _cancelResolve = resolve;
         });
+        const timer = setInterval(function() {
+            if (_cancelRequested) {
+                clearInterval(timer);
+                client.cancelRequest();
+                _cancelResolve({ cancelled: true });
+            }
+        }, CANCEL_POLL_MS);
         rr = await _withTimeout(Promise.race([sendPromise, cancelPromise]), TEST_TIMEOUT_MS);
+        clearInterval(timer);
     } catch (e) {
         console.error("testModel (" + provider + "/" + model + "):", e);
-        return {
+        const unexpectedError = {
             provider, model,
             ok: false,
             elapsedMs: performance.now() - started,
             reason: "errore imprevisto durante l'invio"
         };
+        return unexpectedError;
     }
     const elapsedMs = performance.now() - started;
 
     if (rr === null) {
         client.cancelRequest();
-        return {
+        const timeoutResult = {
             provider, model,
             ok: false,
             elapsedMs,
             reason: "tempo superiore a 20 secondi"
         };
+        return timeoutResult;
     }
 
     if (rr.cancelled || _cancelRequested) {
         client.cancelRequest();
-        return {
+        const userCancelled = {
             provider, model,
             ok: false,
             elapsedMs,
             cancelled: true,
             reason: "procedura interrotta dall'utente"
         };
+        return userCancelled;
     }
 
     if (!rr.ok) {
         const err = rr.error || {};
+        const code = err.status || err.code || 0;
         const typePart = err.type ? err.type + ": " : "";
-        return {
+        const providerError = {
             provider, model,
             ok: false,
             elapsedMs,
+            httpCode: code || undefined,
             reason: "errore del provider (" + typePart + (err.message || "errore sconosciuto") + ")"
         };
+        return providerError;
     }
 
     const response = (rr.data && String(rr.data).trim()) || "";
     if (!response) {
-        return {
+        const emptyResponse = {
             provider, model,
             ok: false,
             elapsedMs,
             reason: "contenuto risposto vuoto"
         };
+        return emptyResponse;
     }
 
-    return {
+    const successResult = {
         provider, model,
         ok: true,
         elapsedMs,
         response
     };
+    return successResult;
 };
 
 // ============================================================================
@@ -309,23 +318,19 @@ export const fetchAvailableModels = async function() {
         if (hasFetcher(provider)) {
             try {
                 const discovered = await discoverModels(provider, apiKey);
-                available[provider] = discovered.filter(function(m) {
-                    return isChatModel(m.id);
-                });
+                available[provider] = discovered.filter(m => isChatModel(m.id));
             } catch (e) {
                 console.warn("fetchAvailableModels: discovery fallita per " + provider + " [" + (e.type || "Error") + "]", e.userMessage || e.message);
                 available[provider] = (fileCatalog[provider] || []).map(function(id) {
-                    return { id: id, contextWindow: 0 };
-                }).filter(function(m) {
-                    return isChatModel(m.id);
-                });
+                    const entry = { id: id, contextWindow: 0 };
+                    return entry;
+                }).filter(m => isChatModel(m.id));
             }
         } else if (fileCatalog[provider]) {
             available[provider] = fileCatalog[provider].map(function(id) {
-                return { id: id, contextWindow: 0 };
-            }).filter(function(m) {
-                return isChatModel(m.id);
-            });
+                const entry = { id: id, contextWindow: 0 };
+                return entry;
+            }).filter(m => isChatModel(m.id));
         }
     }
 

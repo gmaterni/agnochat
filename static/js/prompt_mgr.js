@@ -14,22 +14,8 @@
 
 import { dbInstance as _db } from "./services/db_instance.js";
 import { UaDb } from "./services/uadb.js";
-
-// ============================================================================
-// COSTANTI
-// ============================================================================
-
-/** Chiave settings per il prompt di sistema attivo. */
-const KEY_ACTIVE_PROMPT = "active_prompt_id";
-
-// ============================================================================
-// FUNZIONI PRIVATE
-// ============================================================================
-
-const _logErr = function(op, err) {
-    console.error(`prompt_mgr.${op}:`, err);
-    return null;
-};
+import { DATA_KEYS } from "./services/data_keys.js";
+import { logDbError } from "./services/error_utils.js";
 
 // ============================================================================
 // API PUBBLICA
@@ -48,9 +34,11 @@ export const PromptMgr = {
         const prompt = { name, content, createdAt: now, updatedAt: now };
         try {
             const id = await _db.prompts.add(prompt);
-            return { id, ...prompt };
+            const created = { id, ...prompt };
+            return created;
         } catch (err) {
-            return _logErr("create", err);
+            const result = logDbError("prompt_mgr", "create", err);
+            return result;
         }
     },
 
@@ -63,7 +51,8 @@ export const PromptMgr = {
             const rows = await _db.prompts.toArray();
             return rows;
         } catch (err) {
-            return _logErr("list", err);
+            const result = logDbError("prompt_mgr", "list", err);
+            return result;
         }
     },
 
@@ -77,7 +66,8 @@ export const PromptMgr = {
             const row = await _db.prompts.get(id);
             return row;
         } catch (err) {
-            return _logErr("get", err);
+            const result = logDbError("prompt_mgr", "get", err);
+            return result;
         }
     },
 
@@ -93,9 +83,11 @@ export const PromptMgr = {
                 ...changes,
                 updatedAt: new Date().toISOString()
             });
-            return true;
+            const success = true;
+            return success;
         } catch (err) {
-            return _logErr("update", err);
+            const result = logDbError("prompt_mgr", "update", err);
+            return result;
         }
     },
 
@@ -111,9 +103,11 @@ export const PromptMgr = {
             if (activeId === id) {
                 await PromptMgr.setActive(null);
             }
-            return true;
+            const success = true;
+            return success;
         } catch (err) {
-            return _logErr("delete", err);
+            const result = logDbError("prompt_mgr", "delete", err);
+            return result;
         }
     },
 
@@ -126,8 +120,9 @@ export const PromptMgr = {
      * @returns {Promise<number|null>}
      */
     getActiveId: async function() {
-        const id = await UaDb.read(KEY_ACTIVE_PROMPT);
-        return id || null;
+        const id = await UaDb.read(DATA_KEYS.KEY_ACTIVE_PROMPT_ID);
+        const activeId = id || null;
+        return activeId;
     },
 
     /**
@@ -138,13 +133,15 @@ export const PromptMgr = {
     setActive: async function(id) {
         try {
             if (id === null || id === undefined) {
-                await UaDb.delete(KEY_ACTIVE_PROMPT);
+                await UaDb.delete(DATA_KEYS.KEY_ACTIVE_PROMPT_ID);
             } else {
-                await UaDb.save(KEY_ACTIVE_PROMPT, id);
+                await UaDb.save(DATA_KEYS.KEY_ACTIVE_PROMPT_ID, id);
             }
-            return true;
+            const success = true;
+            return success;
         } catch (err) {
-            return _logErr("setActive", err);
+            const result = logDbError("prompt_mgr", "setActive", err);
+            return result;
         }
     },
 
@@ -154,8 +151,12 @@ export const PromptMgr = {
      */
     getActive: async function() {
         const id = await PromptMgr.getActiveId();
-        if (!id) return null;
+        if (!id) {
+            const result = null;
+            return result;
+        }
         const prompt = await PromptMgr.get(id);
-        return prompt || null;
+        const activePrompt = prompt || null;
+        return activePrompt;
     }
 };
