@@ -16,88 +16,34 @@
         })();
     </script>
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="stylesheet/less" href="less/login.less?v=5" />
+    <link rel="stylesheet/less" href="less/login.less?v=6" />
     <script src="less/less.js"></script>
 </head>
 <body>
     <!-- Login form -->
     <div id="loginCard" class="card confirm-dialog show" autocomplete="off">
         <h4 id="t">Login</h4>
-        <input class="trap" type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true">
-        <input class="trap" type="password" name="password" autocomplete="current-password" tabindex="-1" aria-hidden="true">
-        <div class="f-group"><input type="text" id="u" name="app-user-no-autofill" placeholder="User" autocomplete="app-user-no-autofill" autocapitalize="off" autocorrect="off" spellcheck="false" list="userList" readonly data-lpignore="true" data-1p-ignore data-bwignore><datalist id="userList"></datalist></div>
+        <div class="f-group"><input type="text" id="u" placeholder="User" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" list="userList"><datalist id="userList"></datalist></div>
         <div class="f-group">
-            <input type="text" id="p" class="pwd" name="app-pass-no-autofill" placeholder="Pass" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" readonly data-lpignore="true" data-1p-ignore data-bwignore>
-            <div class="eye" onclick="v('p')">&#128065;</div>
+            <input type="password" id="p" placeholder="Pass" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <div class="eye" onclick="togglePw('p')">&#128065;</div>
         </div>
         <div id="s" style="display:none" class="f-group">
-            <input type="text" id="p2" class="pwd" name="app-pass2-no-autofill" placeholder="Conferma" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" readonly data-lpignore="true" data-1p-ignore data-bwignore>
-            <div class="eye" onclick="v('p2')">&#128065;</div>
+            <input type="password" id="p2" placeholder="Conferma" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <div class="eye" onclick="togglePw('p2')">&#128065;</div>
         </div>
         <button id="b" class="ok">Accedi</button>
         <div id="err" class="err"></div>
         <div class="toggle" id="x">Non hai un account? <span>Registrati</span></div>
     </div>
-    <!-- Welcome (nascosto, mostrato dopo login) -->
-    <div id="welcomeCard" class="card confirm-dialog show welcome" style="display:none">
-        <h4>Benvenuto</h4>
-        <p>ID Utente: <b id="wUser"></b></p>
-        <pre id="wJson" class="json"></pre>
-        <button class="cancel" onclick="doLogout()">Logout</button>
-    </div>
     <script>
         let mode = false;
-        const BULLET = "\u2022";
-        const PasswordStore = { p: "", p2: "" };
 
-        function v(id) {
-            if (id !== "p" && id !== "p2") return;
+        function togglePw(id) {
             const input = document.getElementById(id);
-            if (!input) { console.error("v: campo non trovato"); return; }
-            const showing = input.dataset.show === "1";
-            const real = id === "p" ? PasswordStore.p : PasswordStore.p2;
-            if (showing) {
-                input.dataset.show = "0";
-                input.value = BULLET.repeat(real.length);
-            } else {
-                input.dataset.show = "1";
-                input.value = real;
-            }
-            try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {}
-            input.focus();
-        }
-
-        function bindPasswordMask(input) {
             if (!input) return;
-            input.dataset.show = "0";
-            const moveEnd = () => { try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {} };
-            input.addEventListener("click", moveEnd);
-            input.addEventListener("keydown", (ev) => {
-                if (input.dataset.show === "1") return;
-                if (ev.key === "ArrowLeft" || ev.key === "ArrowRight" || ev.key === "Home") { ev.preventDefault(); moveEnd(); }
-                if ((ev.ctrlKey || ev.metaKey) && ev.key === "a") { ev.preventDefault(); moveEnd(); }
-            });
-            input.addEventListener("input", () => {
-                if (input.dataset.show === "1") {
-                    if (input.id === "p") PasswordStore.p = input.value;
-                    else PasswordStore.p2 = input.value;
-                    return;
-                }
-                const oldReal = input.id === "p" ? PasswordStore.p : PasswordStore.p2;
-                const displayed = input.value;
-                let next = "";
-                if (displayed.length < oldReal.length) {
-                    next = oldReal.slice(0, displayed.length);
-                } else {
-                    const added = displayed.split("").filter(c => c !== BULLET).join("");
-                    const keepLen = displayed.length - added.length;
-                    next = oldReal.slice(0, keepLen) + added;
-                }
-                if (input.id === "p") PasswordStore.p = next;
-                else PasswordStore.p2 = next;
-                input.value = BULLET.repeat(next.length);
-                moveEnd();
-            });
+            input.type = input.type === "password" ? "text" : "password";
+            input.focus();
         }
 
         async function refreshUserList() {
@@ -110,15 +56,6 @@
                 opt.value = name;
                 list.appendChild(opt);
             }
-        }
-
-        function unlockOnInteract(input, refresh) {
-            const unlock = async () => {
-                input.removeAttribute("readonly");
-                if (refresh) await refreshUserList();
-            };
-            input.addEventListener("focus", unlock);
-            input.addEventListener("click", unlock);
         }
 
         function showError(msg) {
@@ -135,37 +72,11 @@
             window.location.replace("index.html");
         }
 
-        function showLogin() {
-            PasswordStore.p = ""; PasswordStore.p2 = "";
-            userInput.value = ""; passInput.value = ""; pass2Input.value = "";
-            passInput.dataset.show = "0"; pass2Input.dataset.show = "0";
-            mode = false;
-            document.getElementById("t").innerText = "Login";
-            document.getElementById("b").innerText = "Accedi";
-            document.getElementById("s").style.display = "none";
-            document.getElementById("x").innerHTML = "Non hai un account? <span>Registrati</span>";
-            hideError();
-            document.getElementById("welcomeCard").style.display = "none";
-            document.getElementById("loginCard").style.display = "block";
-        }
-
         const userInput = document.getElementById("u");
         const passInput = document.getElementById("p");
         const pass2Input = document.getElementById("p2");
-        bindPasswordMask(passInput);
-        bindPasswordMask(pass2Input);
-
-        PasswordStore.p = ""; PasswordStore.p2 = "";
-        userInput.value = ""; passInput.value = ""; pass2Input.value = "";
-        setTimeout(() => {
-            PasswordStore.p = ""; PasswordStore.p2 = "";
-            userInput.value = ""; passInput.value = ""; pass2Input.value = "";
-        }, 150);
 
         refreshUserList();
-        unlockOnInteract(userInput, true);
-        unlockOnInteract(passInput, false);
-        unlockOnInteract(pass2Input, false);
 
         document.getElementById("x").onclick = () => {
             mode = !mode;
@@ -173,7 +84,7 @@
             document.getElementById("t").innerText = mode ? "Registrazione" : "Login";
             document.getElementById("b").innerText = mode ? "Registrati" : "Accedi";
             document.getElementById("s").style.display = mode ? "block" : "none";
-            PasswordStore.p2 = ""; pass2Input.dataset.show = "0"; pass2Input.value = "";
+            pass2Input.value = ""; pass2Input.type = "password";
             document.getElementById("x").innerHTML = mode
                 ? "Annulla? <span>Torna al Login</span>"
                 : "Non hai un account? <span>Registrati</span>";
@@ -182,26 +93,21 @@
         document.getElementById("b").onclick = async () => {
             hideError();
             const user = userInput.value.trim();
-            const pass = PasswordStore.p;
+            const pass = passInput.value;
             if (!user || !pass) return;
             if (mode) {
-                if (pass !== PasswordStore.p2) { showError("Le password non corrispondono"); return; }
+                if (pass !== pass2Input.value) { showError("Le password non corrispondono"); return; }
                 const result = await Auth.signup(user, pass);
                 if (result === "already") { showError("User gia' registrato"); return; }
-                Auth.kill(); PasswordStore.p = ""; PasswordStore.p2 = "";
+                Auth.kill();
                 showWelcome(user);
             } else {
                 const data = await Auth.login(user, pass);
                 if (!data) { showError("Credenziali errate"); return; }
-                Auth.kill(); PasswordStore.p = ""; PasswordStore.p2 = "";
+                Auth.kill();
                 showWelcome(data);
             }
         };
-
-        function doLogout() {
-            Auth.kill();
-            showLogin();
-        }
     </script>
 </body>
 </html>

@@ -25,9 +25,8 @@ body {
   color: @dialog-text;
 }
 
-// --- Finestre login/welcome: stesso border verde del confirm-dialog ---
-#loginCard,
-#welcomeCard {
+// --- Finestra login: stesso border verde del confirm-dialog ---
+#loginCard {
   width: 360px;
   border: 2px solid @confirm-color;
   h4 {
@@ -42,10 +41,18 @@ body {
   margin-top: 16px;
 }
 
-// --- Input con border del confirm-dialog ma sfondo dark ---
-.confirm-dialog input[type="text"] {
+// --- Input user/password: stesso stile del confirm-dialog, sfondo dark ---
+// (la regola base di uadialog copre solo type="text": qui anche password)
+.confirm-dialog input[type="text"],
+.confirm-dialog input[type="password"] {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.75rem;
   margin: 8px 0;
   padding-right: 44px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
   background-color: #1e1e1e;
   color: #fff;
   &:focus {
@@ -104,50 +111,4 @@ body {
   display: none;
   font-weight: 500;
   text-align: center;
-}
-
-// --- Mascheramento password a pallini ---
-.pwd {
-  letter-spacing: 3px;
-}
-
-// --- Campi esca anti-autofill: invisibili ---
-.trap {
-  position: absolute;
-  left: -9999px;
-  top: -9999px;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-// --- Welcome card ---
-.welcome {
-  text-align: center;
-  p {
-    color: #b0b0b0;
-    margin-bottom: 8px;
-  }
-  b {
-    color: @dialog-border;
-    font-weight: 700;
-  }
-  .cancel {
-    margin-top: 20px;
-  }
-  .json {
-    text-align: left;
-    background: #1e1e1e;
-    border: 1px solid #3c3c3c;
-    border-radius: 6px;
-    padding: 14px;
-    margin: 16px 0;
-    font-size: 0.72em;
-    color: #b0b0b0;
-    white-space: pre-wrap;
-    word-break: break-all;
-    max-height: 260px;
-    overflow-y: auto;
-  }
 }
