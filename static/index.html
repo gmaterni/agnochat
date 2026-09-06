@@ -28,6 +28,28 @@
     </script>
 
     <script type="module" src="js/app.js"></script>
+
+    <!-- Session guard: redirect to login if no auth.
+         La sessione (authSession) resta valida per tutta la durata del tab:
+         login.html la imposta al login e la riusa per saltare il login. -->
+    <script src="js/services/auth.js"></script>
+    <script>
+      (function() {
+        try {
+          var raw = sessionStorage.getItem("authResult");
+          if (raw) {
+            sessionStorage.removeItem("authResult");
+            sessionStorage.setItem("authSession", raw);
+          }
+        } catch (e) { /* storage non disponibile: verifica la sessione */ }
+        var user = (typeof Auth !== "undefined") ? Auth.getUser() : null;
+        if (user) {
+          window._authUser = user;
+          return;
+        }
+        window.location.replace("login.html");
+      })();
+    </script>
   </head>
 
   <body>
@@ -90,6 +112,8 @@
           <li><a href="#" id="menu-add-api-key">Gestisci API Key</a></li>
           <li class="separator"></li>
           <li><a href="#" id="menu-reset" class="delete menu-reset">Reset</a></li>
+          <li class="separator"></li>
+          <li><a href="#" id="menu-logout" onclick="doLogout()">Logout</a></li>
         </ul>
       </div>
 
@@ -152,6 +176,15 @@
     </div>
 
     <script src="js/services/vendor/marked.min.js"></script>
+    <script>
+        function doLogout() {
+            try {
+                sessionStorage.removeItem("authResult");
+                sessionStorage.removeItem("authSession");
+            } catch (e) {}
+            window.location.replace("login.html");
+        }
+    </script>
   </body>
 
 </html>
