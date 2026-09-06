@@ -28,6 +28,8 @@ const APP_VERSION = "1.0.0";
 
 /** @type {string} URL del worker per l'invio eventi analytics. */
 const WORKER_URL = "https://wwwanalyzer-backend.workerua.workers.dev";
+// AAA url per prova con applicazione in locale
+// const WORKER_URL = "http://localhost:8787";
 
 /** Codice di errore che indica l'interruzione manuale dell'utente. */
 const ERROR_CODE_CANCELLED = 499;
@@ -116,7 +118,7 @@ const openAppAsync = async function () {
         // 7. Configurazione Sender Eventi
         UaSender.init({
             workerUrl: WORKER_URL,
-            userId: "user"
+            userId: (typeof Auth !== "undefined" && Auth.getUser()) || "user"
         });
 
         // 8. Notifica apertura app

@@ -4,25 +4,140 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    <script src="js/services/auth.js?v=1"></script>
-    <script>
-        // Sessione gia' attiva: salta il login e vai diretto all'app
-        (function () {
-            try {
-                if (typeof Auth !== "undefined" && Auth.getUser()) {
-                    window.location.replace("index.html");
-                }
-            } catch (e) {}
-        })();
-    </script>
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="stylesheet/less" href="less/login.less?v=5" />
-    <script src="less/less.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .card {
+            background: #1e1e1e;
+            padding: 40px 32px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            width: 360px;
+            text-align: center;
+        }
+        .card h2 {
+            color: #82b1ff;
+            font-weight: 500;
+            font-size: 1.6em;
+            margin-bottom: 28px;
+            letter-spacing: 0.5px;
+        }
+        .f-group { position: relative; width: 100%; }
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            margin: 8px 0;
+            background: #2c2c2c;
+            border: 1px solid #3c3c3c;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1em;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            padding-right: 44px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #82b1ff;
+            box-shadow: 0 0 0 2px rgba(130,177,255,0.25);
+        }
+        input::placeholder { color: #707070; }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #82b1ff;
+            border: none;
+            border-radius: 8px;
+            color: #121212;
+            cursor: pointer;
+            margin-top: 16px;
+            font-size: 1.1em;
+            font-weight: 700;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            letter-spacing: 0.5px;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        button:hover { background: #a0c4ff; box-shadow: 0 4px 12px rgba(130,177,255,0.3); }
+        .toggle {
+            margin-top: 20px;
+            font-size: 0.85em;
+            color: #888;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .toggle:hover { color: #b0b0b0; }
+        .toggle span {
+            color: #82b1ff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .eye {
+            position: absolute;
+            right: 12px;
+            top: 18px;
+            cursor: pointer;
+            color: #666;
+            font-size: 0.9em;
+            user-select: none;
+            transition: color 0.2s;
+        }
+        .eye:hover { color: #aaa; }
+        .err {
+            color: #ff5252;
+            font-size: 0.85em;
+            margin-top: 10px;
+            display: none;
+            font-weight: 500;
+        }
+        .pwd { letter-spacing: 3px; }
+        .trap { position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+        /* Welcome */
+        .welcome h1 { color: #82b1ff; font-weight: 500; font-size: 1.6em; margin-bottom: 16px; }
+        .welcome p { color: #b0b0b0; margin-bottom: 8px; }
+        .welcome b { color: #82b1ff; font-weight: 700; }
+        .logout {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 32px;
+            background: transparent;
+            border: 1px solid #82b1ff;
+            border-radius: 8px;
+            color: #82b1ff;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .logout:hover { background: #82b1ff; color: #121212; }
+        .json {
+            text-align: left;
+            background: #2c2c2c;
+            border: 1px solid #3c3c3c;
+            border-radius: 8px;
+            padding: 14px;
+            margin: 16px 0;
+            font-size: 0.72em;
+            color: #b0b0b0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
     <!-- Login form -->
-    <div id="loginCard" class="card confirm-dialog show" autocomplete="off">
-        <h4 id="t">Login</h4>
+    <div id="loginCard" class="card" autocomplete="off">
+        <h2 id="t">Login</h2>
         <input class="trap" type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true">
         <input class="trap" type="password" name="password" autocomplete="current-password" tabindex="-1" aria-hidden="true">
         <div class="f-group"><input type="text" id="u" name="app-user-no-autofill" placeholder="User" autocomplete="app-user-no-autofill" autocapitalize="off" autocorrect="off" spellcheck="false" list="userList" readonly data-lpignore="true" data-1p-ignore data-bwignore><datalist id="userList"></datalist></div>
@@ -34,17 +149,18 @@
             <input type="text" id="p2" class="pwd" name="app-pass2-no-autofill" placeholder="Conferma" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" readonly data-lpignore="true" data-1p-ignore data-bwignore>
             <div class="eye" onclick="v('p2')">&#128065;</div>
         </div>
-        <button id="b" class="ok">Accedi</button>
+        <button id="b">Accedi</button>
         <div id="err" class="err"></div>
         <div class="toggle" id="x">Non hai un account? <span>Registrati</span></div>
     </div>
     <!-- Welcome (nascosto, mostrato dopo login) -->
-    <div id="welcomeCard" class="card confirm-dialog show welcome" style="display:none">
-        <h4>Benvenuto</h4>
+    <div id="welcomeCard" class="card welcome" style="display:none">
+        <h1>Benvenuto</h1>
         <p>ID Utente: <b id="wUser"></b></p>
         <pre id="wJson" class="json"></pre>
-        <button class="cancel" onclick="doLogout()">Logout</button>
+        <button class="logout" onclick="doLogout()">Logout</button>
     </div>
+    <script src="auth.js"></script>
     <script>
         let mode = false;
         const BULLET = "\u2022";
@@ -129,10 +245,8 @@
         function hideError() { document.getElementById("err").style.display = "none"; }
 
         function showWelcome(data) {
-            var payload = JSON.stringify(data);
-            sessionStorage.setItem("authResult", payload);
-            sessionStorage.setItem("authSession", payload);
-            window.location.replace("index.html");
+            sessionStorage.setItem("authResult", JSON.stringify(data));
+            window.location.replace("app.html");
         }
 
         function showLogin() {
