@@ -29,6 +29,11 @@ body {
 #loginCard {
   width: 360px;
   border: 2px solid @confirm-color;
+  form,
+  #loginForm {
+    margin: 0;
+    padding: 0;
+  }
   h4 {
     color: @confirm-color;
     font-weight: 700;
@@ -63,6 +68,23 @@ body {
   &::placeholder {
     color: #707070;
   }
+}
+
+// --- Autofill del browser: lo sfondo resta scuro anche se il browser riempie i campi ---
+.confirm-dialog input:-webkit-autofill,
+.confirm-dialog input:-webkit-autofill:hover,
+.confirm-dialog input:-webkit-autofill:focus,
+.confirm-dialog input:-webkit-autofill:active {
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+  -webkit-box-shadow: 0 0 0 1000px #1e1e1e inset;
+  box-shadow: 0 0 0 1000px #1e1e1e inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+.confirm-dialog input:autofill {
+  color: #fff;
+  caret-color: #fff;
+  box-shadow: 0 0 0 1000px #1e1e1e inset;
 }
 
 // --- Gruppi campo + icona occhio ---

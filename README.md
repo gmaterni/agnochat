@@ -44,5 +44,3 @@ Tutto l'applicativo vive in `static/`:
 - **Vendor** (copie locali, nessun CDN): `dexie.js`, `marked.min.js`, `less.js`.
 - **Stili**: `static/less/style.less` + `static/less/modules/` compilati a runtime da `less.js`.
 
----
-*agnochat è un progetto focalizzato sulla semplicità, sulla privacy e sull'efficienza dell'AI lato client.*

@@ -16,24 +16,26 @@
         })();
     </script>
     <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="stylesheet/less" href="less/login.less?v=6" />
+    <link rel="stylesheet/less" href="less/login.less?v=8" />
     <script src="less/less.js"></script>
 </head>
 <body>
     <!-- Login form -->
     <div id="loginCard" class="card confirm-dialog show" autocomplete="off">
         <h4 id="t">Login</h4>
-        <div class="f-group"><input type="text" id="u" placeholder="User" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" list="userList"><datalist id="userList"></datalist></div>
+        <div id="loginForm">
+        <div class="f-group"><input type="text" id="u" placeholder="User" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" list="userList" readonly><datalist id="userList"></datalist></div>
         <div class="f-group">
-            <input type="password" id="p" placeholder="Pass" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <input type="password" id="p" placeholder="Pass" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" readonly>
             <div class="eye" onclick="togglePw('p')">&#128065;</div>
         </div>
         <div id="s" style="display:none" class="f-group">
-            <input type="password" id="p2" placeholder="Conferma" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <input type="password" id="p2" placeholder="Conferma" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" readonly>
             <div class="eye" onclick="togglePw('p2')">&#128065;</div>
         </div>
-        <button id="b" class="ok">Accedi</button>
+        <button id="b" class="ok" type="button">Accedi</button>
         <div id="err" class="err"></div>
+        </div>
         <div class="toggle" id="x">Non hai un account? <span>Registrati</span></div>
     </div>
     <script>
@@ -78,6 +80,29 @@
 
         refreshUserList();
 
+        // Solo i nostri registrati sul campo user (datalist da IndexedDB), nulla
+        // sulle password in login e registrazione. I campi nascono readonly
+        // (il browser non riempie i readonly e non mostra suggerimenti) e si
+        // sbloccano al focus manuale. Le password si ribloccano al blur (non
+        // hanno datalist, quindi e' sicuro); lo user resta sbloccato dopo il
+        // primo focus per non rompere la scelta col mouse dalla lista.
+        [userInput, passInput, pass2Input].forEach(function (el) {
+            el.addEventListener("focus", function () { el.removeAttribute("readonly"); });
+        });
+        [passInput, pass2Input].forEach(function (el) {
+            el.addEventListener("blur", function () { el.setAttribute("readonly", ""); });
+        });
+        userInput.addEventListener("input", function (ev) {
+            if (ev && ev.inputType === "insertReplacementText") {
+                passInput.value = "";
+                pass2Input.value = "";
+            }
+        });
+        userInput.addEventListener("change", function () {
+            passInput.value = "";
+            pass2Input.value = "";
+        });
+
         document.getElementById("x").onclick = () => {
             mode = !mode;
             hideError();
@@ -90,7 +115,14 @@
                 : "Non hai un account? <span>Registrati</span>";
         };
 
-        document.getElementById("b").onclick = async () => {
+        document.getElementById("b").addEventListener("click", submitLogin);
+        [userInput, passInput, pass2Input].forEach(function (el) {
+            el.addEventListener("keydown", function (ev) {
+                if (ev.key === "Enter") { ev.preventDefault(); submitLogin(); }
+            });
+        });
+
+        async function submitLogin() {
             hideError();
             const user = userInput.value.trim();
             const pass = passInput.value;
@@ -107,7 +139,7 @@
                 Auth.kill();
                 showWelcome(data);
             }
-        };
+        }
     </script>
 </body>
 </html>

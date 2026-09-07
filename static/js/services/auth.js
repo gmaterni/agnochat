@@ -78,14 +78,17 @@ const Auth = {
         return k.sort();
     },
 
-    /** Restituisce il nome dell'utente attivo, oppure null se nessuna sessione. */
+    /** Restituisce il nome dell'utente attivo, oppure null se nessuna sessione.
+     *  Payload malformati, username assenti/non-stringa/vuoti ed errori di
+     *  storage valgono come sessione assente: mai eccezioni verso i chiamanti. */
     getUser: function () {
         try {
             const raw = sessionStorage.getItem("authSession") || sessionStorage.getItem("authResult");
             if (!raw) return null;
             const data = JSON.parse(raw);
-            if (typeof data === "string") return data || null;
-            return (data && data.username) || null;
+            const name = (typeof data === "string") ? data : (data && data.username);
+            if (typeof name !== "string") return null;
+            return name.trim() || null;
         } catch (e) {
             return null;
         }

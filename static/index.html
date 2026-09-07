@@ -8,6 +8,9 @@
     <title>agnochat</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon">
 
+
+    <!-- <link rel="stylesheet" href="css/style.min.css?v=1" />  -->
+
     <link rel="stylesheet/less" href="less/style.less?v=5" />
     <link rel="stylesheet/less" href="less/uadialog.less?v=2" />
     <link rel="stylesheet/less" href="less/ualog3.less?v=2" />
@@ -34,20 +37,23 @@
          login.html la imposta al login e la riusa per saltare il login. -->
     <script src="js/services/auth.js?v=1"></script>
     <script>
-      (function() {
+      (function () {
+        var user = (typeof Auth !== "undefined") ? Auth.getUser() : null;
+        if (!user) {
+          window.location.replace("login.html");
+          return;
+        }
+        // Sessione valida: consuma authResult (handoff una tantum) e garantisce
+        // authSession per i reload nello stesso tab. Mai con payload malformati:
+        // qui `user` e' gia' validato da Auth.getUser().
         try {
           var raw = sessionStorage.getItem("authResult");
           if (raw) {
             sessionStorage.removeItem("authResult");
-            sessionStorage.setItem("authSession", raw);
+            if (!sessionStorage.getItem("authSession")) sessionStorage.setItem("authSession", raw);
           }
-        } catch (e) { /* storage non disponibile: verifica la sessione */ }
-        var user = (typeof Auth !== "undefined") ? Auth.getUser() : null;
-        if (user) {
-          window._authUser = user;
-          return;
-        }
-        window.location.replace("login.html");
+        } catch (e) { /* storage non disponibile: la sessione resta comunque valida in memoria */ }
+        window._authUser = user;
       })();
     </script>
   </head>
@@ -146,7 +152,7 @@
           <textarea class="text-input" id="text-input" placeholder="Scrivi qui... " rows="2"></textarea>
           <button id="btn-upload-doc" class="btn-upload-doc tt-top" data-tt="Carica documento">
             <svg viewBox="0 0 24 24" width="22" height="22">
-              <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+              <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
             </svg>
           </button>
           <button id="btn-edit-last" class="btn-edit-last tt-top" data-tt="Modifica domanda" style="display: none;" onclick="wnds.editLastQuestion()">
@@ -177,13 +183,13 @@
 
     <script src="js/services/vendor/marked.min.js"></script>
     <script>
-        function doLogout() {
-            try {
-                sessionStorage.removeItem("authResult");
-                sessionStorage.removeItem("authSession");
-            } catch (e) {}
-            window.location.replace("login.html");
-        }
+      function doLogout() {
+        try {
+          sessionStorage.removeItem("authResult");
+          sessionStorage.removeItem("authSession");
+        } catch (e) { }
+        window.location.replace("login.html");
+      }
     </script>
   </body>
 
