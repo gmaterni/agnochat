@@ -7,7 +7,7 @@
 
 ## 1. Identità del Progetto
 
-**agnochat** è un'applicazione di chat LLM 100% client-side, senza backend, senza build system, senza dipendenze npm. Derivata da RagIndex (pipeline RAG rimossa, chat mantenuta). Interfaccia in italiano, codice JavaScript ES2020+, stili LESS compilati a runtime nel browser.
+**agnochat** è un'applicazione di chat LLM 100% client-side, senza backend, senza build system, senza dipendenze npm. Interfaccia in italiano, codice JavaScript ES2020+, stili LESS compilati a runtime nel browser.
 
 ---
 
@@ -268,4 +268,4 @@ Tutte le librerie esterne sono copie locali in `static/js/services/vendor/`, nes
 5. **Isolamento dei Database:** Dati app (conversazioni, impostazioni) in un DB Dexie, dati modelli LLM in un IndexedDB separato.
 6. **Compilazione LESS Runtime:** Stili compilati nel browser, abilitando il cambio tema tramite parametri mixin.
 7. **6 Provider LLM:** Gemini (formato nativo), 5 provider OpenAI-compatibili, tutti dietro un'interfaccia `BaseClient` unificata.
-8. **Eredità da RagIndex:** Sistema di layout (gabbia verticale), librerie interne UA (`uawindow`, `uadrag`, `uajtfh`, `ualog3`, `uadialog`), gestione provider/modelli — tutto ereditato senza la pipeline RAG.
+8. **Librerie interne:** Sistema di layout (gabbia verticale), librerie interne UA (`uawindow`, `uadrag`, `uajtfh`, `ualog3`, `uadialog`), gestione provider/modelli.

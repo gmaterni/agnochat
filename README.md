@@ -4,7 +4,7 @@
 
 **Versione:** 1.0.0
 
-**agnochat** è un'applicazione web di chat con modelli linguistici (LLM) che opera interamente nel browser dell'utente. Nasce da RagIndex, da cui eredita layout, gestione provider/modelli/chiavi e librerie interne, lasciando fuori la pipeline RAG: nessuna indicizzazione, nessun worker — solo chat.
+**agnochat** è un'applicazione web di chat con modelli linguistici (LLM) che opera interamente nel browser dell'utente. Riunisce layout, gestione provider/modelli/chiavi e librerie interne, senza pipeline RAG: nessuna indicizzazione, nessun worker — solo chat.
 
 > 🚀 **Scopri di più**: per una presentazione delle funzionalità e dei caratteri originali del progetto, consulta la pagina [static/agnochat.html](static/agnochat.html).
 

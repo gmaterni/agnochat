@@ -30,32 +30,22 @@
       }
     </script>
 
-    <script type="module" src="js/app.js?v=1"></script>
+    <!-- Guardia login: redirect a login.html se manca user_web_id.
+         La login Google e' obbligatoria anche in locale; il bypass con
+         utente locale vale solo a login disabilitata. Viene PRIMA di app.js:
+         i moduli differiti eseguono in ordine di documento, cosi' l'app
+         (e il sender) non parte mai senza utente autenticato. -->
+    <script type="module">
+      import { DISABLE_LOGIN_ON_LOCAL, isLocalEnvironment } from './js/services/config.js';
+      const needsLogin = !localStorage.getItem('user_web_id');
+      const isLocalBypass = DISABLE_LOGIN_ON_LOCAL && isLocalEnvironment();
 
-    <!-- Session guard: redirect to login if no auth.
-         La sessione (authSession) resta valida per tutta la durata del tab:
-         login.html la imposta al login e la riusa per saltare il login. -->
-    <script src="js/services/auth.js?v=1"></script>
-    <script>
-      (function () {
-        var user = (typeof Auth !== "undefined") ? Auth.getUser() : null;
-        if (!user) {
-          window.location.replace("login.html");
-          return;
-        }
-        // Sessione valida: consuma authResult (handoff una tantum) e garantisce
-        // authSession per i reload nello stesso tab. Mai con payload malformati:
-        // qui `user` e' gia' validato da Auth.getUser().
-        try {
-          var raw = sessionStorage.getItem("authResult");
-          if (raw) {
-            sessionStorage.removeItem("authResult");
-            if (!sessionStorage.getItem("authSession")) sessionStorage.setItem("authSession", raw);
-          }
-        } catch (e) { /* storage non disponibile: la sessione resta comunque valida in memoria */ }
-        window._authUser = user;
-      })();
+      if (needsLogin && !isLocalBypass) {
+        window.location.replace('login.html');
+      }
     </script>
+
+    <script type="module" src="js/app.js?v=1"></script>
   </head>
 
   <body>
@@ -185,8 +175,7 @@
     <script>
       function doLogout() {
         try {
-          sessionStorage.removeItem("authResult");
-          sessionStorage.removeItem("authSession");
+          localStorage.removeItem("user_web_id");
         } catch (e) { }
         window.location.replace("login.html");
       }

@@ -16,6 +16,7 @@ import { bindEventListener, showHtmlThread, wnds, Commands, TextInput, TextOutpu
 import { AppMgr } from "./app_mgr.js";
 import { UaSender } from "./services/sender.js";
 import { formatErrorPrefix } from "./services/error_utils.js";
+import { DISABLE_LOGIN_ON_LOCAL, LOCAL_USER_ID, WORKER_URL, isLocalEnvironment } from "./services/config.js";
 
 import "./services/uadialog.js";
 
@@ -26,13 +27,25 @@ import "./services/uadialog.js";
 /** @type {string} Versione dell'applicazione. */
 const APP_VERSION = "1.0.0";
 
-/** @type {string} URL del worker per l'invio eventi analytics. */
-const WORKER_URL = "https://wwwanalyzer-backend.workerua.workers.dev";
-// AAA url per prova con applicazione in locale
-// const WORKER_URL = "http://localhost:8787";
-
 /** Codice di errore che indica l'interruzione manuale dell'utente. */
 const ERROR_CODE_CANCELLED = 499;
+
+/**
+ * Risolve l'identificativo utente per la telemetria, registrata dal worker
+ * wwwanalyzer mediante sender: LOCAL_USER_ID solo a login disabilitata
+ * (bypass locale attivo), in tutti gli altri casi l'email entrata con
+ * Google OAuth da login.html in `user_web_id`, con fallback a "user".
+ *
+ * @returns {string}
+ */
+function resolveUserId() {
+    try {
+        if (DISABLE_LOGIN_ON_LOCAL && isLocalEnvironment()) return LOCAL_USER_ID;
+        return localStorage.getItem("user_web_id") || "user";
+    } catch (e) {
+        return "user";
+    }
+}
 
 // ============================================================================
 // GESTIONE ERRORI GLOBALE
@@ -118,7 +131,7 @@ const openAppAsync = async function () {
         // 7. Configurazione Sender Eventi
         UaSender.init({
             workerUrl: WORKER_URL,
-            userId: (typeof Auth !== "undefined" && Auth.getUser()) || "user"
+            userId: resolveUserId()
         });
 
         // 8. Notifica apertura app
