@@ -70,7 +70,7 @@ agnochat/
     │       ├── data_keys.js            # Costanti chiavi storage
     │       ├── db_instance.js          # Istanza Dexie.js
     │       ├── key_retriever.js        # Gestione chiavi API
-    │       ├── sender.js               # Telemetria analytics
+    │       ├── sender.js               # Telemetria analytics (UaSender; spec: openspec/specs/analytics/spec.md)
     │       ├── uadb.js                 # Wrapper key-value DB
     │       ├── uadialog.js             # Dialoghi alert/confirm/prompt
     │       ├── uadrag.js               # Utilità drag mouse
@@ -134,7 +134,7 @@ agnochat/
    - `bindEventListener()` — bind eventi UI
    - `showHtmlThread()` — carica ultima conversazione
    - `getTheme()` / `updateActiveModelDisplay()` — applica preferenze
-   - `UaSender.init()` + analytics
+   - `UaSender.init()` + analytics (`static/js/services/sender.js`; spec: `openspec/specs/analytics/spec.md`)
 
 ---
 

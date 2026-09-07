@@ -29,7 +29,7 @@ Essendo un'applicazione puramente statica, non richiede build system (Webpack, V
 - **Prompt di sistema personalizzati**: crea, modifica, elimina e seleziona il prompt attivo da anteporre alle conversazioni.
 - **Affidabilità**: retry automatico su errori transitori (408/500/502/503/504, max 3 tentativi), interruzione manuale delle richieste (stop) e gestione esplicita dei limiti di token.
 - **Temi dark/light**: selezionabili e persistiti (default dark).
-- **Telemetria minima**: eventi di apertura app e avvio conversazione verso il worker analytics WWWANALYZER (`UaSender`); invio automaticamente disattivato in ambiente locale (`localhost`/`file:`).
+- **Telemetria minima**: eventi di apertura app e avvio conversazione verso il worker analytics WWWANALYZER (`UaSender` in `static/js/services/sender.js`; spec in `openspec/specs/analytics/spec.md`); invio automaticamente disattivato in ambiente locale (`localhost`/`file:`).
 
 ## Architettura del Codice
 

@@ -29,6 +29,8 @@
 
 **Purpose:** Invio di eventi di tracciamento asincroni al backend WWWANALYZER (Cloudflare Worker) tramite `UaSender`: raccoglie metadata dell'ambiente e disattiva l'invio automaticamente in ambiente locale.
 
+**Dove vive:** implementazione in `static/js/services/sender.js` (`UaSender`, init da `static/js/app.js`); contract in `openspec/specs/analytics/spec.md`. Non esiste un modulo chiamato `analytics`: il nome indica solo questa sezione di specifica.
+
 ### Requisiti
 
 #### Inizializzazione del servizio di invio eventi
