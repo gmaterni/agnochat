@@ -377,12 +377,12 @@ Reset sostituisce completamente, non unisce.
 
 ## 12. llm-selection-ui
 
-**Purpose:** Finestra modale "Seleziona LLM" con tre azioni (Salva, Aggiungi, Annulla) e tooltip differenziati.
+**Purpose:** Finestra modale "Seleziona LLM" con quattro azioni (Salva, Aggiungi, Annulla, Seleziona Attivi) e tooltip differenziati.
 
 ### Requisiti
 
-#### Finestra con tre azioni
-Elenco modelli da `discovered-models` con checkbox. Tre pulsanti: Salva, Aggiungi (giallo), Annulla.
+#### Finestra con quattro azioni
+Elenco modelli da `discovered-models` con checkbox. Quattro pulsanti: Salva, Aggiungi (giallo), Annulla, Seleziona Attivi (inverso di Annulla).
 
 #### Pulsante Salva — sostituzione
 Svuota `selected-models`, popola con selezione, chiudi finestra, aggiorna albero.
@@ -391,11 +391,16 @@ Svuota `selected-models`, popola con selezione, chiudi finestra, aggiorna albero
 Aggiungi selezione a `selected-models`, ignora duplicati, chiudi finestra, aggiorna albero.
 
 #### Pulsante Annulla
-Chiudi finestra senza modifiche.
+Chiudi finestra senza modifiche. Deseleziona tutti i modelli.
+
+#### Pulsante Seleziona Attivi — ripristino
+Seleziona solo gli LLM già attivi nell'albero (quelli salvati in `selected-models`), deseleziona gli altri — operazione inversa di Annulla.
 
 #### Tooltip differenziazione
 - Salva: "sostituisce completamente la selezione corrente"
 - Aggiungi: "unisce i modelli selezionati a quelli già presenti"
+- Annulla: "deseleziona tutti i modelli per iniziare una nuova selezione"
+- Seleziona Attivi: "seleziona solo gli LLM già attivi nell'albero (quelli salvati in selected-models), deseleziona tutti gli altri — operazione inversa di Annulla"
 
 #### Stile pulsante Aggiungi
 Background giallo per differenziarlo da Salva.

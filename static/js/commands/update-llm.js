@@ -14,50 +14,14 @@ import { LlmProvider } from "agnochat/llm_provider.js";
 import { getApiKey, IMPLEMENTED_CLIENTS } from "agnochat/services/key_retriever.js";
 import { discoverModels, hasFetcher } from "agnochat/llmlist/index.js";
 import { UaLog } from "agnochat/services/ualog3.js";
-import { loadProviderModels } from "agnochat/llm/llm-catalog.js";
-import { LlmUpdater } from "agnochat/llm_updater.js";
+import { isChatModel, loadRawCatalogForProviders } from "agnochat/llm/llm-catalog.js";
+import { LlmUpdater, cancelUpdate, resetCancel, isCancelRequested } from "agnochat/llm_updater.js";
 
 /** Numero di token contenuti in un kilotoken (conversione delle finestre di contesto). */
 const TOKENS_PER_K = 1024;
 
-let _cancelRequested = false;
-
-export const cancelUpdate = function() {
-    _cancelRequested = true;
-};
-
-const _resetCancel = function() {
-    _cancelRequested = false;
-};
-
-const _isChatModel = function(model) {
-    const lower = model.toLowerCase();
-    const nonChatKeywords = [
-        "fim", "embedding", "reranker", "image", "video", "audio",
-        "speech", "tts", "starcoder", "codestral"
-    ];
-    for (const kw of nonChatKeywords) {
-        if (lower.includes(kw)) {
-            const result = false;
-            return result;
-        }
-    }
-    const result = true;
-    return result;
-};
-
-const _loadRawCatalog = async function() {
-    const catalog = {};
-
-    for (const p of IMPLEMENTED_CLIENTS) {
-        const models = await loadProviderModels(p);
-        if (models.length > 0) {
-            catalog[p] = models;
-        }
-    }
-
-    return catalog;
-};
+// Re-export del cancel condiviso (single source in llm_updater.js)
+export { cancelUpdate };
 
 const _createUaLogAdapter = function() {
     const adapter = {
@@ -76,7 +40,7 @@ const _createUaLogAdapter = function() {
 };
 
 export const runUpdate = async function() {
-    _resetCancel();
+    resetCancel();
 
     await llmDb.init();
 
@@ -88,13 +52,13 @@ export const runUpdate = async function() {
     }
 
     const previousConfig = LlmProvider.getConfig();
-    const fileCatalog = await _loadRawCatalog();
+    const fileCatalog = await loadRawCatalogForProviders(IMPLEMENTED_CLIENTS);
     const catalog = {};
     const allDiscovered = [];
     let testedCount = 0;
 
     for (const provider of IMPLEMENTED_CLIENTS) {
-        if (_cancelRequested) break;
+        if (isCancelRequested()) break;
 
         const apiKey = await getApiKey(provider);
         if (!apiKey) {
@@ -107,7 +71,7 @@ export const runUpdate = async function() {
         if (hasFetcher(provider)) {
             try {
                 const discovered = await discoverModels(provider, apiKey);
-                const chatModels = discovered.filter(m => _isChatModel(m.id));
+                const chatModels = discovered.filter(m => isChatModel(m.id));
                 LlmProvider.setModelsFromDiscovery(provider, chatModels);
                 modelList = chatModels.map(m => ({ name: m.id, windowSize: Math.round((m.contextWindow || 0) / TOKENS_PER_K) }));
                 const msg1 = provider + ": elenco " + modelList.length + " modelli.";
@@ -117,10 +81,10 @@ export const runUpdate = async function() {
                 const errMsg = e.userMessage || e.message;
                 const msg2 = provider + ": discovery fallita (" + errType + "). " + errMsg;
                 UaLog.log(msg2);
-                modelList = (fileCatalog[provider] || []).filter(m => _isChatModel(m.name));
+                modelList = (fileCatalog[provider] || []).filter(m => isChatModel(m.name));
             }
         } else if (fileCatalog[provider]) {
-            modelList = fileCatalog[provider].filter(m => _isChatModel(m.name));
+            modelList = fileCatalog[provider].filter(m => isChatModel(m.name));
         }
 
         for (const m of modelList) {
@@ -137,7 +101,7 @@ export const runUpdate = async function() {
     const results = [];
 
     for (const provider of Object.keys(catalog)) {
-        if (_cancelRequested) break;
+        if (isCancelRequested()) break;
 
         logger.providerStart(provider);
 
@@ -145,7 +109,7 @@ export const runUpdate = async function() {
         let errCount = 0;
 
         for (const model of catalog[provider]) {
-            if (_cancelRequested) break;
+            if (isCancelRequested()) break;
 
             const outcome = await LlmUpdater.testModel(provider, model);
             testedCount++;
@@ -190,7 +154,7 @@ export const runUpdate = async function() {
 
     results.sort((a, b) => a.provider.localeCompare(b.provider) || a.model.localeCompare(b.model));
 
-    if (_cancelRequested) {
+    if (isCancelRequested()) {
         const msg3 = "interrotto — " + testedCount + " modelli testati.";
         UaLog.log(msg3);
     } else {

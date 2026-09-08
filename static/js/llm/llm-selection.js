@@ -79,7 +79,7 @@ export const createLlmSelectionWindow = function(db, options) {
         if (winEl) {
             _sizeWindow(winEl);
             _bindCheckboxEvents(winEl);
-            _bindActionButtons(winEl, discoveredMap);
+            _bindActionButtons(winEl, discoveredMap, selectedIds);
         }
     };
 
@@ -156,14 +156,16 @@ export const createLlmSelectionWindow = function(db, options) {
      * @param {Object} jfh - Istanza UaJtfh della finestra.
      */
     const _appendHeader = function(jfh) {
-        const ttSave = "Salva: sostituisce completamente la selezione corrente con i modelli selezionati";
-        const ttAdd = "Aggiungi: unisce i modelli selezionati a quelli gi\u00E0 presenti nell'albero (non rimuove quelli esistenti)";
-        const ttCancel = "Annulla: deseleziona tutti i modelli per iniziare una nuova selezione";
+        const ttSave = "Salva — Sostituisce completamente i modelli salvati (selected-models) con quelli spuntati, ricostruisce l'albero LLM e chiude la finestra. Richiede conferma.";
+        const ttAdd = "Aggiungi — Unisce i modelli spuntati a quelli già salvati, senza rimuovere gli esistenti, aggiorna l'albero. Richiede conferma.";
+        const ttCancel = "Annulla — Deseleziona tutti i modelli nella finestra, senza modificare i salvati e senza chiudere. Inverso di Seleziona Attivi.";
+        const ttRestore = "Seleziona Attivi — Ripristina la spunta solo sui modelli già attivi nell'albero (quelli salvati in selected-models), deseleziona gli altri. Inverso di Annulla. Non salva ancora: premi Salva o Aggiungi per confermare.";
         jfh.append('<div class="btn-wrapper llm-btn-wrapper">');
         jfh.append('<span class="llm-header-btns">');
         jfh.append("<button class=\"btn-success tt-top\" data-tt=\"" + ttSave + "\" data-action=\"llm-save\">Salva</button>");
         jfh.append("<button class=\"btn-yellow tt-top\" data-tt=\"" + ttAdd + "\" data-action=\"llm-add\">Aggiungi</button>");
         jfh.append("<button class=\"btn-danger tt-top\" data-tt=\"" + ttCancel + "\" data-action=\"llm-reset\">Annulla</button>");
+        jfh.append("<button class=\"btn-info tt-top\" data-tt=\"" + ttRestore + "\" data-action=\"llm-restore\">Seleziona Attivi</button>");
         jfh.append('</span>');
         jfh.append('<button class="btn-close tt-left" data-tt="Chiudi" data-action="llm-close">X</button>');
         jfh.append('</div>');
@@ -497,6 +499,25 @@ export const createLlmSelectionWindow = function(db, options) {
     };
 
     /**
+     * Ripristina la selezione agli LLM già attivi (selected-models).
+     * Inverso di Annulla: seleziona solo quelli in selectedIds.
+     * @param {HTMLElement} winEl - Elemento della finestra.
+     * @param {Set<string>} selectedIds - Id "provider:model" già attivi.
+     */
+    const _restoreActiveSelection = function(winEl, selectedIds) {
+        winEl.querySelectorAll(".llm-model-check").forEach(function(cb) {
+            const id = cb.dataset.provider + ":" + cb.dataset.model;
+            const shouldChecked = selectedIds.has(id);
+            cb.checked = shouldChecked;
+            const row = cb.closest(".llm-row");
+            if (row) row.classList.toggle("selected", shouldChecked);
+        });
+        winEl.querySelectorAll(".llm-provider-check").forEach(function(cb) {
+            _syncProviderCheckbox(winEl, cb.dataset.provider);
+        });
+    };
+
+    /**
      * Chiude la finestra di selezione.
      */
     const _closeWindow = function() {
@@ -507,11 +528,13 @@ export const createLlmSelectionWindow = function(db, options) {
      * Registra i listener sui pulsanti di azione (senza globali window).
      * @param {HTMLElement} winEl - Elemento della finestra.
      * @param {Object<string, Object>} discoveredMap - Modelli scoperti per id.
+     * @param {Set<string>} selectedIds - Id dei modelli già attivi.
      */
-    const _bindActionButtons = function(winEl, discoveredMap) {
+    const _bindActionButtons = function(winEl, discoveredMap, selectedIds) {
         const btnSave = winEl.querySelector('[data-action="llm-save"]');
         const btnAdd = winEl.querySelector('[data-action="llm-add"]');
         const btnReset = winEl.querySelector('[data-action="llm-reset"]');
+        const btnRestore = winEl.querySelector('[data-action="llm-restore"]');
         const btnClose = winEl.querySelector('[data-action="llm-close"]');
 
         if (btnSave) {
@@ -524,6 +547,10 @@ export const createLlmSelectionWindow = function(db, options) {
 
         if (btnReset) {
             btnReset.addEventListener("click", () => _resetSelection(winEl));
+        }
+
+        if (btnRestore) {
+            btnRestore.addEventListener("click", () => _restoreActiveSelection(winEl, selectedIds));
         }
 
         if (btnClose) {

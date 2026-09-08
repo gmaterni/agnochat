@@ -1,27 +1,25 @@
 /**
- * llm_updater.js - Scoperta modelli disponibili e test LLM.
+ * llm_updater.js - Test modelli LLM e voto qualità.
  *
  * Modulo puro: nessuna UI, nessun riferimento al DOM.
  * Si occupa di:
- *   1. Fornire fetchAvailableModels per scoprire modelli senza testarli
- *   2. Test di un singolo modello (testModel) e voto qualità (computeVote)
+ *   1. Test di un singolo modello (testModel) e voto qualità (computeVote)
+ *   2. Flag di cancellazione condiviso (cancelUpdate / isCancelRequested / resetCancel)
  *
  * UI (voce di menu, finestra risultati) in app_ui.js.
  * Il comando "Aggiorna LLM" completo è in commands/update-llm.js.
+ * La discovery dei modelli è centralizzata in llm/llm-catalog.js e
+ * commands/update-llm.js — questo modulo non esporta più la discovery senza test.
  *
  * @module llm_updater
- * @version 1.0.0
- * @date    2026-08-20
+ * @version 1.1.0
+ * @date    2026-09-08
  */
 
 "use strict";
 
 import { LlmProvider } from "./llm_provider.js";
-import { getApiKey, IMPLEMENTED_CLIENTS } from "./services/key_retriever.js";
-import { UaLog } from "./services/ualog3.js";
 import { createLlmPayload, createMessage } from "./llmclient/index.js";
-import { discoverModels, hasFetcher } from "./llmlist/index.js";
-import { loadProviderModels } from "agnochat/llm/llm-catalog.js";
 import { TEST_SYSTEM_PROMPT, TEST_USER_PROMPT } from "agnochat/llm/test-prompts.js";
 
 // ============================================================================
@@ -41,19 +39,10 @@ const VOTE_SLOW_MS = 10000;
 const CANCEL_POLL_MS = 50;
 
 /**
- * Marchi di modelli non-chat (completamento codice, embedding, ecc.) da
- * escludere dal test: non rispondono a un prompt di chat.
- * @type {string[]}
- */
-const NON_CHAT_KEYWORDS = [
-    "fim", "embedding", "reranker", "image", "video", "audio",
-    "speech", "tts", "starcoder", "codestral"
-];
-
-/**
  * Flag di cancellazione della procedura di aggiornamento. Quando true,
  * runUpdate interrompe il test tra un modello e l'altro (o annulla quello
  * corrente) e termina restituendo i risultati parziali.
+ * Unico owner del flag — commands/update-llm.js lo riusa via import.
  * @type {boolean}
  */
 let _cancelRequested = false;
@@ -68,52 +57,26 @@ export const cancelUpdate = function() {
 /**
  * Azzera il flag di cancellazione (chiamato prima di avviare la procedura).
  */
-const _resetCancel = function() {
+export const resetCancel = function() {
     _cancelRequested = false;
 };
 
+/** @deprecated alias interno — mantenere per compatibilità se importato come _resetCancel */
+export const _resetCancel = resetCancel;
+
 /**
- * Verifica se un modello è adatto al test di chat.
- * @param {string} model
+ * Verifica se è stata richiesta la cancellazione.
  * @returns {boolean}
  */
-const isChatModel = function(model) {
-    const lower = model.toLowerCase();
-    for (const kw of NON_CHAT_KEYWORDS) {
-        if (lower.includes(kw)) {
-            const result = false;
-            return result;
-        }
-    }
-    const result = true;
-    return result;
+export const isCancelRequested = function() {
+    return _cancelRequested;
 };
 
 // ============================================================================
 // FUNZIONI PRIVATE
 // ============================================================================
 
-/**
- * Carica il catalogo grezzo di provider/modelli direttamente dai file
- * (.txt), senza applicare il filtro del repository:
- * la procedura deve poter scoprire anche i modelli non ancora accettati.
- * I provider sono quelli con client implementato in llmclient: chi non ha
- * file ha 0 modelli, nessun errore.
- * @returns {Promise<Object<string, Array<string>>>}
- */
-const _loadRawCatalog = async function() {
-    const catalog = {};
 
-    for (const p of IMPLEMENTED_CLIENTS) {
-        const models = await loadProviderModels(p);
-        if (models.length === 0) {
-            continue;
-        }
-        catalog[p] = models.map(m => m.name);
-    }
-
-    return catalog;
-};
 
 /**
  * Avvolge una promise con un timeout: risolve null se non risolta entro la soglia.
@@ -294,56 +257,13 @@ export const testModel = async function(provider, model) {
 };
 
 // ============================================================================
-// API PUBBLICA — Scoperta dei modelli disponibili
-// ============================================================================
-
-/**
- * Scarica i modelli disponibili per ogni provider con client implementato e
- * chiave API attiva, senza eseguire i test. Per i provider con fetcher usa la
- * discovery via API; per gli altri usa il catalogo da file. Filtra i modelli
- * non adatti alla chat. NON applica il filtro del repository: restituisce
- * tutti gli LLM scaricati.
- * @returns {Promise<Object<string, Array<{id: string, contextWindow: number}>>>}
- */
-export const fetchAvailableModels = async function() {
-    const fileCatalog = await _loadRawCatalog();
-    const available = {};
-
-    for (const provider of IMPLEMENTED_CLIENTS) {
-        const apiKey = await getApiKey(provider);
-        if (!apiKey) {
-            continue;
-        }
-
-        if (hasFetcher(provider)) {
-            try {
-                const discovered = await discoverModels(provider, apiKey);
-                available[provider] = discovered.filter(m => isChatModel(m.id));
-            } catch (e) {
-                console.warn("fetchAvailableModels: discovery fallita per " + provider + " [" + (e.type || "Error") + "]", e.userMessage || e.message);
-                available[provider] = (fileCatalog[provider] || []).map(function(id) {
-                    const entry = { id: id, contextWindow: 0 };
-                    return entry;
-                }).filter(m => isChatModel(m.id));
-            }
-        } else if (fileCatalog[provider]) {
-            available[provider] = fileCatalog[provider].map(function(id) {
-                const entry = { id: id, contextWindow: 0 };
-                return entry;
-            }).filter(m => isChatModel(m.id));
-        }
-    }
-
-    return available;
-};
-
-// ============================================================================
-// API PUBBLICA — LlmUpdater
+// API PUBBLICA — LlmUpdater (retrocompatibilità)
 // ============================================================================
 
 export const LlmUpdater = {
     computeVote,
     testModel,
     cancelUpdate,
-    fetchAvailableModels
+    resetCancel,
+    isCancelRequested
 };

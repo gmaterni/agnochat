@@ -473,6 +473,17 @@
                 </p>
                 <div class="tip">Puoi cambiare modello in qualsiasi momento (hot-swap) senza ricaricare la pagina.</div>
             </div>
+
+            <div class="card">
+                <h3>Finestra Seleziona LLM</h3>
+                <p>La finestra mostra solo i modelli con voto ≥6 e 4 pulsanti:</p>
+                <ul>
+                    <li><strong>Salva</strong> — sostituisce completamente la selezione con i modelli spuntati</li>
+                    <li><strong>Aggiungi</strong> — unisce i modelli spuntati a quelli già presenti</li>
+                    <li><strong>Annulla</strong> — deseleziona tutti i modelli</li>
+                    <li><strong>Seleziona Attivi</strong> — seleziona solo gli LLM già attivi nell'albero (quelli salvati in <code>selected-models</code>), deseleziona gli altri — inverso di Annulla</li>
+                </ul>
+            </div>
         </section>
 
         <section class="section" id="test-llm">
@@ -760,7 +771,7 @@
                     <li>Configurazione provider</li>
                 </ul>
                 <div class="warning">
-                    Questa operazione richiede due conferme e non può essere annullata. Tutti i dati verranno persi.
+                    Questa operazione non può essere annullata. Tutti i dati verranno persi.
                 </div>
             </div>
         </section>

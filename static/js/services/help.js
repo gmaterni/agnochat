@@ -64,10 +64,20 @@ export const help0_html = `
     </div>
 
     <div>
+        <strong class="help-section-title">Finestra Seleziona LLM</strong>
+        <div class="help-grid">
+            <strong>Salva</strong> <span>Sostituisce completamente la selezione corrente con i modelli spuntati.</span>
+            <strong>Aggiungi</strong> <span>Unisce i modelli spuntati a quelli già presenti (non rimuove).</span>
+            <strong>Annulla</strong> <span>Deseleziona tutti i modelli.</span>
+            <strong>Seleziona Attivi</strong> <span>Seleziona solo gli LLM già attivi nell'albero (quelli salvati in selected-models), deseleziona gli altri — inverso di Annulla.</span>
+        </div>
+    </div>
+
+    <div>
         <strong class="help-section-title">Menu Laterale &mdash; Sistema</strong>
         <div class="help-grid-last">
             <strong>Aiuto</strong> <span>Apre questa finestra con l'elenco completo dei comandi.</span>
-            <strong>Reset</strong> <span>Cancella TUTTI i dati: conversazioni, messaggi, prompt, chiavi API e configurazione. Due conferme richieste.</span>
+            <strong>Reset</strong> <span>Cancella TUTTI i dati: conversazioni, messaggi, prompt, chiavi API e configurazione.</span>
         </div>
     </div>
 </div>

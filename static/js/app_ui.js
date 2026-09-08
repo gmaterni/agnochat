@@ -1466,5 +1466,5 @@ const _bindHelpPopups = function() {
     HelpPopup.bind("menu-default-api-keys", "<strong>Reset Api Keys</strong><br>Ripristina le chiavi API predefinite, sovrascrivendo quelle attuali.");
 
     // Menu — Sistema
-    HelpPopup.bind("menu-reset", "<strong>Reset</strong><br>Cancella TUTTI i dati: conversazioni, prompt, chiavi API e configurazione. Due conferme richieste.");
+    HelpPopup.bind("menu-reset", "<strong>Reset</strong><br>Cancella TUTTI i dati: conversazioni, prompt, chiavi API e configurazione.");
 };

@@ -24,6 +24,12 @@ import "./services/uadialog.js";
 // COSTANTI DI MODULO
 // ============================================================================
 
+// AAA Disabilitazione log non necessari
+// console.debug = () => { };
+// console.info = () => { };
+// console.warn = () => { };
+// console.log = () => { };
+
 /** @type {string} Versione dell'applicazione. */
 const APP_VERSION = "1.0.0";
 

@@ -18,6 +18,32 @@ const MODELS_DIR = "./data/models/";
 const TOKENS_PER_K = 1024;
 
 /**
+ * Marchi di modelli non-chat da escludere dal test (embedding, TTS, ecc.).
+ * Centralizzato qui come single source — nessun altro modulo deve duplicarlo.
+ * @type {string[]}
+ */
+const NON_CHAT_KEYWORDS = [
+    "fim", "embedding", "reranker", "image", "video", "audio",
+    "speech", "tts", "starcoder", "codestral"
+];
+
+/**
+ * Verifica se un modello è adatto al test di chat.
+ * Case-insensitive: keywords in NON_CHAT_KEYWORDS escludono il modello.
+ * @param {string} modelId
+ * @returns {boolean} true se adatto alla chat, false altrimenti
+ */
+export const isChatModel = function(modelId) {
+    const lower = String(modelId).toLowerCase();
+    for (const kw of NON_CHAT_KEYWORDS) {
+        if (lower.includes(kw)) {
+            return false;
+        }
+    }
+    return true;
+};
+
+/**
  * Carica i modelli di un provider dal file <provider>.txt.
  * Se il file non esiste o non è valido, restituisce lista vuota (nessun errore).
  * @param {string} provider
@@ -51,4 +77,20 @@ export const loadProviderModels = async function(provider) {
     }
 };
 
-export default { loadProviderModels };
+/**
+ * Aggrega loadProviderModels per una lista di provider.
+ * @param {string[]} providers - Lista provider (es. IMPLEMENTED_CLIENTS)
+ * @returns {Promise<Object<string, Array<{name: string, windowSize: number}>>>}
+ */
+export const loadRawCatalogForProviders = async function(providers) {
+    const catalog = {};
+    for (const p of providers) {
+        const models = await loadProviderModels(p);
+        if (models.length > 0) {
+            catalog[p] = models;
+        }
+    }
+    return catalog;
+};
+
+export default { loadProviderModels, isChatModel, loadRawCatalogForProviders };
