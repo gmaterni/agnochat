@@ -154,6 +154,108 @@
             margin-right: 0.5rem;
         }
 
+        /* Help: tabella comandi e badge */
+        .toc {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0 1.5rem 0;
+        }
+        .toc h3 { margin: 0 0 0.5rem 0; }
+        .toc ol { margin: 0; }
+        .toc a { color: var(--link-color); }
+
+        .badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 0.15rem 0.45rem;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            vertical-align: middle;
+            margin-left: 0.4rem;
+        }
+        .badge-new {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-color);
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+        .badge-info {
+            background: rgba(16, 185, 129, 0.12);
+            color: var(--success-color);
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            margin: 1rem 0;
+        }
+        table.help-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            min-width: 560px;
+        }
+        .help-table th,
+        .help-table td {
+            text-align: left;
+            padding: 0.65rem 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+        .help-table th {
+            background: var(--secondary-bg);
+            color: var(--accent-color);
+            font-size: 0.85rem;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .help-table tr:last-child td { border-bottom: none; }
+        .help-table td:first-child { white-space: nowrap; font-weight: 600; }
+
+        .flow {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            margin: 1rem 0;
+            align-items: stretch;
+        }
+        .flow-step {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.6rem;
+            padding: 0.75rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .flow-step strong { display: block; color: var(--accent-color); margin-bottom: 0.25rem; }
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-color);
+            font-weight: 800;
+        }
+        @media (max-width: 768px) {
+            .flow { grid-template-columns: 1fr; }
+            .flow-arrow { transform: rotate(90deg); padding: 0.15rem 0; }
+        }
+
+        .kbd {
+            display: inline-block;
+            padding: 0.1rem 0.35rem;
+            border: 1px solid var(--border-color);
+            border-bottom-width: 2px;
+            border-radius: 0.3rem;
+            background: var(--secondary-bg);
+            font-family: 'Consolas', monospace;
+            font-size: 0.85em;
+        }
+
         .warning {
             background: rgba(245, 158, 11, 0.1);
             border-left: 4px solid var(--warning-color);
@@ -256,22 +358,31 @@
             <h2>Introduzione</h2>
             <p>
                 <strong>agnochat</strong> è un'applicazione di chat con modelli linguistici (LLM) progettata per essere
-                <strong>100% client-side</strong>. Significa che tutto il codice esegue direttamente nel tuo browser,
-                senza bisogno di server o installazioni complesse.
+                <strong>100% client-side</strong>. Tutto esegue nel tuo browser, senza server né installazioni.
             </p>
             <div class="highlight">
-                "Un frontend minimale e leggibile per dialogare con i migliori LLM disponibili, mantenendo chiavi,
+                "Un frontend minimale e leggibile per dialogare con i migliori LLM, mantenendo chiavi,
                 conversazioni e preferenze interamente sul tuo dispositivo."
             </div>
-            <p>
-                Questa guida ti spiegherà come utilizzare tutte le funzionalità dell'applicazione, dalla configurazione
-                iniziale alla gestione avanzata dei prompt e delle conversazioni.
-            </p>
+            <nav class="toc" aria-label="Indice guida">
+                <h3>Indice — cosa trovi in questa guida</h3>
+                <ol>
+                    <li><a href="#prima-config">Prima configurazione (3 passi)</a></li>
+                    <li><a href="#comandi-llm">Comandi LLM — panoramica rapida</a></li>
+                    <li><a href="#test-llm">Test LLM — guida passo-passo</a></li>
+                    <li><a href="#api-key">Gestione API Key</a></li>
+                    <li><a href="#conversazioni">Conversazioni e cronologia</a></li>
+                    <li><a href="#prompt">Prompt di sistema</a></li>
+                    <li><a href="#interfaccia">Interfaccia e pulsanti</a></li>
+                    <li><a href="#documenti">Documenti e allegati</a></li>
+                    <li><a href="#temi">Temi e reset</a></li>
+                </ol>
+            </nav>
         </section>
 
-        <section class="section">
-            <h2>Prima Configurazione</h2>
-            <p>Segui questi passaggi per iniziare a usare agnochat:</p>
+        <section class="section" id="prima-config">
+            <h2>Prima Configurazione — in 3 passi</h2>
+            <p>Segui questi passaggi nell'ordine. Bastano 2 minuti.</p>
 
             <div class="step">
                 <span class="step-number">1</span>
@@ -311,64 +422,129 @@
             </div>
         </section>
 
-        <section class="section">
-            <h2>Gestione dei Provider LLM</h2>
-            
-            <div class="card">
-                <h3>Selezionare un Provider</h3>
-                <p>
-                    Il pulsante <strong>LLM</strong> nella barra superiore apre l'albero di selezione provider/modelli.
-                    Clicca su un provider per espandere la lista dei modelli disponibili, poi clicca su un modello per selezionarlo.
-                </p>
-                <p>
-                    Il modello attivo viene visualizzato accanto al pulsante LLM nella barra superiore.
-                </p>
+        <section class="section" id="comandi-llm">
+            <h2>Comandi LLM — panoramica rapida</h2>
+            <p>Tutti i comandi LLM sono nel <span class="kbd">☰ Menu</span> → sezione <strong>LLM</strong>. Ecco quando usare ciascuno:</p>
+
+            <div class="table-wrap">
+                <table class="help-table" aria-label="Confronto comandi LLM">
+                    <thead>
+                        <tr>
+                            <th>Comando</th>
+                            <th>Quando usarlo</th>
+                            <th>Cosa fa</th>
+                            <th>Dove vedi il risultato</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Test LLM <span class="badge badge-new">Nuovo</span></td>
+                            <td>Vuoi confrontare i <em>modelli già selezionati</em> con lo stesso prompt</td>
+                            <td>Testa in sequenza tutti i modelli di un provider (stesso prompt)</td>
+                            <td>Spinner + <strong>Log</strong> + finestra riepilogo 84vw</td>
+                        </tr>
+                        <tr>
+                            <td>Seleziona LLM</td>
+                            <td>Vuoi scegliere quali modelli compaiono nell'albero</td>
+                            <td>Apre elenco con checkbox per provider/modello</td>
+                            <td>Albero LLM aggiornato</td>
+                        </tr>
+                        <tr>
+                            <td>Aggiorna LLM</td>
+                            <td>Vuoi scoprire nuovi modelli dai provider con chiave attiva</td>
+                            <td>Scarica + testa modelli, calcola voto</td>
+                            <td>Log + elenco per selezione</td>
+                        </tr>
+                        <tr>
+                            <td>Reset LLM</td>
+                            <td>Selezione rotta o vuoi tornare ai default</td>
+                            <td>Svuota selezione e ripristina modelli da <code>data/models/</code></td>
+                            <td>Albero LLM ricostruito</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
 
             <div class="card">
-                <h3>Testare i Modelli Selezionati (Test LLM)</h3>
+                <h3>Selezionare un Provider / Modello</h3>
                 <p>
-                    Dal menu laterale, seleziona <strong>LLM > Test LLM</strong> per confrontare i modelli già selezionati con lo stesso prompt.
-                    È la prima voce della sezione LLM (tooltip "test sui modelli selezionabili dal comando LLM"):
+                    Pulsante <strong>LLM</strong> in alto → albero provider/modelli. Clicca un provider per espandere i modelli, poi un modello per attivarlo.
+                    Il modello attivo resta visibile accanto al pulsante LLM.
                 </p>
-                <ol>
-                    <li>Scrivi un prompt nella casella di input (obbligatorio — se vuoto, l'app chiede di digitarlo)</li>
-                    <li>Scegli <strong>Test LLM</strong>: si apre la finestra con la lista dei provider che hanno modelli selezionati e il conteggio per provider</li>
-                    <li>Clicca un provider: l'app testa in sequenza tutti i suoi modelli selezionati con lo stesso prompt (timeout 60s, 512 token, temp 0.7)</li>
-                    <li>Durante il test: spinner con STOP e log su <strong>Log</strong> con <code>req char | resp char | tempo s</code> per ogni prova; STOP interrompe</li>
-                    <li>A fine test: finestra riepilogativa allargata (84vw) con tabella <strong>Modello / Response / Tempo</strong> o <strong>ERRORE codice</strong> per le prove fallite</li>
-                </ol>
-                <div class="tip">
-                    Il test ripristina il provider/modello attivi precedenti al termine. Consulta anche <code>openspec/specs/llm-test/spec.md</code>.
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>Aggiornare i Modelli</h3>
-                <p>
-                    Dal menu laterale, seleziona <strong>LLM > Aggiorna LLM</strong> per testare e scoprire nuovi modelli.
-                    La procedura:
-                </p>
-                <ol>
-                    <li>Scarica le informazioni sui modelli da ogni provider con chiave attiva</li>
-                    <li>Esegue un test di connessione per ogni modello</li>
-                    <li>Aggiorna l'albero di selezione con i modelli funzionanti</li>
-                </ol>
-                <div class="warning">
-                    La procedura di aggiornamento può richiedere alcuni minuti a seconda del numero di provider configurati.
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>Reset dei Modelli</h3>
-                <p>
-                    Seleziona <strong>LLM > Reset LLM</strong> per ripristinare tutti i modelli di default.
-                    Questo è utile se hai problemi con la selezione attuale o vuoi tornare alla configurazione iniziale.
-                </p>
+                <div class="tip">Puoi cambiare modello in qualsiasi momento (hot-swap) senza ricaricare la pagina.</div>
             </div>
         </section>
 
-        <section class="section">
+        <section class="section" id="test-llm">
+            <h2>Test LLM — guida passo-passo <span class="badge badge-new">Nuovo</span></h2>
+            <p><strong>Obiettivo:</strong> confrontare, con <em>un solo prompt</em>, tutti i modelli che hai già selezionato per un provider. Utile per scegliere il più veloce o più adatto.</p>
+
+            <div class="flow" aria-label="Flusso Test LLM">
+                <div class="flow-step"><strong>1. Prompt</strong>Scrivi il prompt nell'input</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step"><strong>2. Avvia</strong><span class="kbd">☰</span> → <strong>LLM → Test LLM</strong></div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step"><strong>3. Provider</strong>Scegli il provider nella finestra</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step"><strong>4. Attendi</strong>Spinner STOP + Log live</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step"><strong>5. Riepilogo</strong>Tabella Modello / Response / Tempo</div>
+            </div>
+
+            <div class="card">
+                <h3>Passo 1 — Prepara il prompt</h3>
+                <p>Scrivi il prompt nella <strong>casella di input</strong> in basso. È <strong>obbligatorio</strong>: se manca, l'app mostra <em>"digita prima un prompt di richiesta"</em> e non parte.</p>
+                <div class="tip">Suggerimento: usa lo stesso prompt che useresti in chat, così il confronto è realistico.</div>
+            </div>
+
+            <div class="card">
+                <h3>Passo 2 — Apri Test LLM</h3>
+                <p><span class="kbd">☰ Menu</span> → <strong>LLM → Test LLM</strong> (è la <strong>prima voce</strong> della sezione LLM). Tooltip: <em>"test sui modelli selezionabili dal comando LLM"</em>.</p>
+                <p>Si apre la finestra <code>Test LLM</code> con:</p>
+                <ul>
+                    <li>Il tuo prompt (in alto, non modificabile lì)</li>
+                    <li>La lista dei <strong>provider che hanno modelli selezionati</strong>, ciascuno con conteggio (es. "3 modelli")</li>
+                </ul>
+                <div class="warning">Se non hai modelli selezionati, l'app avvisa: "nessun modello selezionato — esegui Reset LLM o Seleziona LLM".</div>
+            </div>
+
+            <div class="card">
+                <h3>Passo 3 — Scegli il provider</h3>
+                <p>Clicca il provider da testare. La finestra si chiude e parte il ciclo.</p>
+                <ul>
+                    <li>Parametri uguali per tutte le prove: <code>timeout 60s</code>, <code>max_tokens 512</code>, <code>temperature 0.7</code></li>
+                    <li>Esecuzione <strong>sequenziale</strong> (un modello alla volta, in ordine di selezione)</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>Passo 4 — Durante il test</h3>
+                <ul>
+                    <li><strong>Spinner con STOP:</strong> copre l'overlay; clicca <strong>STOP</strong> e conferma per interrompere. La richiesta in corso viene annullata.</li>
+                    <li><strong>Log live:</strong> il pannello <strong>Log</strong> si apre da solo e registra per ogni prova:<br><code>>>> provider/modello | req: N char | resp: N char | tempo: s <<<</code><br>oppure in errore: <code>>>> ERRORE provider/modello | codice: X | motivo | req | tempo <<<</code></li>
+                </ul>
+                <div class="tip">Puoi seguire l'avanzamento solo dal Log: la finestra riepilogativa appare solo alla fine.</div>
+            </div>
+
+            <div class="card">
+                <h3>Passo 5 — Finestra riepilogativa</h3>
+                <p>Alla fine (anche se hai fatto STOP) si apre la finestra <strong>Riepilogo [provider]</strong>, larga <strong>84vw</strong> per leggere bene i nomi:</p>
+                <div class="table-wrap">
+                    <table class="help-table">
+                        <thead><tr><th>Colonna</th><th>Cosa mostra</th><th>Esempio</th></tr></thead>
+                        <tbody>
+                            <tr><td>Modello</td><td>Nome modello testato</td><td><code>gemini-2.0-flash</code></td></tr>
+                            <tr><td>Response</td><td>Dimensione risposta o errore</td><td><code>842 char</code> oppure <code>ERRORE codice: 429</code></td></tr>
+                            <tr><td>Tempo / Errore</td><td>Tempo in secondi o motivo errore</td><td><code>1.8 s</code> oppure <code>Rate limit</code></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>Chiudi con <strong>X</strong>. Il provider/modello attivi precedenti vengono <strong>ripristinati</strong> automaticamente.</p>
+                <div class="warning">Errori comuni in tabella: <code>NO_KEY</code> (manca API key), <code>NO_MODEL</code> (modello non in catalogo), <code>429</code> (rate limit), <code>5xx</code> (provider sovraccarico).</div>
+            </div>
+        </section>
+
+        <section class="section" id="api-key">
             <h2>Gestione delle API Key</h2>
             
             <div class="card">
@@ -405,7 +581,7 @@
             </div>
         </section>
 
-        <section class="section">
+        <section class="section" id="conversazioni">
             <h2>Gestione delle Conversazioni</h2>
             
             <div class="card">
@@ -443,7 +619,7 @@
             </div>
         </section>
 
-        <section class="section">
+        <section class="section" id="prompt">
             <h2>Prompt di Sistema</h2>
             
             <div class="card">
@@ -492,7 +668,7 @@
             </div>
         </section>
 
-        <section class="section">
+        <section class="section" id="interfaccia">
             <h2>Interfaccia Utente</h2>
             
             <div class="card">
@@ -530,7 +706,7 @@
             </div>
         </section>
 
-        <section class="section">
+        <section class="section" id="documenti">
             <h2>Documenti e Allegati</h2>
             
             <div class="card">
@@ -561,7 +737,7 @@
             </div>
         </section>
 
-        <section class="section">
+        <section class="section" id="temi">
             <h2>Impostazioni e Temi</h2>
             
             <div class="card">
