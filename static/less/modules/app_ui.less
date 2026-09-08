@@ -359,12 +359,14 @@
     z-index: 99999;
   }
 
-  // Salva è il primo a sinistra: allinea tooltip a sinistra per non uscire dalla finestra
-  .llm-header-btns button:first-child[data-tt]::before {
+  // Salva e Aggiungi a sinistra: allinea tooltip a sinistra per non uscire dalla finestra
+  .llm-header-btns button:nth-child(1)[data-tt]::before,
+  .llm-header-btns button:nth-child(2)[data-tt]::before {
     left: 0;
     transform: none;
   }
-  .llm-header-btns button:first-child[data-tt]::after {
+  .llm-header-btns button:nth-child(1)[data-tt]::after,
+  .llm-header-btns button:nth-child(2)[data-tt]::after {
     left: 12px;
     transform: none;
   }
