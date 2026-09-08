@@ -73,4 +73,3 @@ export const createLlmLogger = function(logWindow) {
     return api;
 };
 
-export default { createLlmLogger };

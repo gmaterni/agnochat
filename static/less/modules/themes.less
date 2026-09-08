@@ -110,6 +110,7 @@
     .head-wrapper {
       .log,
       .help,
+      .readme,
       .provider-settings {
         color: @text;
         background: @btn-bg;
@@ -440,7 +441,6 @@
 .theme-dark {
   // --- Mappatura Variabili Generiche ---
 
-  @pulse-animation: pulse-dark;
   @log-bg: darken(@dark-color1, 20%);
   @log-fg: @dark-text;
   @log-hover-bg: darken(@dark-color1, 10%);
@@ -472,12 +472,6 @@
   @menu-box-border: @dark-menu-border;
   @menu-box-fg: @dark-menu-fg;
   @border-box-shadow: @dark-border-shadow;
-  @btn-send0-bg: @dark-btn-send0-bg;
-  @btn-send0-hover-bg: @dark-btn-send0-hover-bg;
-  @btn-send1-bg: @dark-btn-send1-bg;
-  @btn-send1-hover-bg: @dark-btn-send1-hover-bg;
-  @btn-edit-fixed-bg: @dark-btn-edit-fixed-bg;
-  @btn-edit-fixed-hover-bg: @dark-btn-edit-fixed-hover-bg;
   @btn-send2-bg: @dark-btn-send2-bg;
   @btn-send2-hover-bg: @dark-btn-send2-hover-bg;
   @label-btn-bg: @dark-label-btn-bg;
@@ -541,7 +535,6 @@
 // -------------------
 .theme-light {
   // --- Mappatura Variabili Generiche ---
-  @pulse-animation: pulse-light;
   @log-bg: @light-color1;
   @log-fg: @light-bg;
   @log-hover-bg: lighten(@light-color1, 10%);
@@ -579,13 +572,6 @@
   @menu-box-border: @light-menu-box-border;
   @menu-box-fg: @light-menu-box-fg;
   @border-box-shadow: @light-border-box-shadow;
-  // Modifica per usare gli stessi colori del tema scuro per i pulsanti di invio
-  @btn-send0-bg: @dark-btn-send0-bg;
-  @btn-send0-hover-bg: @dark-btn-send0-hover-bg;
-  @btn-send1-bg: @dark-btn-send1-bg;
-  @btn-send1-hover-bg: @dark-btn-send1-hover-bg;
-  @btn-edit-fixed-bg: @dark-btn-edit-fixed-bg;
-  @btn-edit-fixed-hover-bg: @dark-btn-edit-fixed-hover-bg;
   @btn-send2-bg: @dark-btn-send2-bg;
   @btn-send2-hover-bg: @dark-btn-send2-hover-bg;
   @label-btn-bg: @light-label-btn-bg;

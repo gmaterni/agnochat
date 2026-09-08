@@ -66,4 +66,3 @@ export const runReset = async function() {
     UaLog.log(msg);
 };
 
-export default { runReset };

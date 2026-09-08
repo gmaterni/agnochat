@@ -33,4 +33,4 @@ Spiega cos'è il teorema di Pitagora con un esempio numerico.
 {QUESTION}
 </source>`;
 
-export default { TEST_SYSTEM_PROMPT, TEST_USER_PROMPT };
+

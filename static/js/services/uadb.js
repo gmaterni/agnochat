@@ -41,43 +41,6 @@ export const UaDb = {
     }
   },
 
-  async getAllIds() {
-    let result = [];
-
-    try {
-      result = await _db.settings.toCollection().primaryKeys();
-    } catch (error) {
-      _logErr("getAllIds", error);
-      result = [];
-    }
-
-    return result;
-  },
-
-  async saveArray(id, arr) {
-    const str = JSON.stringify(arr);
-    await this.save(id, str);
-  },
-
-  async readArray(id) {
-    const str = await this.read(id);
-
-    if (!str || str.trim().length === 0) {
-      return [];
-    }
-
-    let result = [];
-
-    try {
-      result = JSON.parse(str);
-    } catch (e) {
-      _logErr("readArray", e);
-      result = [];
-    }
-
-    return result;
-  },
-
   async saveJson(id, js) {
     const str = JSON.stringify(js);
     await this.save(id, str);
@@ -100,13 +63,5 @@ export const UaDb = {
     }
 
     return result;
-  },
-
-  async clear() {
-    try {
-      await _db.settings.clear();
-    } catch (e) {
-      _logErr("clear", e);
-    }
   }
 };

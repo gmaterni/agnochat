@@ -466,4 +466,4 @@ export const runTestLlm = async function() {
     _showProviderWindow(grouped, prompt);
 };
 
-export default { runTestLlm, runProviderTest };
+

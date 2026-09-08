@@ -1,9 +1,7 @@
 {
-    "last_updated": "2026-08-21T19:54:14.877756",
+    "last_updated": "2026-09-08T00:00:00.000000",
     "providers": {
         "gemini": {
-            "api_key_env": "GEMINI_API_KEY",
-            "exported_key": "ragquery",
             "keys": [
                 {
                     "name": "ragquery",
@@ -12,47 +10,7 @@
                 }
             ]
         },
-        "ollama": {
-            "api_key_env": "OLLAMA_API_KEY",
-            "exported_key": "gm260730",
-            "keys": [
-                {
-                    "name": "gm260730",
-                    "key": "kB2aklCskCI2BlglkNuAtNAk2S2gSStN.TI-txsFk9J-J-fC9HNGsPczB",
-                    "notes": "giuseppe.materni"
-                }
-            ]
-        },
-        "cerebras": {
-            "api_key_env": "CEREBRAS_API_KEY",
-            "exported_key": "ua260310",
-            "keys": [
-                {
-                    "name": "ua260310",
-                    "key": "N67-sa5s0VOr7zNMshiqGVSG7MSkaMkM2MrGzOP5MVN0q2iGqsMk",
-                    "notes": "giuseppe.materni"
-                }
-            ]
-        },
-        "opencode": {
-            "api_key_env": "OPENCODE_API_KEY",
-            "exported_key": "go260702",
-            "keys": [
-                {
-                    "name": "go260702",
-                    "key": "67-rWDZ65S6dl85jxUXXcshALtkBVgzOVjKnwD5vx3ElXQ93za5YOIzUz1dM3rNUlos",
-                    "notes": "giuseppe.materni"
-                }
-            ]
-        },
-        "nvidia": {
-            "api_key_env": "NVIDIA_API_KEY",
-            "exported_key": null,
-            "keys": []
-        },
         "openrouter": {
-            "api_key_env": "OPENROUTER_API_KEY",
-            "exported_key": "260530",
             "keys": [
                 {
                     "name": "260530",
@@ -62,8 +20,6 @@
             ]
         },
         "mistral": {
-            "api_key_env": "MISTRAL_API_KEY",
-            "exported_key": "260414",
             "keys": [
                 {
                     "name": "260414",
@@ -73,8 +29,6 @@
             ]
         },
         "huggingface": {
-            "api_key_env": "HF_TOKEN",
-            "exported_key": "hf12",
             "keys": [
                 {
                     "name": "hf12",
@@ -84,56 +38,10 @@
             ]
         },
         "groq": {
-            "api_key_env": "GROQ_API_KEY",
-            "exported_key": "gmt2",
             "keys": [
                 {
                     "name": "gmt2",
                     "key": "o67_deaFoPWuNsV9xSs82bmNHQsPg0vU9HpaKqgqYBbpDwdWvJMKIMR0",
-                    "notes": "giuseppe.materni"
-                }
-            ]
-        },
-        "deepseek": {
-            "api_key_env": "DEEPSEEK_API_KEY",
-            "exported_key": "ua260310",
-            "keys": [
-                {
-                    "name": "ua260310",
-                    "key": "67-aCkgBNB2NlAuBNtAku00duNBsklgAg2l",
-                    "notes": "giuseppe.materni"
-                }
-            ]
-        },
-        "qwen": {
-            "api_key_env": "QWEN_API_KEY",
-            "exported_key": "260418",
-            "keys": [
-                {
-                    "name": "260418",
-                    "key": "67-WV-qu-gkglIsSlsICulagBklSduANBdgdAIlsI2tICatgASlIBCdsIASuN0dtB22aIN20a",
-                    "notes": "giuseppe.materni"
-                }
-            ]
-        },
-        "zhipuai": {
-            "api_key_env": "ZHIPUAI_API_KEY",
-            "exported_key": "260620",
-            "keys": [
-                {
-                    "name": "260620",
-                    "key": "a2Sud0CtCAASBsBdA0AaagAdBl0Bukk2.TRpGtlNko2FW4hXg",
-                    "notes": "giuseppe.materni"
-                }
-            ]
-        },
-        "siliconflow": {
-            "api_key_env": "SILICONFLOW_API_KEY",
-            "exported_key": "260620",
-            "keys": [
-                {
-                    "name": "260620",
-                    "key": "67-rWgVNisiDDN7zV2ie2gEMrWG6MrjWN6hqj6sA5A5GififfhI",
                     "notes": "giuseppe.materni"
                 }
             ]

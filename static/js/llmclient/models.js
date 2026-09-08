@@ -12,66 +12,6 @@
 
 "use strict";
 
-const validateMessage = function(msg) {
-  const result = { valid: false, error: null };
-
-  if (!msg || typeof msg !== 'object') {
-    result.error = 'Message must be an object';
-    return result;
-  }
-  if (!msg.role || typeof msg.role !== 'string') {
-    result.error = 'Message role is required and must be a string';
-    return result;
-  }
-  if (msg.content !== undefined && msg.content !== null && typeof msg.content !== 'string' && !Array.isArray(msg.content)) {
-    result.error = 'Message content must be a string or array';
-    return result;
-  }
-  if (msg.tool_calls !== undefined && !Array.isArray(msg.tool_calls)) {
-    result.error = 'Message tool_calls must be an array';
-    return result;
-  }
-
-  result.valid = true;
-  return result;
-};
-
-const validatePayload = function(payload) {
-  const result = { valid: false, error: null };
-
-  if (!payload || typeof payload !== 'object') {
-    result.error = 'Payload must be an object';
-    return result;
-  }
-  if (!payload.model || typeof payload.model !== 'string') {
-    result.error = 'model is required and must be a string';
-    return result;
-  }
-  if (!Array.isArray(payload.messages) || payload.messages.length === 0) {
-    result.error = 'messages must be a non-empty array';
-    return result;
-  }
-
-  for (const msg of payload.messages) {
-    const check = validateMessage(msg);
-    if (!check.valid) {
-      return check;
-    }
-  }
-
-  if (payload.temperature !== undefined && (typeof payload.temperature !== 'number' || payload.temperature < 0 || payload.temperature > 2)) {
-    result.error = 'temperature must be a number between 0 and 2';
-    return result;
-  }
-  if (payload.max_tokens !== undefined && (typeof payload.max_tokens !== 'number' || payload.max_tokens < 1)) {
-    result.error = 'max_tokens must be a positive number';
-    return result;
-  }
-
-  result.valid = true;
-  return result;
-};
-
 const createMessage = function(role, content = null, options = {}) {
   const message = { role };
 
@@ -142,4 +82,4 @@ const toTextContent = function(content) {
   return text;
 };
 
-export { validateMessage, validatePayload, createMessage, createLlmPayload, toTextContent };
+export { createMessage, createLlmPayload, toTextContent };

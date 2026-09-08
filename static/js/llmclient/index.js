@@ -18,5 +18,4 @@ export { MistralClient } from './mistral_client.js';
 export { OpenRouterClient } from './openrouter_client.js';
 export { HuggingFaceClient } from './huggingface_client.js';
 export { PROVIDER_REGISTRY, isSupported, getProviderNames, createClient } from './registry.js';
-export { validateMessage, validatePayload, createMessage, createLlmPayload, toTextContent } from './models.js';
-export { PROVIDER_CONFIG } from 'agnochat/llm_provider.js';
+export { createMessage, createLlmPayload, toTextContent } from './models.js';

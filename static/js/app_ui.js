@@ -1242,16 +1242,15 @@ const _actionLlmUpdateAsync = async function() {
     try {
         const results = await runLlmUpdate();
 
-        const passed = results.filter(r => r.ok);
-
         if (results.length === 0) {
             _waitSpinner.hide();
-            await alert("Aggiorna LLM: nessun provider con chiave API attiva. Aggiungere una chiave in Gestisci API Key e riprovare.");
+            const emptyMsg = "Aggiorna LLM: nessun provider con chiave API attiva. Aggiungere una chiave in Gestisci API Key e riprovare.";
+            console.warn("_actionLlmUpdateAsync: " + emptyMsg);
+            try { UaLog.log(emptyMsg); } catch(e){}
             return;
         }
 
         _waitSpinner.hide();
-        await alert(`Aggiorna LLM completato.\n\nScaricati e testati: ${results.length}\nSuperati il test: ${passed.length}`);
 
         // Ripristina il catalogo in memoria alla sola selezione salvata:
         // l'aggiornamento non deve alterare l'albero di attivazione.
@@ -1265,19 +1264,40 @@ const _actionLlmUpdateAsync = async function() {
         LlmProvider.validateActive();
         updateActiveModelDisplay();
 
-        await _showSelectLlm({ startUnselected: true });
+        // Riepilogo solo in UaLog/console (nessuna dialog): il dettaglio
+        // completato/interrotto resta loggato da runUpdate.
+        const discoveredList = db ? await db.getDiscovered() : [];
+        const selectedCount = selected ? selected.length : 0;
+        const discoveredCount = discoveredList ? discoveredList.length : 0;
+        const doneMsg = "Aggiorna LLM: completato - selected=" + selectedCount + " discovered=" + discoveredCount;
+        console.log(doneMsg);
+        try { UaLog.log(doneMsg); } catch(e){}
+
+        // Apertura automatica unica finestra elenco con spunta su eletti
+        // (default startUnselected=false, senza dialog intermedia).
+        await _showSelectLlm();
     } catch (error) {
         console.error("_actionLlmUpdateAsync:", error);
         _waitSpinner.hide();
-        const errorText = error.message || error;
-        await alert(`ERRORE durante l'aggiornamento LLM:\n${errorText}`);
+        const errorDetail = error.message || error;
+        const criticalMsg = "Aggiorna LLM: errore critico - " + errorDetail;
+        try { UaLog.log(criticalMsg); } catch(e){}
+        await alert("ERRORE durante l'aggiornamento LLM:\n" + errorDetail);
+        // Best effort: se discovered già salvati, apri comunque l'elenco.
+        try {
+            const dbOnError = getLlmDb();
+            const discoveredOnError = dbOnError ? await dbOnError.getDiscovered() : [];
+            if (discoveredOnError && discoveredOnError.length > 0) {
+                await _showSelectLlm();
+            }
+        } catch(e){}
     }
 };
 
 /**
  * Mostra la finestra "Seleziona LLM" usando il modulo dedicato.
  * @param {Object} [options] - Opzioni di apertura passate alla finestra
- *   (es. { startUnselected: true } dopo "Aggiorna LLM").
+ *   (es. { startUnselected: false } => mostra già selezionati, come dopo "Aggiorna LLM").
  */
 const _showSelectLlm = async function(options) {
     const db = getLlmDb();
@@ -1373,6 +1393,11 @@ const _bindActionButtons = function() {
         "menu-add-api-key": addApiKey,
         "menu-default-api-keys": restoreDefaultApiKeys,
         "menu-reset": Commands.resetAll,
+        "menu-logout": function() {
+            try { localStorage.removeItem("user_web_id"); } catch (e) { }
+            window.location.replace("login.html");
+        },
+        "btn-edit-last": function() { wnds.editLastQuestion(); },
         "btn-action-send": TextInput.sendMessageAsync,
         "btn-copy-output": TextOutput.copyAsync,
         "btn-copy-output-toolbar": TextOutput.copyAsync,

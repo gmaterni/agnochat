@@ -10,11 +10,18 @@ import Dexie from "./vendor/dexie.js";
 const dbInstance = new Dexie("agnochat");
 
 dbInstance.version(1).stores({
-    kvStore: "id",
     settings: "id",
     conversations: "++id, updatedAt",
     messages: "++id, conversationId",
     prompts: "++id"
+});
+dbInstance.version(2).stores({
+    settings: "id",
+    conversations: "++id, updatedAt",
+    messages: "++id, conversationId",
+    prompts: "++id"
+}).upgrade(function() {
+    // v1 kvStore rimosso: nessun dato da migrare (store mai usato)
 });
 
 /**

@@ -93,4 +93,4 @@ export const loadRawCatalogForProviders = async function(providers) {
     return catalog;
 };
 
-export default { loadProviderModels, isChatModel, loadRawCatalogForProviders };
+

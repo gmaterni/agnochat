@@ -136,19 +136,6 @@ export const getProviderConfig = function() {
     return _providerModels;
 };
 
-/**
- * Proxy per compatibilità con key_retriever.js.
- * Permette accesso dinamico del tipo _PROVIDER_CONFIG[providerName].
- */
-export const PROVIDER_CONFIG = new Proxy({}, {
-    get: (target, prop) => {
-        return _providerModels[prop];
-    },
-    has: (target, prop) => {
-        return prop in _providerModels;
-    }
-});
-
 // ============================================================================
 // API PUBBLICA — LlmProvider
 // ============================================================================

@@ -61,9 +61,6 @@ export const resetCancel = function() {
     _cancelRequested = false;
 };
 
-/** @deprecated alias interno — mantenere per compatibilità se importato come _resetCancel */
-export const _resetCancel = resetCancel;
-
 /**
  * Verifica se è stata richiesta la cancellazione.
  * @returns {boolean}

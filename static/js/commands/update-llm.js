@@ -20,9 +20,6 @@ import { LlmUpdater, cancelUpdate, resetCancel, isCancelRequested } from "agnoch
 /** Numero di token contenuti in un kilotoken (conversione delle finestre di contesto). */
 const TOKENS_PER_K = 1024;
 
-// Re-export del cancel condiviso (single source in llm_updater.js)
-export { cancelUpdate };
-
 const _createUaLogAdapter = function() {
     const adapter = {
         appendLine: function(text) {
@@ -169,4 +166,4 @@ export const runUpdate = async function() {
     return results;
 };
 
-export default { runUpdate, cancelUpdate };
+

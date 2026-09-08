@@ -20,19 +20,9 @@ const UaJtfh = function() {
     return api;
   };
 
-  const insert = function(s) {
-    _rows.unshift(s);
-    return api;
-  };
-
   const append = function(s) {
     _rows.push(s);
     return api;
-  };
-
-  const text = function(ln = "") {
-    const r = _rows.join(ln);
-    return r;
   };
 
   const html = function(ln = "") {
@@ -41,11 +31,8 @@ const UaJtfh = function() {
   };
 
   const api = {
-    rows: _rows,
     init: init,
-    insert: insert,
     append: append,
-    text: text,
     html: html,
   };
 

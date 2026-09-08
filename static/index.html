@@ -110,7 +110,7 @@
           <li class="separator"></li>
           <li><a href="#" id="menu-reset" class="delete menu-reset">Reset</a></li>
           <li class="separator"></li>
-          <li><a href="#" id="menu-logout" class="delete menu-logout" onclick="doLogout()">Logout</a></li>
+          <li><a href="#" id="menu-logout" class="delete menu-logout">Logout</a></li>
         </ul>
       </div>
 
@@ -146,7 +146,7 @@
               <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
             </svg>
           </button>
-          <button id="btn-edit-last" class="btn-edit-last tt-top" data-tt="Modifica domanda" style="display: none;" onclick="wnds.editLastQuestion()">
+          <button id="btn-edit-last" class="btn-edit-last tt-top" data-tt="Modifica domanda" style="display: none;">
             <svg viewBox="0 0 24 24">
               <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
             </svg>
@@ -158,7 +158,7 @@
               <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
             </svg>
           </button>
-          <button class="clear-input tt-leftx" data-tt="Cancella Input" id="btn-clear-input">
+          <button class="clear-input tt-leftx" data-tt="Cancella Input">
             <svg class="icon" viewBox="0 0 24 24">
               <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
             </svg>
@@ -173,14 +173,6 @@
     </div>
 
     <script src="js/services/vendor/marked.min.js"></script>
-    <script>
-      function doLogout() {
-        try {
-          localStorage.removeItem("user_web_id");
-        } catch (e) { }
-        window.location.replace("login.html");
-      }
-    </script>
   </body>
 
 </html>

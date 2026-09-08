@@ -62,18 +62,8 @@ export const UaLog = {
     let h = e.textContent + s + "\n";
     e.textContent = h;
   },
-  print(...args) {
-    if (this.wind == null) return;
-    if (!this.active) return;
-    this.prn_(...args);
-  },
   log(...args) {
     if (this.wind == null) return;
-    this.prn_(...args);
-  },
-  log_show(...args) {
-    if (this.wind == null) return;
-    if (!this.active) this.toggle();
     this.prn_(...args);
   },
   cls() {
