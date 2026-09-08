@@ -315,7 +315,7 @@
   box-sizing: border-box;
   overflow: visible;
   position: relative;
-  z-index: 40000;
+  z-index: 99999;
 
   .llm-header-btns {
     display: flex;
@@ -351,13 +351,34 @@
     line-height: 1.4;
     padding: 6px 14px;
     font-size: 13px;
-    z-index: 40000;
-    // Forza visibilità integrale dentro la finestra (no clipping)
+    z-index: 99999;
     pointer-events: none;
   }
 
   [data-tt]::after {
-    z-index: 40000;
+    z-index: 99999;
+  }
+
+  // Salva è il primo a sinistra: allinea tooltip a sinistra per non uscire dalla finestra
+  .llm-header-btns button:first-child[data-tt]::before {
+    left: 0;
+    transform: none;
+  }
+  .llm-header-btns button:first-child[data-tt]::after {
+    left: 12px;
+    transform: none;
+  }
+
+  // Seleziona Attivi è l'ultimo a destra: allinea tooltip a destra per restare dentro
+  .llm-header-btns button:last-child[data-tt]::before {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+  .llm-header-btns button:last-child[data-tt]::after {
+    left: auto;
+    right: 12px;
+    transform: none;
   }
 }
 
