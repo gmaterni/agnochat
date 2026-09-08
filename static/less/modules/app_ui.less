@@ -336,12 +336,15 @@
     flex: none;
   }
 
-  // Tooltip nella header Seleziona LLM: deve andare a capo e non essere troncato sopra la finestra
+  // Tooltip nella header Seleziona LLM: sintetici, larghi e visibili dentro la finestra
   [data-tt]::before {
-    white-space: normal;
-    max-width: 320px;
+    white-space: nowrap;
+    max-width: none;
+    width: auto;
     text-align: left;
     line-height: 1.4;
+    padding: 6px 14px;
+    font-size: 13px;
   }
 }
 

@@ -156,10 +156,10 @@ export const createLlmSelectionWindow = function(db, options) {
      * @param {Object} jfh - Istanza UaJtfh della finestra.
      */
     const _appendHeader = function(jfh) {
-        const ttSave = "Salva — Sostituisce completamente i modelli salvati (selected-models) con quelli spuntati, ricostruisce l'albero LLM e chiude la finestra. Richiede conferma.";
-        const ttAdd = "Aggiungi — Unisce i modelli spuntati a quelli già salvati, senza rimuovere gli esistenti, aggiorna l'albero. Richiede conferma.";
-        const ttCancel = "Annulla — Deseleziona tutti i modelli nella finestra, senza modificare i salvati e senza chiudere. Inverso di Seleziona Attivi.";
-        const ttRestore = "Seleziona Attivi — Ripristina la spunta solo sui modelli già attivi nell'albero (quelli salvati in selected-models), deseleziona gli altri. Inverso di Annulla. Non salva ancora: premi Salva o Aggiungi per confermare.";
+        const ttSave = "Salva: sostituisce i salvati con gli spuntati";
+        const ttAdd = "Aggiungi: unisce gli spuntati ai salvati";
+        const ttCancel = "Annulla: deseleziona tutto";
+        const ttRestore = "Seleziona Attivi: ripristina solo gli attivi";
         jfh.append('<div class="btn-wrapper llm-btn-wrapper">');
         jfh.append('<span class="llm-header-btns">');
         jfh.append("<button class=\"btn-success tt-bottom\" data-tt=\"" + ttSave + "\" data-action=\"llm-save\">Salva</button>");
