@@ -2,7 +2,7 @@
 
 # agnochat: Chat LLM Pura, 100% Client-Side
 
-**Versione:** 1.0.0
+**Versione:** 1.1.0 — 2026-09-08
 
 **agnochat** è un'applicazione web di chat con modelli linguistici (LLM) che opera interamente nel browser dell'utente. Riunisce layout, gestione provider/modelli/chiavi e librerie interne, senza pipeline RAG: nessuna indicizzazione, nessun worker — solo chat.
 
@@ -23,8 +23,9 @@ Essendo un'applicazione puramente statica, non richiede build system (Webpack, V
 ## Caratteristiche Principali
 
 - **Chat LLM pura**: componi messaggio + cronologia (+ eventuale prompt di sistema), invia al provider attivo, mostra la risposta. Niente RAG, niente complessità in più.
-- **LLM-Agnostico**: il pacchetto `llmclient` astrae 6 provider dietro un'interfaccia unica, con cambio di provider/modello a runtime (hot-swap) senza ricaricare la pagina.
+- **LLM-Agnostico**: il pacchetto `llmclient` astrae 5 provider dietro un'interfaccia unica, con cambio di provider/modello a runtime (hot-swap) senza ricaricare la pagina.
 - **Catalogo modelli da dati locali**: provider e modelli sono descritti da `manifest.json` e file `.txt` in `static/data/models/` (con window size); la procedura *Aggiorna LLM* gestisce il repository dei modelli accettati e `llmlist` offre discovery live verso i provider.
+- **Test LLM selezionati**: voce menu **Test LLM** che con lo stesso prompt testa in sequenza tutti i modelli selezionati di un provider, con spinner STOP, metriche su `UaLog` (dimensioni request/response, tempo) e finestra riepilogativa allargata (84vw, tabella Modello/Response/Tempo o codice errore).
 - **Conversazioni persistenti**: creazione, elenco, ripristino della cronologia ed eliminazione su IndexedDB.
 - **Prompt di sistema personalizzati**: crea, modifica, elimina e seleziona il prompt attivo da anteporre alle conversazioni.
 - **Affidabilità**: retry automatico su errori transitori (408/500/502/503/504, max 3 tentativi), interruzione manuale delle richieste (stop) e gestione esplicita dei limiti di token.
@@ -38,7 +39,7 @@ Tutto l'applicativo vive in `static/`:
 - **Entry point**: `static/index.html` → `static/js/app.js` (inizializzazione, errori globali, sender eventi).
 - **UI Controller**: `static/js/app_ui.js` (rendering thread con markdown, menu, gestione finestre ed eventi).
 - **Core applicativo**: `app_mgr.js` (config/provider attivi), `chat_engine.js` (payload, retry, stop), `conversation_mgr.js` (conversazioni/messaggi), `prompt_mgr.js` (prompt di sistema), `settings_mgr.js` (preferenze persistenti).
-- **LLM Clients**: `static/js/llmclient/` (5 provider: Gemini, Mistral, Groq, OpenRouter, HuggingFace) + `llm_provider.js` (provider attivo, chiavi) + `llmlist/` (discovery modelli live) + `llm_updater.js` (repository modelli accettati).
+- **LLM Clients**: `static/js/llmclient/` (5 provider: Gemini, Mistral, Groq, OpenRouter, HuggingFace) + `llm_provider.js` (provider attivo, chiavi) + `llmlist/` (discovery modelli live) + `llm_updater.js` (repository modelli accettati) + `commands/test-llm.js` (test comparativo modelli selezionati, UaLog + riepilogo 84vw).
 - **Database Locale**: `static/js/services/idb_mgr.js` + `uadb.js` + `db_instance.js` (persistenza via Dexie.js; database `agnochat`: `conversations`, `messages`, `prompts`, `settings`).
 - **Servizi**: `services/sender.js` (telemetria), `services/config.js` (flag ambiente locale), `services/key_retriever.js` (seed/gestione chiavi), librerie UA (`uajtfh.js`, `uawindow.js`, `uadrag.js`, `uadialog.js`, `ualog3.js`).
 - **Vendor** (copie locali, nessun CDN): `dexie.js`, `marked.min.js`, `less.js`.

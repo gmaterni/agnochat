@@ -1,7 +1,7 @@
 # agnochat — Architettura dell'Applicazione
 
-**Versione:** 1.0.0
-**Data:** 2026-09-02
+**Versione:** 1.1.0
+**Data:** 2026-09-08
 
 ---
 
@@ -43,9 +43,10 @@ agnochat/
     │   ├── prompt_mgr.js               # CRUD prompt di sistema
     │   ├── settings_mgr.js             # Persistenza impostazioni
     │   ├── uploader.js                 # Upload documenti
-    │   ├── commands/
-    │   │   ├── update-llm.js           # Comando "Aggiorna LLM"
-    │   │   └── reset-llm.js            # Comando "Reset LLM"
+│   ├── commands/
+│   │   ├── test-llm.js             # Comando "Test LLM" (test modelli selezionati, UaLog + riepilogo)
+│   │   ├── update-llm.js           # Comando "Aggiorna LLM"
+│   │   └── reset-llm.js            # Comando "Reset LLM"
     │   ├── llm/
     │   │   ├── llm-catalog.js          # Lettura cataloghi locali
     │   │   ├── llm-db.js               # IndexedDB modelli LLM
@@ -224,12 +225,24 @@ BaseClient (astratta)
 - **Discovery live:** fetcher in `llmlist/` chiamano le API dei provider
 - **Test:** `llm_updater.js` testa ogni modello con un prompt fisso, misura tempo risposta, calcola un voto qualità
 - **Selezione utente:** `llm-selection.js` fornisce un'interfaccia checkbox per selezionare quali modelli appaiono
+- **Test LLM selezionati:** `commands/test-llm.js` testa con lo stesso prompt utente tutti i modelli selezionati di un provider, con spinner STOP, log su `UaLog` (dimensioni request/response, tempo) e finestra riepilogativa finale (84vw, tabella nome/modello/tempo o codice errore)
 
 ### 6.4 Hot-Swap
 
 - Cambio provider/modello invalida l'istanza client in cache
 - Nuovo client viene creato alla successiva chiamata `getClient()` con la API key del nuovo provider
 - Nessun riavvio della pagina necessario
+- `commands/test-llm.js` ripristina la configurazione attiva precedente al termine del test
+
+### 6.5 Test LLM Selezionati (llm-test)
+
+Flusso dedicato per confrontare i modelli già selezionati (`llm-test`, spec in `openspec/specs/llm-test/spec.md`):
+
+1. Voce menu **Test LLM** (prima nella sezione LLM, tooltip llm-selected) → verifica prompt in `.text-input`
+2. Finestra provider (`wnd-test-llm-pick`) con conteggio modelli per provider → click provider
+3. Ciclo sequenziale: `LlmProvider.setActive` + `getClient` + `sendRequest` (60s timeout, 512 token, temp 0.7) per ogni modello
+4. Durante l'esecuzione: spinner STOP + `UaLog` con `req char | resp char | tempo s` per prova; STOP interrompe e logga `interrotto`
+5. Finestra riepilogativa (`wnd-test-llm-summary`, 84vw, stili in `tree.less`) con tabella Modello / Response / Tempo o `ERRORE codice`
 
 ---
 
@@ -266,5 +279,5 @@ Tutte le librerie esterne sono copie locali in `static/js/services/vendor/`, nes
 4. **Lingua Italiana:** UI interamente in italiano, commenti del codice e JSDoc in italiano.
 5. **Isolamento dei Database:** Dati app (conversazioni, impostazioni) in un DB Dexie, dati modelli LLM in un IndexedDB separato.
 6. **Compilazione LESS Runtime:** Stili compilati nel browser, abilitando il cambio tema tramite parametri mixin.
-7. **6 Provider LLM:** Gemini (formato nativo), 5 provider OpenAI-compatibili, tutti dietro un'interfaccia `BaseClient` unificata.
+7. **5 Provider LLM:** Gemini (formato nativo) + 4 OpenAI-compatibili (Mistral, Groq, OpenRouter, HuggingFace), tutti dietro `BaseClient`; `llm-test` riusa gli stessi client per test comparativi.
 8. **Librerie interne:** Sistema di layout (gabbia verticale), librerie interne UA (`uawindow`, `uadrag`, `uajtfh`, `ualog3`, `uadialog`), gestione provider/modelli.

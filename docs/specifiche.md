@@ -1,7 +1,7 @@
 # agnochat — Specifiche Applicative
 
-**Versione:** 1.0.0
-**Data:** 2026-09-02
+**Versione:** 1.1.0
+**Data:** 2026-09-08
 
 ---
 
@@ -22,6 +22,7 @@
 13. [llm-update](#13-llm-update) — Aggiornamento LLM
 14. [security](#14-security) — Sicurezza escaping
 15. [system-prompts](#15-system-prompts) — Prompt di sistema
+16. [llm-test](#16-llm-test) — Test modelli selezionati
 
 ---
 
@@ -523,3 +524,48 @@ Rimozione prompt da IndexedDB. Se era attivo, disattivato.
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|
 | Cancellazione | Utente elimina prompt | Rimosso da DB, se attivo disattivato |
+
+---
+
+## 16. llm-test
+
+**Purpose:** Comando "Test LLM" per confrontare i modelli già selezionati con uno stesso prompt utente: scelta provider, prove sequenziali con metriche su `UaLog` e finestra riepilogativa finale con codici errore.
+
+**Dove vive:** `static/js/commands/test-llm.js`, voce menu `menu-test-llm` in `static/js/app_ui.js` (prima voce sezione LLM, tooltip llm-selected), stili in `static/less/modules/tree.less` (`#wnd-test-llm-summary` 84vw). Spec in `openspec/specs/llm-test/spec.md`.
+
+### Requisiti
+
+#### Voce di menu Test LLM
+Prima voce della sezione LLM del drawer, tooltip "test sui modelli selezionabili dal comando LLM (llm-selected)".
+
+#### Prompt di richiesta obbligatorio
+Verifica che `.text-input` contenga testo; se vuoto, alert "digita prima un prompt" e nessuna prova.
+
+| Scenario | Condizione | Risultato |
+|----------|-----------|-----------|
+| Prompt presente | Testo digitato | Apre finestra provider |
+| Prompt mancante | Input vuoto | Alert, nessuna prova |
+| Nessun modello selezionato | `selected-models` vuoto | Alert "nessun modello selezionato" |
+
+#### Scelta del provider e test dei suoi modelli
+Finestra `wnd-test-llm-pick` con lista provider aventi modelli selezionati e conteggio; click provider avvia test sequenziale di tutti i suoi modelli con lo stesso prompt (60s timeout, 512 max_tokens, temp 0.7).
+
+| Scenario | Condizione | Risultato |
+|----------|-----------|-----------|
+| Avvio test | Click provider | Testa in sequenza ogni modello del provider |
+
+#### Metriche su UaLog durante il test
+Spinner STOP con conferma "Confermi lo STOP del Test LLM?"; per ogni prova logga `>>> provider/model | req: N char | resp: N char | tempo: s <<<` o `>>> ERRORE provider/model | codice | motivo | req | tempo <<<`; su STOP logga "interrotto" e interrompe il ciclo.
+
+| Scenario | Condizione | Risultato |
+|----------|-----------|-----------|
+| Prova riuscita | Risposta non vuota | Log con dimensioni e tempo |
+| Errore/timeout | Errore provider o vuoto | Log con codice errore |
+| STOP utente | Click STOP | Annulla richiesta in corso, interrompe ciclo |
+
+#### Riepilogo finale con errori
+A fine ciclo (anche parziale su STOP) apre `wnd-test-llm-summary` (84vw, stili in `tree.less`) con tabella Modello / Response / Tempo o `ERRORE codice: X` + motivo; ripristina il provider/modello attivi precedenti.
+
+| Scenario | Condizione | Risultato |
+|----------|-----------|-----------|
+| Riepilogo completo | Prove terminate | Riga per modello con nome, dimensione response, tempo o codice errore |

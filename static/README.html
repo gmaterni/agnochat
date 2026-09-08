@@ -326,6 +326,24 @@
             </div>
 
             <div class="card">
+                <h3>Testare i Modelli Selezionati (Test LLM)</h3>
+                <p>
+                    Dal menu laterale, seleziona <strong>LLM > Test LLM</strong> per confrontare i modelli già selezionati con lo stesso prompt.
+                    È la prima voce della sezione LLM (tooltip "test sui modelli selezionabili dal comando LLM"):
+                </p>
+                <ol>
+                    <li>Scrivi un prompt nella casella di input (obbligatorio — se vuoto, l'app chiede di digitarlo)</li>
+                    <li>Scegli <strong>Test LLM</strong>: si apre la finestra con la lista dei provider che hanno modelli selezionati e il conteggio per provider</li>
+                    <li>Clicca un provider: l'app testa in sequenza tutti i suoi modelli selezionati con lo stesso prompt (timeout 60s, 512 token, temp 0.7)</li>
+                    <li>Durante il test: spinner con STOP e log su <strong>Log</strong> con <code>req char | resp char | tempo s</code> per ogni prova; STOP interrompe</li>
+                    <li>A fine test: finestra riepilogativa allargata (84vw) con tabella <strong>Modello / Response / Tempo</strong> o <strong>ERRORE codice</strong> per le prove fallite</li>
+                </ol>
+                <div class="tip">
+                    Il test ripristina il provider/modello attivi precedenti al termine. Consulta anche <code>openspec/specs/llm-test/spec.md</code>.
+                </div>
+            </div>
+
+            <div class="card">
                 <h3>Aggiornare i Modelli</h3>
                 <p>
                     Dal menu laterale, seleziona <strong>LLM > Aggiorna LLM</strong> per testare e scoprire nuovi modelli.
