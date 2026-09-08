@@ -21,6 +21,7 @@ import { PromptMgr } from "./prompt_mgr.js";
 import { SettingsMgr } from "./settings_mgr.js";
 import { getDocuments } from "./uploader.js";
 import { formatErrorPrefix } from "./services/error_utils.js";
+import { UaLog } from "./services/ualog3.js";
 
 // ============================================================================
 // COSTANTI
@@ -203,6 +204,36 @@ const _loadHistoryAsync = async function(conversationId) {
 };
 
 /**
+ * Registra su UaLog una riga sintetica con dimensioni e tempo della richiesta.
+ * In caso di errore evidenzia modello e codice errore.
+ * @param {Object} config - Configurazione attiva {provider, model}.
+ * @param {Object} rr - Risultato standard {ok, data, error}.
+ * @param {number} requestChars - Dimensione in caratteri del payload inviato.
+ * @param {string} elapsedSec - Secondi impiegati dalla richiesta.
+ */
+const _logRequestStats = function(config, rr, requestChars, elapsedSec) {
+    const provider = config.provider || "?";
+    const model = config.model || "?";
+    const target = provider + "/" + model;
+
+    if (rr.ok) {
+        const replyText = toTextContent(rr.data);
+        const responseChars = replyText.length;
+        const line = ">>> " + target + " | req: " + requestChars + " char | resp: " + responseChars + " char | tempo: " + elapsedSec + " s <<<";
+        UaLog.log(line);
+        return;
+    }
+
+    const err = rr.error || {};
+    const code = err.code === undefined || err.code === null ? "-" : err.code;
+    const errType = err.type || "Error";
+    const rawMessage = err.message || "";
+    const shortMessage = rawMessage.length > 120 ? rawMessage.slice(0, 120) + "..." : rawMessage;
+    const errLine = ">>> ERRORE " + target + " | codice: " + code + " | " + errType + " | " + shortMessage + " | req: " + requestChars + " char | tempo: " + elapsedSec + " s <<<";
+    UaLog.log(errLine);
+};
+
+/**
  * Persiste l'esito della risposta nella conversazione.
  * @param {number|null} conversationId - Id della conversazione attiva.
  * @param {Object} rr - Risultato standard {ok, data, error}.
@@ -319,8 +350,11 @@ export const ChatEngine = {
                 max_tokens: MAX_TOKENS
             });
 
-            // 8. Invio con retry
+            // 8. Invio con retry (misura tempo e dimensione per il log)
+            const requestStart = Date.now();
+            const requestChars = JSON.stringify(payload).length;
             const rr = await _sendRequest(client, payload);
+            const elapsedSec = ((Date.now() - requestStart) / 1000).toFixed(1);
             if (!rr) {
                 const result = {
                     ok: false,
@@ -330,6 +364,8 @@ export const ChatEngine = {
                 };
                 return result;
             }
+
+            _logRequestStats(config, rr, requestChars, elapsedSec);
 
             // 9. Persistenza dell'esito
             await _persistResultAsync(conversationId, rr);

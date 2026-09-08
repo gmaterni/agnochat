@@ -31,6 +31,7 @@ import { getLlmDb } from "./app_mgr.js";
 import { formatErrorPrefix } from "./services/error_utils.js";
 import { runUpdate as runLlmUpdate } from "./commands/update-llm.js";
 import { runReset as runLlmReset } from "./commands/reset-llm.js";
+import { runTestLlm as runLlmTest } from "./commands/test-llm.js";
 import { documentUploader, getDocuments, removeDocument, clearDocuments, setOnDocumentsChanged, setDocuments } from "./uploader.js";
 import { UaSender } from "./services/sender.js";
 
@@ -178,6 +179,17 @@ const _waitSpinner = _createSpinner(
   "Confermi lo STOP della procedura di aggiornamento LLM?",
   false
 );
+
+/**
+ * Crea uno spinner di attesa con STOP per una procedura personalizzata.
+ * @param {Function} stopHandler - Azione eseguita alla conferma dello STOP.
+ * @param {string} stopMessage - Messaggio della conferma dello STOP.
+ * @returns {{show: Function, hide: Function}} Controllo dello spinner.
+ */
+export const createStopSpinner = function(stopHandler, stopMessage) {
+    const spinner = _createSpinner("spinner-wait", stopHandler, stopMessage);
+    return spinner;
+};
 
 // ============================================================================
 // FACTORY FINESTRE
@@ -1291,6 +1303,24 @@ const _actionSelectLlm = function() {
 };
 
 /**
+ * Gestore della voce di menu "Test LLM".
+ * Apre il test sui modelli selezionati (il comando verifica il prompt).
+ */
+const _actionTestLlmAsync = async function() {
+    const menuBtn = document.getElementById("id-menu-btn");
+    if (menuBtn) menuBtn.checked = false;
+    document.body.classList.remove(CSS_MENU_OPEN);
+
+    try {
+        await runLlmTest();
+    } catch (error) {
+        console.error("_actionTestLlmAsync:", error);
+        const errorText = error.message || error;
+        await alert(`ERRORE durante il test LLM:\n${errorText}`);
+    }
+};
+
+/**
  * Gestore della voce di menu "Reset LLM".
  * Usa il modulo dedicato per ripristinare i modelli di default.
  */
@@ -1337,6 +1367,7 @@ const _bindActionButtons = function() {
         "menu-new-prompt": () => _showPromptEditorAsync(null),
         "menu-list-prompts": _actionListPromptsAsync,
         "menu-provider-tree": _actionSelectLlm,
+        "menu-test-llm": _actionTestLlmAsync,
         "menu-llm-update": _actionLlmUpdateAsync,
         "menu-reset-llm": _actionResetLlmAsync,
         "menu-add-api-key": addApiKey,
@@ -1427,6 +1458,7 @@ const _bindHelpPopups = function() {
     HelpPopup.bind("menu-list-prompts", "<strong>Gestisci System Prompt</strong><br>Elenca, modifica, seleziona o elimina i prompt di sistema.");
 
     // Menu — LLM
+    HelpPopup.bind("menu-test-llm", "<strong>Test LLM</strong><br>Esegue il test sugli LLM di un provider, utilizzando il prompt.");
     HelpPopup.bind("menu-reset-llm", "<strong>Reset LLM</strong><br>Azzera la selezione attiva e ripristina tutti i modelli disponibili dai file locali.");
     HelpPopup.bind("menu-provider-tree", "<strong>Seleziona LLM</strong><br>Apre l'elenco dei modelli scaricati con checkbox per aggiornare l'albero di scelta LLM.");
     HelpPopup.bind("menu-llm-update", "<strong>Aggiorna LLM</strong><br>Testa i modelli dei provider con chiave attiva e aggiorna l'albero di selezione LLM.");

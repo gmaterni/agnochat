@@ -81,3 +81,81 @@
     font-family: @fsans;
   }
 }
+
+// --- Finestra riepilogativa finale (Test LLM) ---
+#wnd-test-llm-summary {
+  box-sizing: border-box;
+  .window-info.test-llm-summary {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+  }
+  .table-data {
+    width: 100%;
+    table-layout: auto;
+    th,
+    td {
+      &:first-child,
+      &:nth-child(2) {
+        white-space: nowrap;
+      }
+      &:last-child {
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+    }
+  }
+}
+
+// --- Finestra di scelta provider (Test LLM) ---
+.test-llm-pick {
+  min-width: 320px;
+  h4 {
+    margin: 0 0 4px 0;
+  }
+  .test-llm-prompt {
+    font-style: italic;
+    opacity: 0.8;
+    margin: 0 0 8px 0;
+  }
+  .test-llm-hint {
+    font-weight: bold;
+    margin: 0 0 8px 0;
+  }
+  .test-llm-providers {
+    list-style: none;
+    padding-left: 0;
+    margin: 0 0 12px 0;
+    li {
+      margin-bottom: 6px;
+      button {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: #f6e602;
+        cursor: pointer;
+        font-family: @fsans;
+        &:hover {
+          background: transparent;
+          color: #4caf50;
+          text-decoration: underline;
+        }
+      }
+      .test-llm-provider-name {
+        font-weight: bold;
+      }
+      .test-llm-provider-count {
+        font-size: 0.85em;
+        opacity: 0.75;
+      }
+    }
+  }
+  .test-llm-close {
+    cursor: pointer;
+  }
+}
