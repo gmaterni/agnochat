@@ -60,6 +60,9 @@ export const AppMgr = {
 
     /**
      * Carica i modelli selezionati dal database e applica il filtro al provider.
+     * Se nessuna selezione è salvata (primo avvio o selezione azzerata),
+     * popola dai file .txt con la stessa procedura del menu "Reset LLM",
+     * senza chiedere conferma.
      */
     loadSelectedModels: async function() {
         if (!_llmDb) return;
@@ -68,9 +71,12 @@ export const AppMgr = {
         if (selected && selected.length > 0) {
             LlmProvider.ensureSelectedModels(selected);
             LlmProvider.applySelectionFilter(selected);
+        } else {
+            console.info("AppMgr.loadSelectedModels: selezione vuota, ripristino dai modelli di default (Reset LLM automatico).");
+            const resetModule = await import("./commands/reset-llm.js");
+            await resetModule.runReset();
+            return;
         }
-        // Se nessuna selezione salvata: NON leggere i .txt.
-        // L'albero rimane vuoto finché l'utente non fa "Aggiorna LLM" o "Reset LLM".
 
         // Riapplica la configurazione salvata ora che il catalogo è popolato:
         // all'avvio loadConfig() girava con catalogo vuoto, la validazione

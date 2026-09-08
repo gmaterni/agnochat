@@ -862,12 +862,24 @@ export const Commands = {
     },
     providerSettings: function() { toggleProviderTree(); },
     resetAll: async function() {
-        const msg1 = "Primo avviso: sta per eseguire un RESET TOTALE dell'applicazione.\n\nVerranno cancellati TUTTI i dati: conversazioni, messaggi, prompt di sistema, chiavi API e configurazione provider.\n\nConfermi?";
+        const msg1 = "Primo avviso: sta per eseguire un RESET TOTALE dell'applicazione.\n\nVerranno cancellati TUTTI i dati: conversazioni, messaggi, prompt di sistema, chiavi API, configurazione provider, modelli scoperti/selezionati, sessione e cache.\n\nConfermi?";
         if (!await confirm(msg1)) return;
         const msg2 = "SECONDO AVVISO: conferma definitiva.\n\nTutti i dati verranno persi. L'applicazione tornerà allo stato iniziale.\n\nProcedere?";
         if (!await confirm(msg2)) return;
-        localStorage.clear();
-        await clearAllTables();
+        try {
+            localStorage.clear();
+            sessionStorage.clear();
+            await clearAllTables();
+            const llmDbModule = await import("./llm/llm-db.js");
+            await llmDbModule.llmDb.clearSelected();
+            await llmDbModule.llmDb.clearDiscovered();
+            if ("caches" in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(function(name) { return caches.delete(name); }));
+            }
+        } catch (error) {
+            console.error("Commands.resetAll:", error);
+        }
         location.reload();
     }
 };

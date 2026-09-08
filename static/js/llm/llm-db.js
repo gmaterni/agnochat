@@ -270,6 +270,30 @@ export const clearSelected = async function() {
 };
 
 /**
+ * Svuota i modelli scoperti.
+ * @returns {Promise<void>}
+ */
+export const clearDiscovered = async function() {
+    if (_useMemoryFallback || !_db) {
+        _memoryDiscovered.clear();
+        return;
+    }
+
+    const promise = new Promise(function(resolve, reject) {
+        const tx = _db.transaction(STORE_DISCOVERED, "readwrite");
+        const store = tx.objectStore(STORE_DISCOVERED);
+        store.clear();
+        tx.oncomplete = function() {
+            resolve();
+        };
+        tx.onerror = function() {
+            reject(tx.error);
+        };
+    });
+    return promise;
+};
+
+/**
  * Chiude la connessione al database.
  */
 export const close = function() {
@@ -287,6 +311,7 @@ export const llmDb = {
     init,
     saveDiscovered,
     getDiscovered,
+    clearDiscovered,
     saveSelected,
     getSelected,
     addSelected,
