@@ -313,12 +313,16 @@
   min-height: 34px;
   padding: 2px 6px;
   box-sizing: border-box;
+  overflow: visible;
+  position: relative;
+  z-index: 40000;
 
   .llm-header-btns {
     display: flex;
     align-items: center;
     gap: 6px;
     flex: 1;
+    overflow: visible;
 
     button {
       flex: none;
@@ -328,6 +332,8 @@
       cursor: pointer;
       border: none;
       font-weight: 600;
+      overflow: visible;
+      position: relative;
     }
   }
 
@@ -336,7 +342,7 @@
     flex: none;
   }
 
-  // Tooltip nella header Seleziona LLM: sintetici, larghi e visibili dentro la finestra
+  // Tooltip nella header Seleziona LLM: sintetici, larghi e garantiti visibili dentro la finestra
   [data-tt]::before {
     white-space: nowrap;
     max-width: none;
@@ -345,6 +351,13 @@
     line-height: 1.4;
     padding: 6px 14px;
     font-size: 13px;
+    z-index: 40000;
+    // Forza visibilità integrale dentro la finestra (no clipping)
+    pointer-events: none;
+  }
+
+  [data-tt]::after {
+    z-index: 40000;
   }
 }
 
