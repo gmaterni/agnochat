@@ -15,7 +15,7 @@
 "use strict";
 
 import { LlmProvider } from "./llm_provider.js";
-import { createLlmPayload } from "./llmclient/index.js";
+import { createLlmPayload, toTextContent } from "./llmclient/index.js";
 import { ConversationMgr, MessageStore } from "./conversation_mgr.js";
 import { PromptMgr } from "./prompt_mgr.js";
 import { SettingsMgr } from "./settings_mgr.js";
@@ -97,7 +97,7 @@ const _composeMessages = function(history, systemPrompt, question) {
 
     for (const msg of history) {
         if (msg.role === "user" || msg.role === "assistant") {
-            messages.push({ role: msg.role, content: msg.content });
+            messages.push({ role: msg.role, content: toTextContent(msg.content) });
         }
     }
 
@@ -210,7 +210,8 @@ const _loadHistoryAsync = async function(conversationId) {
 const _persistResultAsync = async function(conversationId, rr) {
     if (rr.ok) {
         if (conversationId) {
-            await MessageStore.add(conversationId, "assistant", rr.data || "");
+            const replyText = toTextContent(rr.data || "");
+            await MessageStore.add(conversationId, "assistant", replyText);
         }
         return;
     }

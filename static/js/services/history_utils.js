@@ -12,6 +12,8 @@
 
 "use strict";
 
+import { toTextContent } from "../llmclient/models.js";
+
 // ============================================================================
 // COSTANTI DI MODULO
 // ============================================================================
@@ -73,17 +75,20 @@ const _normalizeContent = function(content) {
 
 /**
  * Pulisce la risposta dell'LLM rimuovendo preamboli comuni e chiacchiere.
- * 
- * @param {string} text - Risposta grezza dell'LLM.
+ * Accetta anche contenuti non testuali (es. risposte con tool_calls salvate
+ * come oggetti): vengono convertiti in testo prima della pulizia.
+ *
+ * @param {*} text - Risposta grezza dell'LLM (stringa o oggetto).
  * @returns {string} Testo pulito.
  */
 export const cleanLlmResponse = function(text) {
-    if (!text) {
+    const inputText = toTextContent(text);
+    if (!inputText) {
         const empty = "";
         return empty;
     }
 
-    let cleaned = text.trim();
+    let cleaned = inputText.trim();
 
     // Rimuove preamboli comuni (case insensitive)
     const preambles = [
