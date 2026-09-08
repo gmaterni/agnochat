@@ -1,12 +1,11 @@
 /**
- * siliconflow_client.js - Client per l'integrazione con le API di SiliconFlow.
+ * huggingface_client.js - Client per l'integrazione con le API di Hugging Face.
  *
- * SiliconFlow è un provider API-compatibile OpenAI che offre accesso a modelli
- * come DeepSeek, Gemma, GLM e altri. Include la validazione dei payload,
- * la gestione dei timeout e delle interruzioni.
+ * Questo modulo gestisce la comunicazione con i modelli ospitati su Hugging Face,
+ * inclusa la validazione dei payload, la gestione dei timeout e delle interruzioni.
  *
- * @module  SiliconFlowClient
- * @version 1.0.0
+ * @module  HuggingFaceClient
+ * @version 1.1.0
  * @date    2026-06-27
  * @author  Gemini CLI
  */
@@ -16,16 +15,16 @@
 import { BaseClient } from "./base_client.js";
 
 /**
- * Adatta il payload per le API SiliconFlow (formato OpenAI-compatibile).
+ * Adatta il payload per le API Hugging Face.
  *
  * @param {Object} payload - Il payload originale.
  * @returns {Object} Il payload adattato.
  * @throws {Error} Se il parametro 'model' è mancante.
  */
-const adaptSiliconFlowPayload = function(payload) {
+const adaptHuggingFacePayload = function(payload) {
   if (!payload || !payload.model) {
-    console.error("adaptSiliconFlowPayload: parametro 'model' mancante");
-    throw new Error("Il parametro 'model' è obbligatorio nel payload per SiliconFlow.");
+    console.error("adaptHuggingFacePayload: parametro 'model' mancante");
+    throw new Error("Il parametro 'model' è obbligatorio nel payload per HuggingFace.");
   }
 
   const adapted = {
@@ -36,21 +35,7 @@ const adaptSiliconFlowPayload = function(payload) {
     top_p: payload.top_p,
     top_k: payload.top_k,
     stop: payload.stop,
-    tools: payload.tools,
-    tool_choice: payload.tool_choice,
   };
-
-  if (payload.frequency_penalty !== undefined) {
-    adapted.frequency_penalty = payload.frequency_penalty;
-  }
-
-  if (payload.presence_penalty !== undefined) {
-    adapted.presence_penalty = payload.presence_penalty;
-  }
-
-  if (payload.response_format !== undefined) {
-    adapted.response_format = payload.response_format;
-  }
 
   for (const key in adapted) {
     if (adapted[key] === undefined) {
@@ -62,18 +47,18 @@ const adaptSiliconFlowPayload = function(payload) {
   return result;
 };
 
-class SiliconFlowClient extends BaseClient {
+class HuggingFaceClient extends BaseClient {
   /**
    * Inizializza il client con la chiave API.
    *
    * @param {string} apiKey - La chiave API per l'autenticazione.
    */
   constructor(apiKey) {
-    super(apiKey, "https://api.siliconflow.com/v1/chat/completions");
+    super(apiKey, "https://router.huggingface.co/v1/chat/completions");
   }
 
   /**
-   * Invia una richiesta di generazione contenuto al modello SiliconFlow.
+   * Invia una richiesta di generazione contenuto al modello Hugging Face.
    *
    * @param {Object} payload - Dati della richiesta.
    * @param {number} [timeout=60] - Tempo massimo di attesa in secondi.
@@ -91,9 +76,8 @@ class SiliconFlowClient extends BaseClient {
     let adaptedPayload;
 
     try {
-      adaptedPayload = adaptSiliconFlowPayload(payload);
+      adaptedPayload = adaptHuggingFacePayload(payload);
     } catch (error) {
-      console.error("SiliconFlowClient.sendRequest:", error);
       const valError = this._createError(error.message, "ValidationError");
       const res = this._createResult(false, null, null, valError);
       return res;
@@ -117,7 +101,6 @@ class SiliconFlowClient extends BaseClient {
 
         finalResult = this._createResult(true, result.response, responseData);
       } catch (error) {
-        console.error("SiliconFlowClient.sendRequest:", error);
         const parseErr = this._createError(
           "Invalid response structure",
           "ParsingError",
@@ -134,4 +117,4 @@ class SiliconFlowClient extends BaseClient {
   }
 }
 
-export { SiliconFlowClient };
+export { HuggingFaceClient };

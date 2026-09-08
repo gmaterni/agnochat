@@ -114,4 +114,32 @@ const createLlmPayload = function(model, messages, options = {}) {
   return result;
 };
 
-export { validateMessage, validatePayload, createMessage, createLlmPayload };
+/**
+ * Converte un contenuto messaggio in testo semplice.
+ * Le risposte con tool_calls arrivano dai client come oggetti: usarle così
+ * com'è produce "[object Object]" nei payload (i provider rigidi rispondono
+ * 400) e rompe le utility che si aspettano stringhe. Se l'oggetto ha un
+ * content testuale lo usa, altrimenti lo serializza in JSON.
+ * @param {*} content - Contenuto messaggio (stringa o oggetto).
+ * @returns {string} Contenuto testuale sicuro.
+ */
+const toTextContent = function(content) {
+  if (typeof content === "string") {
+    return content;
+  }
+  if (content && typeof content.content === "string" && content.content !== "") {
+    const innerText = content.content;
+    return innerText;
+  }
+  let text = "";
+  try {
+    const serialized = JSON.stringify(content === undefined ? null : content);
+    text = serialized;
+  } catch (e) {
+    console.error("toTextContent: contenuto non serializzabile", e);
+    text = "[contenuto non testuale omesso]";
+  }
+  return text;
+};
+
+export { validateMessage, validatePayload, createMessage, createLlmPayload, toTextContent };

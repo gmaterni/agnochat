@@ -27,9 +27,9 @@ agnochat/
     ├── data/
     │   ├── api_x.json                  # Chiavi API seed (offuscate)
     │   └── models/                     # Cataloghi modelli per provider
-    │       ├── cerebras.txt
     │       ├── gemini.txt
     │       ├── groq.txt
+    │       ├── huggingface.txt
     │       ├── mistral.txt
     │       └── openrouter.txt
     ├── js/                             # Tutto il JavaScript applicativo
@@ -58,8 +58,7 @@ agnochat/
     │   │   ├── mistral_client.js       # Mistral AI
     │   │   ├── groq_client.js          # Groq
     │   │   ├── openrouter_client.js    # OpenRouter
-    │   │   ├── cerebras_client.js      # Cerebras
-    │   │   ├── siliconflow_client.js   # SiliconFlow
+    │   │   ├── huggingface_client.js   # Hugging Face
     │   │   └── models.js              # Modelli dati + validatori
     │   ├── llmlist/                    # Discovery modelli live
     │   │   ├── index.js                # Dispatcher fetcher
@@ -208,8 +207,8 @@ BaseClient (astratta)
   ├── MistralClient     (OpenAI-compatibile, adattato)
   ├── GroqClient        (OpenAI-compatibile)
   ├── OpenRouterClient  (OpenAI-compatibile)
-  ├── CerebrasClient    (OpenAI-compatibile)
-  └── SiliconFlowClient (OpenAI-compatibile)
+  ├── OpenRouterClient  (OpenAI-compatibile)
+  └── HuggingFaceClient (router HF, con top_k)
 ```
 
 ### 6.2 Flusso di una Richiesta

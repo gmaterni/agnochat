@@ -14,8 +14,6 @@ import { fetchGeminiModels } from "./fetcher_gemini.js";
 import { fetchGroqModels } from "./fetcher_groq.js";
 import { fetchMistralModels } from "./fetcher_mistral.js";
 import { fetchOpenRouterModels } from "./fetcher_openrouter.js";
-import { fetchCerebrasModels } from "./fetcher_cerebras.js";
-import { fetchSiliconFlowModels } from "./fetcher_siliconflow.js";
 
 /**
  * Mappa provider → funzione di discovery.
@@ -25,9 +23,7 @@ const FETCHERS = {
     gemini: fetchGeminiModels,
     groq: fetchGroqModels,
     mistral: fetchMistralModels,
-    openrouter: fetchOpenRouterModels,
-    cerebras: fetchCerebrasModels,
-    siliconflow: fetchSiliconFlowModels
+    openrouter: fetchOpenRouterModels
 };
 
 /**

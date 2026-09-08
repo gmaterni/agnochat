@@ -17,7 +17,7 @@ Essendo un'applicazione puramente statica, non richiede build system (Webpack, V
 3. **Configurazione API**:
     - Apri il menu laterale (☰).
     - Seleziona **"API Keys Default"** per caricare le chiavi di prova predefinite dal file locale `static/data/api_x.json` (solo a database vuoto).
-    - Oppure seleziona **"Gestisci API Key"** per inserire la tua chiave personale (Gemini, Mistral, Groq, OpenRouter, Cerebras, SiliconFlow).
+    - Oppure seleziona **"Gestisci API Key"** per inserire la tua chiave personale (Gemini, Mistral, Groq, OpenRouter, HuggingFace).
     > 🛡️ **Privacy**: le chiavi sono salvate esclusivamente nell'**IndexedDB** del tuo browser, mai nel codice né su server. La comunicazione AI avviene direttamente dal tuo computer al provider, senza intermediari.
 
 ## Caratteristiche Principali
@@ -38,7 +38,7 @@ Tutto l'applicativo vive in `static/`:
 - **Entry point**: `static/index.html` → `static/js/app.js` (inizializzazione, errori globali, sender eventi).
 - **UI Controller**: `static/js/app_ui.js` (rendering thread con markdown, menu, gestione finestre ed eventi).
 - **Core applicativo**: `app_mgr.js` (config/provider attivi), `chat_engine.js` (payload, retry, stop), `conversation_mgr.js` (conversazioni/messaggi), `prompt_mgr.js` (prompt di sistema), `settings_mgr.js` (preferenze persistenti).
-- **LLM Clients**: `static/js/llmclient/` (6 provider: Gemini, Mistral, Groq, OpenRouter, Cerebras, SiliconFlow) + `llm_provider.js` (provider attivo, chiavi) + `llmlist/` (discovery modelli live) + `llm_updater.js` (repository modelli accettati).
+- **LLM Clients**: `static/js/llmclient/` (5 provider: Gemini, Mistral, Groq, OpenRouter, HuggingFace) + `llm_provider.js` (provider attivo, chiavi) + `llmlist/` (discovery modelli live) + `llm_updater.js` (repository modelli accettati).
 - **Database Locale**: `static/js/services/idb_mgr.js` + `uadb.js` + `db_instance.js` (persistenza via Dexie.js; database `agnochat`: `conversations`, `messages`, `prompts`, `settings`).
 - **Servizi**: `services/sender.js` (telemetria), `services/config.js` (flag ambiente locale), `services/key_retriever.js` (seed/gestione chiavi), librerie UA (`uajtfh.js`, `uawindow.js`, `uadrag.js`, `uadialog.js`, `ualog3.js`).
 - **Vendor** (copie locali, nessun CDN): `dexie.js`, `marked.min.js`, `less.js`.

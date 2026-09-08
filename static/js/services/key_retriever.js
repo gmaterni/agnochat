@@ -5,16 +5,16 @@ import { UaJtfh } from "./uajtfh.js";
 import { UaDb } from "./uadb.js";
 import { DATA_KEYS } from "./data_keys.js";
 import { escapeHtml } from "./history_utils.js";
+import { getProviderNames } from "../llmclient/registry.js";
 
 const STORAGE_KEY = DATA_KEYS.KEY_API_KEYS;
 
 /**
- * Whitelist dei provider con client LLM implementato.
+ * Provider con client LLM implementato. Derivano dal registry llmclient:
+ * stesso import path di prima, nessun consumatore cambia.
  * @type {Array<string>}
- * @private
  */
-const _IMPLEMENTED_CLIENTS = ["gemini", "mistral", "groq", "openrouter", "cerebras", "siliconflow"];
-export const IMPLEMENTED_CLIENTS = _IMPLEMENTED_CLIENTS;
+export const IMPLEMENTED_CLIENTS = getProviderNames();
 
 /**
  * Recupera la lista dinamica dei provider supportati da _PROVIDER_CONFIG.
@@ -343,7 +343,7 @@ async function _loadDefaultKeys(url) {
     if (data && data.providers) {
         // Filtra solo i provider con client implementato
         Object.keys(data.providers).forEach(function(providerName) {
-            if (!_IMPLEMENTED_CLIENTS.includes(providerName)) {
+            if (!IMPLEMENTED_CLIENTS.includes(providerName)) {
                 delete data.providers[providerName];
             }
         });

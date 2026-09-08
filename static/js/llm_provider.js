@@ -19,10 +19,7 @@
 "use strict";
 
 import { getApiKey, fetchApiKeys, IMPLEMENTED_CLIENTS } from "./services/key_retriever.js";
-import {
-    GeminiClient, MistralClient, GroqClient,
-    OpenRouterClient, CerebrasClient, SiliconFlowClient
-} from "./llmclient/index.js";
+import { createClient, isSupported } from "./llmclient/registry.js";
 import { DATA_KEYS } from "./services/data_keys.js";
 import { UaDb } from "./services/uadb.js";
 import { loadProviderModels } from "agnochat/llm/llm-catalog.js";
@@ -31,13 +28,13 @@ import { loadProviderModels } from "agnochat/llm/llm-catalog.js";
 // COSTANTI
 // ============================================================================
 
-// I provider sono quelli con un client implementato in llmclient
-// (IMPLEMENTED_CLIENTS in services/key_retriever.js).
+// I provider sono quelli registrati in llmclient/registry.js
+// (IMPLEMENTED_CLIENTS in services/key_retriever.js deriva da lì).
 // Ogni provider con file .txt valido in data/models/ compare nell'albero di
 // selezione; un file mancante significa semplicemente 0 modelli, nessun errore.
 //
-// L'unica eccezione è _createClientInstance (switch + import) che va
-// aggiornata a mano quando si aggiunge un nuovo provider LLM client.
+// Per aggiungere un provider basta una voce nel registry più il file client:
+// nessuna whitelist o switch separata da aggiornare a mano.
 
 // ============================================================================
 // STATO PRIVATO
@@ -80,29 +77,11 @@ const _createClientInstance = function(clientName, apiKey) {
         return;
     }
 
-    switch (clientName) {
-        case "gemini":
-            _activeClient = new GeminiClient(apiKey);
-            break;
-        case "mistral":
-            _activeClient = new MistralClient(apiKey);
-            break;
-        case "groq":
-            _activeClient = new GroqClient(apiKey);
-            break;
-        case "openrouter":
-            _activeClient = new OpenRouterClient(apiKey);
-            break;
-        case "cerebras":
-            _activeClient = new CerebrasClient(apiKey);
-            break;
-        case "siliconflow":
-            _activeClient = new SiliconFlowClient(apiKey);
-            break;
-        default:
-            _activeClient = null;
-            console.warn(`_createClientInstance: client non supportato: ${clientName}`);
-            break;
+    if (!isSupported(clientName)) {
+        _activeClient = null;
+        console.warn(`_createClientInstance: client non supportato: ${clientName}`);
+    } else {
+        _activeClient = createClient(clientName, apiKey);
     }
 
     if (_activeClient) {

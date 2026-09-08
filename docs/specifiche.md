@@ -280,7 +280,7 @@ Finestra a destra del menu con: nome LLM, voto, tempo. Pulsanti "Salva" e "Annul
 
 ## 8. llm-access
 
-**Purpose:** Accesso ai provider LLM (Gemini, Mistral, Groq, OpenRouter, Cerebras, SiliconFlow): selezione, chiavi API, retry, errori standardizzati.
+**Purpose:** Accesso ai provider LLM (Gemini, Mistral, Groq, OpenRouter, HuggingFace): selezione, chiavi API, retry, errori standardizzati.
 
 ### Requisiti
 
