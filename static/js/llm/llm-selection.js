@@ -162,10 +162,10 @@ export const createLlmSelectionWindow = function(db, options) {
         const ttRestore = "Seleziona Attivi — Ripristina la spunta solo sui modelli già attivi nell'albero (quelli salvati in selected-models), deseleziona gli altri. Inverso di Annulla. Non salva ancora: premi Salva o Aggiungi per confermare.";
         jfh.append('<div class="btn-wrapper llm-btn-wrapper">');
         jfh.append('<span class="llm-header-btns">');
-        jfh.append("<button class=\"btn-success tt-top\" data-tt=\"" + ttSave + "\" data-action=\"llm-save\">Salva</button>");
-        jfh.append("<button class=\"btn-yellow tt-top\" data-tt=\"" + ttAdd + "\" data-action=\"llm-add\">Aggiungi</button>");
-        jfh.append("<button class=\"btn-danger tt-top\" data-tt=\"" + ttCancel + "\" data-action=\"llm-reset\">Annulla</button>");
-        jfh.append("<button class=\"btn-info tt-top\" data-tt=\"" + ttRestore + "\" data-action=\"llm-restore\">Seleziona Attivi</button>");
+        jfh.append("<button class=\"btn-success tt-bottom\" data-tt=\"" + ttSave + "\" data-action=\"llm-save\">Salva</button>");
+        jfh.append("<button class=\"btn-yellow tt-bottom\" data-tt=\"" + ttAdd + "\" data-action=\"llm-add\">Aggiungi</button>");
+        jfh.append("<button class=\"btn-danger tt-bottom\" data-tt=\"" + ttCancel + "\" data-action=\"llm-reset\">Annulla</button>");
+        jfh.append("<button class=\"btn-info tt-bottom\" data-tt=\"" + ttRestore + "\" data-action=\"llm-restore\">Seleziona Attivi</button>");
         jfh.append('</span>');
         jfh.append('<button class="btn-close tt-left" data-tt="Chiudi" data-action="llm-close">X</button>');
         jfh.append('</div>');

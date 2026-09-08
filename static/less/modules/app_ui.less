@@ -335,6 +335,14 @@
     position: static;
     flex: none;
   }
+
+  // Tooltip nella header Seleziona LLM: deve andare a capo e non essere troncato sopra la finestra
+  [data-tt]::before {
+    white-space: normal;
+    max-width: 320px;
+    text-align: left;
+    line-height: 1.4;
+  }
 }
 
 // Contenuto per finestra LLM: header label attaccato ai comandi, corpo scorre
