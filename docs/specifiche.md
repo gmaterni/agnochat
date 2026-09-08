@@ -377,12 +377,12 @@ Reset sostituisce completamente, non unisce.
 
 ## 12. llm-selection-ui
 
-**Purpose:** Finestra modale "Seleziona LLM" con quattro azioni (Salva, Aggiungi, Annulla, Seleziona Attivi) e tooltip differenziati.
+**Purpose:** Finestra modale "Seleziona LLM" con quattro azioni (Salva, Aggiungi, Annulla, Seleziona Attivi), tooltip differenziati, evidenziazione delle righe selezionate e apertura automatica a fine "Aggiorna LLM".
 
 ### Requisiti
 
 #### Finestra con quattro azioni
-Elenco modelli da `discovered-models` con checkbox. Quattro pulsanti: Salva, Aggiungi (giallo), Annulla, Seleziona Attivi (inverso di Annulla).
+Elenco modelli da `discovered-models` (validi `vote >= MIN_VOTE` più eletti già presenti) con checkbox. Quattro pulsanti: Salva, Aggiungi (giallo), Annulla, Seleziona Attivi (inverso di Annulla). Quando aperta automaticamente al termine di "Aggiorna LLM", mostra spuntati i modelli in `selected-models` ed evidenziate le righe, senza richiedere ulteriore interazione.
 
 #### Pulsante Salva — sostituzione
 Svuota `selected-models`, popola con selezione, chiudi finestra, aggiorna albero.
@@ -404,6 +404,12 @@ Seleziona solo gli LLM già attivi nell'albero (quelli salvati in `selected-mode
 
 #### Stile pulsante Aggiungi
 Background giallo per differenziarlo da Salva.
+
+#### Evidenziazione e sincronizzazione
+Righe dei modelli spuntati evidenziate (`tr.llm-row.selected`); ogni `change` su checkbox modello aggiorna la classe della riga e il flag provider (`checked`/`indeterminate`); il toggle provider propaga stato ed evidenziazione a tutte le sue righe. Se dopo l'apertura nessun checkbox è spuntato ma `selected-models` non è vuoto, auto-restore degli eletti ancora presenti (log "auto-restore attivi"). Ogni modello compare una sola volta (`provider:model` unico): nessuna riga `checked` senza `selected` né viceversa.
+
+#### Apertura automatica post-Aggiorna
+A elaborazione conclusa con modelli salvati (successo o STOP con parziali) si apre da sola un'unica finestra "Seleziona LLM" con spunta su eletti ed evidenziazione, senza dialog intermedia.
 
 ---
 
@@ -429,8 +435,8 @@ Menu laterale "Aggiorna LLM" → conferma → avvio. Interrompibile con STOP.
 |----------|-----------|-----------|
 | Conferma | Utente conferma | Procedura parte |
 | Annullamento | Utente non conferma | Procedura non parte |
-| STOP | In corso | Termina con risultati parziali |
-| Nessun provider | Nessuna chiave attiva | Termina segnalando |
+| STOP | In corso | Termina con parziali salvati, log "interrotto — N modelli testati", apertura finestra se modelli salvati |
+| Nessun provider | Nessuna chiave attiva | Termina in `UaLog` senza aprire la finestra elenco |
 
 #### Test modelli
 Ogni modello testato con prompt fisso, sequenziale, tracciamento in UaLog.
@@ -445,14 +451,16 @@ Risposta corretta + non vuota + tempo < 20 secondi.
 | Tempo > 20s | Timeout | Escluso, soglia in UaLog |
 
 #### Memorizzazione e riepilogo
-Modelli superati salvati in `discovered-models`. Riepilogo: numero testati / superati.
+Tutti i modelli scoperti salvati in `discovered-models` (con `elapsedMs`, `vote` per superati, `testError` per falliti). Nessuna dialog di riepilogo: riepilogo solo in `UaLog`/console ("completato/interrotto — N modelli testati"). Al termine con modelli salvati si apre automaticamente un'unica finestra "Seleziona LLM" con spunta su eletti ed evidenziazione.
 
 #### Finestra selezione LLM
-Elenco modelli superati con: nome, voto (7-10), tempo. Raggruppati per provider.
+Elenco modelli scaricati con: nome, voto (6-10), tempo, finestra contesto. Raggruppati per provider.
 
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|
-| Apertura | Click "Seleziona LLM" | Finestra con elenco e tre colonne |
+| Apertura manuale | Click "Seleziona LLM" | Finestra con elenco e quattro colonne |
+| Apertura automatica | Fine "Aggiorna LLM" con modelli salvati | Unica finestra, spuntati su eletti, righe evidenziate, nessuna dialog |
+| Nessun provider | Nessuna chiave attiva (`results.length === 0`) | Nessuna finestra, solo `UaLog`, spinner nascosto |
 | Provider vuoto | Nessun modello superato | Provider mostrato con indicazione |
 | Nessun modello | Nessun superato | Messaggio dedicato |
 
@@ -461,9 +469,9 @@ Checkbox per modello e per provider (toggle tutti). Indipendenti tra provider.
 
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|
-| Selezione singolo modello | Toggle checkbox | Solo quel modello cambia |
-| Selezione provider | Toggle checkbox provider | Tutti i modelli del provider cambiano |
-| All'apertura | Finestra aperta | Tutte le checkbox spuntate |
+| Selezione singolo modello | Toggle checkbox | Solo quel modello cambia + riga evidenziata |
+| Selezione provider | Toggle checkbox provider | Tutti i modelli del provider cambiano + righe evidenziate |
+| All'apertura | Finestra aperta | Spuntati solo i modelli in `selected-models`, righe evidenziate, provider sincronizzati |
 
 #### Salvataggio selezione nell'albero
 "Salva" persiste modelli selezionati in un elenco "active", ricostruisce albero LLM.

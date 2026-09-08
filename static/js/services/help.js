@@ -57,7 +57,8 @@ export const help0_html = `
     <div>
         <strong class="help-section-title">Menu Laterale &mdash; LLM</strong>
         <div class="help-grid">
-            <strong>Seleziona LLM</strong> <span>Apre l'elenco dei modelli scaricati per aggiornare l'albero di scelta LLM.</span>
+            <strong>Aggiorna LLM</strong> <span>Scarica e testa i modelli dei provider con chiave; al termine apre da sola l'elenco Seleziona LLM (nessuna dialog, esito solo nel Log).</span>
+            <strong>Seleziona LLM</strong> <span>Apre l'elenco dei modelli scaricati per aggiornare l'albero di scelta LLM (si apre anche da solo a fine Aggiorna LLM).</span>
             <strong>Reset Api Keys</strong> <span>Ripristina le chiavi API predefinite.</span>
             <strong>Gestisci API Key</strong> <span>Aggiungi, attiva o elimina le tue chiavi API personali.</span>
         </div>
@@ -70,6 +71,7 @@ export const help0_html = `
             <strong>Aggiungi</strong> <span>Unisce i modelli spuntati a quelli già presenti (non rimuove).</span>
             <strong>Annulla</strong> <span>Deseleziona tutti i modelli.</span>
             <strong>Seleziona Attivi</strong> <span>Seleziona solo gli LLM già attivi nell'albero (quelli salvati in selected-models), deseleziona gli altri — inverso di Annulla.</span>
+            <strong>Righe evidenziate</strong> <span>Le righe spuntate sono evidenziate; spunta singola o di provider aggiorna subito l'evidenziazione.</span>
         </div>
     </div>
 
