@@ -52,7 +52,7 @@
 
         header {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             align-items: center;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 1rem;
@@ -235,19 +235,41 @@
 
         .secondary-links {
             display: flex;
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
+        .launch-links {
+            display: flex;
             flex-direction: column;
-            gap: 0.4rem;
+            align-items: center;
+            gap: 0.6rem;
+            margin-top: 1.5rem;
+        }
+
+        .launch-links .launch-link {
+            font-size: 0.95rem;
+            color: var(--link-color);
+            text-decoration: none;
+        }
+
+        .launch-links .launch-link:hover {
+            text-decoration: underline;
         }
 
         @media (max-width: 600px) {
             header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 1rem;
+                justify-content: center;
             }
             .header-actions {
                 width: 100%;
-                justify-content: space-between;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            .secondary-links {
+                justify-content: center;
             }
         }
     </style>
@@ -255,13 +277,12 @@
 <body data-theme="dark">
     <div class="container">
         <header>
-            <div class="logo"><strong>agnochat</strong> 1.1.0</div>
             <div class="header-actions">
                 <div class="secondary-links">
+                    <a href="index.html" class="btn-launch-small">🚀 Apri agnochat →</a>
                     <a href="README.html" class="readme-link">📖 Guida utente</a>
-                    <a href="installazione.html" class="install-link">⬇️ Scarica per uso locale</a>
+                    <a href="installazione.html" class="install-link">💻 Installazione Locale</a>
                 </div>
-                <a href="index.html" class="btn-launch-small">Apri agnochat →</a>
                 <button class="theme-toggle" id="theme-btn" title="Cambia Tema">
                     <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="5" />
@@ -369,13 +390,11 @@
         <div class="launch-box">
             <h2>Pronto a iniziare?</h2>
             <p>Nessuna registrazione, nessuna installazione: apri l'app e inizia a chattare.</p>
-            <br>
-            <a href="index.html" class="btn-launch">Avvia agnochat Now</a>
-            <p style="margin-top: 1.5rem;">
-                <a href="README.html">Consulta la guida utente completa</a>
-                &nbsp;|&nbsp;
-                <a href="installazione.html">Scarica agnochat da GitHub e usala in locale</a>
-            </p>
+            <div class="launch-links">
+                <a href="index.html" class="btn-launch">🚀 Apri agnochat</a>
+                <a href="README.html" class="launch-link">📖 Guida utente</a>
+                <a href="installazione.html" class="launch-link">💻 Installazione Locale</a>
+            </div>
         </div>
 
         <footer style="margin-top: 4rem; text-align: center; font-size: 0.8rem; opacity: 0.6;">
