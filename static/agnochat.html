@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.ico">
     <title>agnochat - Chat LLM Pura, Semplice e 100% Client-Side</title>
+    <meta name="description" content="Chat LLM 100% client-side: Gemini, Mistral, Groq, OpenRouter e HuggingFace nella stessa app. Nessun account, nessun server, chiavi e conversazioni solo sul tuo dispositivo.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="agnochat - Chat LLM Pura, Semplice e 100% Client-Side">
+    <meta property="og:description" content="Provi i migliori LLM gratuiti (Gemini, Mistral, Groq, OpenRouter, HuggingFace) in un'unica chat, senza account né server.">
+    <meta property="og:url" content="https://gmaterni.github.io/agnochat/agnochat.html">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="agnochat - Chat LLM Pura, Semplice e 100% Client-Side">
+    <meta name="twitter:description" content="Provi i migliori LLM gratuiti (Gemini, Mistral, Groq, OpenRouter, HuggingFace) in un'unica chat, senza account né server.">
     <style>
         :root {
             --bg-color: #0f172a;
@@ -182,21 +190,88 @@
             height: 20px;
             fill: currentColor;
         }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn-launch-small {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: white !important;
+            padding: 0.5rem 1.1rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-launch-small:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 10px -3px rgba(0, 0, 0, 0.2);
+        }
+
+        .readme-link, .install-link {
+            display: inline-block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.3rem 0.75rem;
+            border-radius: 0.4rem;
+            border: 1px solid var(--border-color);
+            background: var(--secondary-bg);
+            color: var(--text-color) !important;
+            white-space: nowrap;
+        }
+
+        .readme-link:hover, .install-link:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color) !important;
+            text-decoration: none;
+        }
+
+        .secondary-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
     </style>
 </head>
 <body data-theme="dark">
     <div class="container">
         <header>
             <div class="logo"><strong>agnochat</strong> 1.1.0</div>
-            <button class="theme-toggle" id="theme-btn" title="Cambia Tema">
-                <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="5" />
-                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-                </svg>
-                <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                </svg>
-            </button>
+            <div class="header-actions">
+                <div class="secondary-links">
+                    <a href="README.html" class="readme-link">📖 Guida utente</a>
+                    <a href="installazione.html" class="install-link">⬇️ Scarica per uso locale</a>
+                </div>
+                <a href="index.html" class="btn-launch-small">Apri agnochat →</a>
+                <button class="theme-toggle" id="theme-btn" title="Cambia Tema">
+                    <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5" />
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                    </svg>
+                    <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                </button>
+            </div>
         </header>
 
         <section class="hero">
@@ -229,28 +304,34 @@
                     <span class="tech-tag">Vanilla JS</span> <span class="tech-tag">ES Modules</span> <span class="tech-tag">LESS</span> <span class="tech-tag">Zero Build</span>
                 </div>
                 <div class="card">
-                    <h3>LLM-Agnostico</h3>
-                    <p>Il pacchetto <code>llmclient</code> astrae <strong>5 provider</strong> dietro un'interfaccia unica:
-                    Gemini, Mistral, Groq, OpenRouter e HuggingFace. Cambi provider o modello a runtime
-                    (<strong>hot-swap</strong>) senza ricaricare la pagina, e ogni provider gestisce i propri formati di richiesta.</p>
-                    <span class="tech-tag">llmclient</span> <span class="tech-tag">Hot-Swap</span>
+                    <h3>Libertà di Scelta del Modello</h3>
+                    <p>Non sei legato a nessun fornitore: l'app dialoga con <strong>5 provider diversi</strong>
+                    (Gemini, Mistral, Groq, OpenRouter e HuggingFace) e puoi passare dall'uno all'altro
+                    in qualsiasi momento, <strong>senza perdere le tue conversazioni</strong>. Ogni modello ha
+                    punti di forza diversi — velocità, qualità di risposta, costo: li confronti a parità di
+                    domanda con la funzione <em>Test LLM</em> e scegli di volta in volta quello giusto.
+                    Se domani un provider cambia prezzi o condizioni, cambi provider tu, non devi cambiare applicazione.</p>
+                    <span class="tech-tag">5 Provider</span> <span class="tech-tag">Cambio al Volo</span> <span class="tech-tag">Nessun Vincolo</span>
                 </div>
             </div>
             <div class="grid">
                 <div class="card">
-                    <h3>Gestione API Key Privata</h3>
-                    <p>Le chiavi vivono <strong>solo nell'IndexedDB</strong> del tuo browser, mai nel codice né su server.
-                    Al primo avvio vengono seminate da <code>api_x.json</code> (chiavi di prova offuscate) solo se il
-                    database è vuoto. Le richieste partono direttamente dal tuo computer verso il provider.</p>
-                    <span class="tech-tag">IndexedDB</span> <span class="tech-tag">Seed Offuscato</span> <span class="tech-tag">Zero Server</span>
+                    <h3>Inizia Subito: Chiavi di Prova</h3>
+                    <p>Al primo avvio trovi già <strong>chiavi di prova pronte all'uso</strong>: puoi chattare
+                    immediatamente, senza registrarti da nessuna parte e senza inserire nulla. Sono chiavi
+                    condivise con limiti di utilizzo — perfette per scoprire l'app, mentre per l'uso quotidiano
+                    ti conviene aggiungere la tua chiave personale.</p>
+                    <span class="tech-tag">Pronto all'Uso</span> <span class="tech-tag">Senza Registrazione</span>
                 </div>
                 <div class="card">
-                    <h3>Catalogo Modelli Locale</h3>
-                    <p>Provider e modelli sono descritti da dati, non da codice: <code>manifest.json</code> e file
-                    <code>.txt</code> in <code>data/models/</code>, con window size per ogni modello. La procedura
-                    <em>Aggiorna LLM</em> popola il repository dei modelli accettati; la discovery live via
-                    <code>llmlist</code> interroga i provider con la tua chiave.</p>
-                    <span class="tech-tag">manifest.json</span> <span class="tech-tag">Discovery Live</span>
+                    <h3>La Tua Chiave, Senza Rischi</h3>
+                    <p>Quando vuoi, aggiungi la tua chiave dal menu (<em>API Key &gt; Gestisci API Key</em>):
+                    resta <strong>solo sul tuo dispositivo</strong>, viene usata esclusivamente per parlare con
+                    il provider che hai scelto e <strong>puoi cancellarla in qualsiasi momento</strong>.
+                    Nell'elenco la vedi in forma mascherata e decidi tu quale tenere attiva per ogni provider.
+                    Non esiste un account agnochat e nessun server intermedio vede mai passare la tua chiave:
+                    la conversazione viaggia diretta dal tuo computer al provider.</p>
+                    <span class="tech-tag">Solo sul Tuo Dispositivo</span> <span class="tech-tag">Cancellabile Sempre</span> <span class="tech-tag">Zero Server</span>
                 </div>
             </div>
         </div>
@@ -287,9 +368,14 @@
 
         <div class="launch-box">
             <h2>Pronto a iniziare?</h2>
-            <p>Serva la cartella con un web server statico e apri l'applicazione.</p>
+            <p>Nessuna registrazione, nessuna installazione: apri l'app e inizia a chattare.</p>
             <br>
             <a href="index.html" class="btn-launch">Avvia agnochat Now</a>
+            <p style="margin-top: 1.5rem;">
+                <a href="README.html">Consulta la guida utente completa</a>
+                &nbsp;|&nbsp;
+                <a href="installazione.html">Scarica agnochat da GitHub e usala in locale</a>
+            </p>
         </div>
 
         <footer style="margin-top: 4rem; text-align: center; font-size: 0.8rem; opacity: 0.6;">
@@ -303,11 +389,17 @@
         const sunIcon = themeBtn.querySelector('.icon-sun');
         const moonIcon = themeBtn.querySelector('.icon-moon');
 
+        const savedTheme = localStorage.getItem('agnochat-theme') || 'dark';
+        body.setAttribute('data-theme', savedTheme);
+        sunIcon.style.display = savedTheme === 'light' ? 'none' : 'block';
+        moonIcon.style.display = savedTheme === 'light' ? 'block' : 'none';
+
         themeBtn.addEventListener('click', () => {
             const currentTheme = body.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
             body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('agnochat-theme', newTheme);
             sunIcon.style.display = newTheme === 'light' ? 'none' : 'block';
             moonIcon.style.display = newTheme === 'light' ? 'block' : 'none';
         });

@@ -2,6 +2,7 @@
 
 **Versione:** 1.1.0
 **Data:** 2026-09-08
+**Repository:** https://github.com/gmaterni/agnochat — **Pages:** https://gmaterni.github.io/agnochat/
 
 ---
 

@@ -3,16 +3,18 @@
 # agnochat: Chat LLM Pura, 100% Client-Side
 
 **Versione:** 1.1.0 — 2026-09-08
+**Repository:** https://github.com/gmaterni/agnochat — **Demo (GitHub Pages):** https://gmaterni.github.io/agnochat/
 
 **agnochat** è un'applicazione web di chat con modelli linguistici (LLM) che opera interamente nel browser dell'utente. Riunisce layout, gestione provider/modelli/chiavi e librerie interne, senza pipeline RAG: nessuna indicizzazione, nessun worker — solo chat.
 
 > 🚀 **Scopri di più**: per una presentazione delle funzionalità e dei caratteri originali del progetto, consulta la pagina [static/agnochat.html](static/agnochat.html).
+> ⬇️ **Installazione locale:** vedi [static/installazione.html](static/installazione.html) — `git clone https://github.com/gmaterni/agnochat.git`
 
 ## Setup Rapido
 
 Essendo un'applicazione puramente statica, non richiede build system (Webpack, Vite, ecc.) né backend.
 
-1. **Requisiti**: un qualsiasi web server statico (es: `python3 -m http.server`, `npx http-server .`, o l'estensione "Live Server" di VS Code), servito dalla root del progetto.
+1. **Requisiti**: un qualsiasi web server statico (es: `python3 -m http.server`, `npx http-server .`, o l'estensione "Live Server" di VS Code), servito dalla root del progetto. Scarica il codice con `git clone https://github.com/gmaterni/agnochat.git` o *Download ZIP* dalla pagina GitHub (vedi [installazione](static/installazione.html)).
 2. **Avvio**: apri il browser all'indirizzo locale della root — `index.html` redirige automaticamente a `static/index.html`.
 3. **Configurazione API**:
     - Apri il menu laterale (☰).
