@@ -66,19 +66,19 @@
 
     <div class="menu-h">
       <input id="id-menu-btn" name="id-menu-btn" class="menu-btn" type="checkbox" />
-      <label for="id-menu-btn" id="id-menu-icon-label" class="menu-icon tt-right" data-tt="Menu">
+      <label for="id-menu-btn" id="id-menu-icon-label" class="menu-icon">
         <span class="nav-icon"></span>
       </label>
 
       <div class="head-wrapper">
-        <button id="btn-help" class="help tt-bottom" data-tt="Help">Help</button>
-        <button id="btn-readme" class="readme tt-bottom" data-tt="README">README</button>
-        <button id="btn-provider-settings" class="provider-settings">LLM</button>
+        <button id="btn-help" class="help" data-help="Help|Apre il manuale utente con l'elenco dei comandi dell'app.">Help</button>
+        <button id="btn-readme" class="readme" data-help="README|Apre la guida completa dell'applicazione in una nuova scheda.">README</button>
+        <button id="btn-provider-settings" class="provider-settings" data-help="Configurazione LLM|Seleziona il provider AI e il modello specifico.">LLM</button>
         <span id="active-model-display" class="active-model-display"></span>
-        <button class="log tt-bottom" id="id_log" data-tt="Log">Log</button>
+        <button class="log" id="id_log">Log</button>
       </div>
 
-      <button id="btn-theme-toggle" class="btn-theme-toggle tt-left" data-tt="Tema Chiaro">
+      <button id="btn-theme-toggle" class="btn-theme-toggle">
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="5" />
           <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
@@ -91,24 +91,24 @@
       <div class="menu-box">
         <ul>
           <li><b>Conversazioni</b></li>
-          <li><a href="#" id="menu-new-conversation">Nuova Conversazione</a></li>
-          <li><a href="#" id="menu-list-conversations">Gestisci Conversazioni</a></li>
+          <li><a href="#" id="menu-new-conversation" data-help="Nuova Conversazione|Crea una nuova conversazione vuota e la attiva. La conversazione attiva resta salvata.">Nuova Conversazione</a></li>
+          <li><a href="#" id="menu-list-conversations" data-help="Gestisci Conversazioni|Elenca, visualizza, attiva o elimina le conversazioni salvate.">Gestisci Conversazioni</a></li>
           <li class="separator"></li>
           <li><b>Prompt di Sistema</b></li>
-          <li><a href="#" id="menu-new-prompt">Nuovo System Prompt</a></li>
-          <li><a href="#" id="menu-list-prompts">Gestisci System Prompt</a></li>
+          <li><a href="#" id="menu-new-prompt" data-help="Nuovo System Prompt|Crea un prompt di sistema personalizzato con nome e contenuto.">Nuovo System Prompt</a></li>
+          <li><a href="#" id="menu-list-prompts" data-help="Gestisci System Prompt|Elenca, modifica, seleziona o elimina i prompt di sistema.">Gestisci System Prompt</a></li>
           <li class="separator"></li>
           <li><b>LLM</b></li>
-          <li><a href="#" id="menu-test-llm">Test LLM</a></li>
-          <li><a href="#" id="menu-reset-llm">Reset LLM</a></li>
-          <li><a href="#" id="menu-llm-update">Aggiorna LLM</a></li>
-          <li><a href="#" id="menu-provider-tree">Seleziona LLM</a></li>
+          <li><a href="#" id="menu-test-llm" data-help="Test LLM|Esegue il test sugli LLM di un provider, utilizzando il prompt.">Test LLM</a></li>
+          <li><a href="#" id="menu-reset-llm" data-help="Reset LLM|Azzera la selezione attiva e ripristina tutti i modelli disponibili dai file locali.">Reset LLM</a></li>
+          <li><a href="#" id="menu-llm-update" data-help="Aggiorna LLM|Testa i modelli dei provider con chiave attiva e aggiorna l'albero di selezione LLM.">Aggiorna LLM</a></li>
+          <li><a href="#" id="menu-provider-tree" data-help="Seleziona LLM|Apre l'elenco dei modelli scaricati con checkbox per aggiornare l'albero di scelta LLM.">Seleziona LLM</a></li>
           <li class="separator"></li>
           <li><b>API Key</b></li>
-          <li><a href="#" id="menu-default-api-keys">Reset Api Keys</a></li>
-          <li><a href="#" id="menu-add-api-key">Gestisci API Key</a></li>
+          <li><a href="#" id="menu-default-api-keys" data-help="Reset Api Keys|Ripristina le chiavi API predefinite, sovrascrivendo quelle attuali.">Reset Api Keys</a></li>
+          <li><a href="#" id="menu-add-api-key" data-help="Gestione API Key|Aggiungi, attiva o elimina le tue chiavi API personali.">Gestisci API Key</a></li>
           <li class="separator"></li>
-          <li><a href="#" id="menu-reset" class="delete menu-reset">Reset</a></li>
+          <li><a href="#" id="menu-reset" class="delete menu-reset" data-help="Reset|Cancella TUTTI i dati: conversazioni, prompt, chiavi API e configurazione.">Reset</a></li>
           <li class="separator"></li>
           <li><a href="#" id="menu-logout" class="delete menu-logout">Logout</a></li>
         </ul>
@@ -120,12 +120,12 @@
       <div class="item item1">
         <div class="output-wrapper">
           <div class="output-toolbar">
-            <button id="btn-copy-output-toolbar" class="tt-bottom" data-tt="Copia Output">
+            <button id="btn-copy-output-toolbar" data-help="Copia Output|Copia il testo dell'output della chat negli appunti.">
               <svg class="icon" viewBox="0 0 24 24">
                 <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
               </svg>
             </button>
-            <button id="btn-clear-output" class="tt-bottom" data-tt="Cancella Output">
+            <button id="btn-clear-output" data-help="Cancella Output|Svuota la vista dell'output senza cancellare la cronologia della conversazione.">
               <svg class="icon" viewBox="0 0 24 24">
                 <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
               </svg>
@@ -141,29 +141,29 @@
       <div class="item item2">
         <div class="input-wrapper">
           <textarea class="text-input" id="text-input" placeholder="Scrivi qui... " rows="2"></textarea>
-          <button id="btn-upload-doc" class="btn-upload-doc tt-top" data-tt="Carica documento">
+          <button id="btn-upload-doc" class="btn-upload-doc" data-help="Carica documento">
             <svg viewBox="0 0 24 24" width="22" height="22">
               <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
             </svg>
           </button>
-          <button id="btn-edit-last" class="btn-edit-last tt-top" data-tt="Modifica domanda" style="display: none;">
+          <button id="btn-edit-last" class="btn-edit-last" data-help="Modifica domanda" style="display: none;">
             <svg viewBox="0 0 24 24">
               <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
             </svg>
           </button>
         </div>
         <div class="input-context-actions">
-          <button id="btn-copy-output" class="tt-leftx" data-tt="Copia Output">
+          <button id="btn-copy-output" data-help="Copia Output|Copia il testo dell'output della chat negli appunti.">
             <svg class="icon" viewBox="0 0 24 24">
               <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
             </svg>
           </button>
-          <button class="clear-input tt-leftx" data-tt="Cancella Input">
+          <button class="clear-input" data-help="Cancella Input">
             <svg class="icon" viewBox="0 0 24 24">
               <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
             </svg>
           </button>
-          <button id="btn-action-send" class="tt-leftx" data-tt="Invia Messaggio">
+          <button id="btn-action-send" data-help="Invia Messaggio|Invia la domanda al modello attivo mantenendo la memoria della conversazione.">
             <svg class="btn-icon-svg" viewBox="0 0 24 24">
               <path fill="currentColor" d="M8 5v14l11-7z" />
             </svg>

@@ -275,7 +275,7 @@ const _buildUploadHtml = function() {
     const htmlContent = `
       <div class="window-text">
         <div class="btn-wrapper">
-         <button class="btn-close tt-left " data-tt="Chiudi">X</button>
+         <button class="btn-close" data-help="Chiudi">X</button>
         </div>
         <div class="upload-dialog-content">
           <p class="upload-description">Trascina uno o più file (testo, PDF, DOCX, ODT) o clicca per selezionarli. Il contenuto verrà aggiunto al contesto del prompt.</p>

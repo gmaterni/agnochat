@@ -32,7 +32,7 @@ export const UaLog = {
     }
     const h = `
     <button type="button" class="clear">Clear</button>
-    <button type="button" class="close tt-left" data-tt="Chiudi">Close</button>
+    <button type="button" class="close" data-help="Chiudi">Close</button>
     <pre id="ualogmsg_"></pre>`;
     this.wind.setHtml(h);
     document.getElementById("ualog_id").addEventListener("click", (e) => {

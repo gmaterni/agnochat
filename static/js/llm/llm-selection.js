@@ -182,18 +182,18 @@ export const createLlmSelectionWindow = function(db, options) {
      * @param {Object} jfh - Istanza UaJtfh della finestra.
      */
     const _appendHeader = function(jfh) {
-        const ttSave = "Salva: sostituisce i salvati con gli spuntati";
-        const ttAdd = "Aggiungi: unisce gli spuntati ai salvati";
-        const ttCancel = "Annulla: deseleziona tutto";
-        const ttRestore = "Seleziona Attivi: ripristina solo gli attivi";
+        const ttSave = "Salva|Sostituisce i salvati con gli spuntati";
+        const ttAdd = "Aggiungi|Unisce gli spuntati ai salvati";
+        const ttCancel = "Annulla|Deseleziona tutto";
+        const ttRestore = "Seleziona Attivi|Ripristina solo gli attivi";
         jfh.append('<div class="btn-wrapper llm-btn-wrapper">');
         jfh.append('<span class="llm-header-btns">');
-        jfh.append("<button class=\"btn-success tt-bottom\" data-tt=\"" + ttSave + "\" data-action=\"llm-save\">Salva</button>");
-        jfh.append("<button class=\"btn-yellow tt-bottom\" data-tt=\"" + ttAdd + "\" data-action=\"llm-add\">Aggiungi</button>");
-        jfh.append("<button class=\"btn-danger tt-bottom\" data-tt=\"" + ttCancel + "\" data-action=\"llm-reset\">Annulla</button>");
-        jfh.append("<button class=\"btn-info tt-bottom\" data-tt=\"" + ttRestore + "\" data-action=\"llm-restore\">Seleziona Attivi</button>");
+        jfh.append("<button class=\"btn-success\" data-help=\"" + ttSave + "\" data-action=\"llm-save\">Salva</button>");
+        jfh.append("<button class=\"btn-yellow\" data-help=\"" + ttAdd + "\" data-action=\"llm-add\">Aggiungi</button>");
+        jfh.append("<button class=\"btn-danger\" data-help=\"" + ttCancel + "\" data-action=\"llm-reset\">Annulla</button>");
+        jfh.append("<button class=\"btn-info\" data-help=\"" + ttRestore + "\" data-action=\"llm-restore\">Seleziona Attivi</button>");
         jfh.append('</span>');
-        jfh.append('<button class="btn-close tt-left" data-tt="Chiudi" data-action="llm-close">X</button>');
+        jfh.append('<button class="btn-close" data-help="Chiudi" data-action="llm-close">X</button>');
         jfh.append('</div>');
     };
 
@@ -315,10 +315,10 @@ export const createLlmSelectionWindow = function(db, options) {
         jfh.append('<table class="table-data llm-select-table llm-select-head">');
         jfh.append(HEADER_COLS);
         jfh.append('<thead><tr>');
-        jfh.append('<th data-tt="LLM">LLM</th>');
-        jfh.append('<th class="tt-left" data-tt="Voto (6-10): punteggio qualità basato su velocità e completezza risposta">V</th>');
-        jfh.append('<th class="tt-left" data-tt="Tempo di risposta in secondi">T</th>');
-        jfh.append('<th class="tt-left" data-tt="Dimensione finestra di contesto in migliaia di token (k)">W</th>');
+        jfh.append('<th data-help="LLM">LLM</th>');
+        jfh.append('<th data-help="V|Voto (6-10): punteggio qualità basato su velocità e completezza risposta">V</th>');
+        jfh.append('<th data-help="T|Tempo di risposta in secondi">T</th>');
+        jfh.append('<th data-help="W|Dimensione finestra di contesto in migliaia di token (k)">W</th>');
         jfh.append('</tr></thead>');
         jfh.append('</table>');
 
@@ -538,7 +538,7 @@ export const createLlmSelectionWindow = function(db, options) {
         const selectedModels = _collectSelected(discoveredMap);
 
         if (selectedModels.length === 0) {
-            alert("Nessun modello selezionato da aggiungere.");
+            await alert("Nessun modello selezionato da aggiungere.");
             return;
         }
 

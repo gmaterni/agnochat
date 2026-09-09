@@ -341,47 +341,6 @@
     position: static;
     flex: none;
   }
-
-  // Tooltip nella header Seleziona LLM: sintetici, larghi e garantiti visibili dentro la finestra
-  [data-tt]::before {
-    white-space: nowrap;
-    max-width: none;
-    width: auto;
-    text-align: left;
-    line-height: 1.4;
-    padding: 6px 14px;
-    font-size: 13px;
-    z-index: 99999;
-    pointer-events: none;
-  }
-
-  [data-tt]::after {
-    z-index: 99999;
-  }
-
-  // Salva e Aggiungi a sinistra: allinea tooltip a sinistra per non uscire dalla finestra
-  .llm-header-btns button:nth-child(1)[data-tt]::before,
-  .llm-header-btns button:nth-child(2)[data-tt]::before {
-    left: 0;
-    transform: none;
-  }
-  .llm-header-btns button:nth-child(1)[data-tt]::after,
-  .llm-header-btns button:nth-child(2)[data-tt]::after {
-    left: 12px;
-    transform: none;
-  }
-
-  // Seleziona Attivi è l'ultimo a destra: allinea tooltip a destra per restare dentro
-  .llm-header-btns button:last-child[data-tt]::before {
-    left: auto;
-    right: 0;
-    transform: none;
-  }
-  .llm-header-btns button:last-child[data-tt]::after {
-    left: auto;
-    right: 12px;
-    transform: none;
-  }
 }
 
 // Contenuto per finestra LLM: header label attaccato ai comandi, corpo scorre

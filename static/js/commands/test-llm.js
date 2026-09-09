@@ -169,7 +169,7 @@ const _showProviderWindow = function(grouped, prompt) {
     jfh.append('<div class="' + PICK_CONTAINER_CLASS + ' window-info">');
     jfh.append('<div class="btn-wrapper">');
     jfh.append("<h4>Test LLM</h4>");
-    jfh.append('<button class="btn-close tt-left" data-tt="Chiudi" data-action="test-close">X</button>');
+    jfh.append('<button class="btn-close" data-help="Chiudi" data-action="test-close">X</button>');
     jfh.append("</div>");
     jfh.append('<div class="test-llm-prompt-box">' + promptText + "</div>");
     jfh.append('<ul class="test-llm-providers">');
@@ -221,7 +221,7 @@ const _showSummaryWindow = function(provider, outcomes) {
     jfh.append('<div class="window-info test-llm-summary">');
     jfh.append('<div class="btn-wrapper">');
     jfh.append("<h4>Riepilogo " + title + "</h4>");
-    jfh.append('<button class="btn-close tt-left" data-tt="Chiudi" data-action="summary-close">X</button>');
+    jfh.append('<button class="btn-close" data-help="Chiudi" data-action="summary-close">X</button>');
     jfh.append("</div>");
     jfh.append('<table class="table-data">');
     jfh.append("<thead><tr><th>Modello</th><th>Response</th><th>Tempo / Errore</th></tr></thead>");

@@ -77,6 +77,12 @@ const POPUP_HIDE_DELAY_MS = 300;
 /** Durata della transizione di scomparsa del popup help (millisecondi). */
 const POPUP_FADE_MS = 200;
 
+/** Nome dell'attributo dichiarativo con il testo del tooltip. */
+const HELP_ATTR_NAME = "data-help";
+
+/** Delimitatore tra titolo e descrizione nel valore dichiarativo. */
+const HELP_ATTR_DELIMITER = "|";
+
 /** Icona SVG del pulsante copia, condivisa da tutte le finestre che la usano. */
 const COPY_ICON_SVG = '<svg class="icon copy-icon" viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"></path></svg>';
 
@@ -138,6 +144,8 @@ const _createSpinner = function(elementId, stopHandler, stopMessage = "Confermi 
     }
 
     if (spinnerContent) {
+      // Rimuove prima di aggiungere: show() idempotente, nessun doppio listener di STOP.
+      spinnerContent.removeEventListener("click", stopAsync);
       spinnerContent.addEventListener("click", stopAsync);
     }
   };
@@ -229,12 +237,12 @@ const _UaWindowFactory = function(id, contentClass, copyMethodName, showCopy = t
         _win.vw_vh().setXY(xPos, WINDOW_Y_VW, 1);
 
         const copyBtnHtml = showCopy ? `
-                    <button class="btn-copy wcp tt-left" data-tt="Copia" onclick="wnds.${copyMethodName}.copy()">
+                    <button class="btn-copy wcp" data-help="Copia" onclick="wnds.${copyMethodName}.copy()">
                         ${COPY_ICON_SVG}
                     </button>
-                    <button class="btn-close wcl tt-left" data-tt="Chiudi" onclick="wnds.${copyMethodName}.close()">X</button>
+                    <button class="btn-close wcl" data-help="Chiudi" onclick="wnds.${copyMethodName}.close()">X</button>
                     ` : `
-                    <button class="btn-copy wcl tt-left" data-tt="Chiudi" onclick="wnds.${copyMethodName}.close()">
+                    <button class="btn-copy wcl" data-help="Chiudi" onclick="wnds.${copyMethodName}.close()">
                         <svg class="icon close-icon-yellow" viewBox="0 0 24 24">
                             <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
                         </svg>
@@ -286,7 +294,7 @@ const _UaWindowInfoFactory = function(id) {
         const html = `
             <div class="window-info">
                 <div class="btn-wrapper">
-                    <button class="btn-close tt-left" data-tt="Chiudi" onclick="wnds.winfo.close()">X</button>
+                    <button class="btn-close" data-help="Chiudi" onclick="wnds.winfo.close()">X</button>
                 </div>
                 <div class="div-info">${innerContent}</div>
             </div>
@@ -317,6 +325,7 @@ const _UaWindowInfoFactory = function(id) {
 const HelpPopup = (function() {
     let _popupEl = null;
     let _hideTimer = null;
+    let _delegated = false;
 
     const _createPopup = function() {
         if (_popupEl) return;
@@ -326,13 +335,16 @@ const HelpPopup = (function() {
         document.body.appendChild(_popupEl);
     };
 
-    const show = function(event, text) {
+    const show = function(event, text, isCompact) {
         _createPopup();
         if (_hideTimer) {
             clearTimeout(_hideTimer);
             _hideTimer = null;
         }
         _popupEl.innerHTML = text;
+        const variantClass = isCompact ? "help-popup--compact" : "help-popup--rich";
+        _popupEl.classList.remove("help-popup--compact", "help-popup--rich");
+        _popupEl.classList.add(variantClass);
         _popupEl.classList.remove("visible");
         _popupEl.style.display = "block";
 
@@ -388,20 +400,157 @@ const HelpPopup = (function() {
         }, POPUP_HIDE_DELAY_MS);
     };
 
+    /**
+     * Compone l'HTML del popup da titolo e descrizione già filtrati.
+     */
+    const _buildHtml = function(title, desc) {
+        if (!desc) {
+            return title;
+        }
+        const html = `<strong>${title}</strong><br>${desc}`;
+        return html;
+    };
+
+    /**
+     * Interpreta il valore dichiarativo ("Titolo|Descrizione", descrizione opzionale).
+     */
+    const _parseDeclared = function(value) {
+        const safeValue = value || "";
+        const sepIndex = safeValue.indexOf(HELP_ATTR_DELIMITER);
+        let title = safeValue;
+        let desc = "";
+        if (sepIndex >= 0) {
+            title = safeValue.slice(0, sepIndex);
+            desc = safeValue.slice(sepIndex + 1);
+        }
+        const cleanTitle = escapeHtml(title.trim());
+        const cleanDesc = escapeHtml(desc.trim());
+        const html = _buildHtml(cleanTitle, cleanDesc);
+        const parsed = { html: html, isCompact: !cleanDesc };
+        return parsed;
+    };
+
+    /**
+     * Risolve il tooltip per un elemento: funzione dinamica, HTML legato o attributo.
+     */
+    const _resolveFor = function(trigger) {
+        if (trigger._helpFn) {
+            const declared = trigger._helpFn();
+            const parsed = _parseDeclared(declared);
+            return parsed;
+        }
+        if (trigger._helpHtml) {
+            const resolved = { html: trigger._helpHtml, isCompact: false };
+            return resolved;
+        }
+        const attrValue = trigger.getAttribute(HELP_ATTR_NAME);
+        if (attrValue) {
+            const parsed = _parseDeclared(attrValue);
+            return parsed;
+        }
+        return null;
+    };
+
+    /**
+     * Cerca il trigger risalendo dal nodo sotto il mouse.
+     */
+    const _findTrigger = function(node) {
+        let current = node;
+        while (current && current !== document) {
+            const isElement = current.nodeType === 1;
+            const hasHelp = isElement && (current._helpFn || current._helpHtml || current.hasAttribute(HELP_ATTR_NAME));
+            if (hasHelp) {
+                return current;
+            }
+            current = current.parentNode;
+        }
+        return null;
+    };
+
+    /**
+     * Verifica se il mouse resta dentro lo stesso trigger (spostamento interno).
+     */
+    const _isStillInside = function(trigger, related) {
+        const inside = related && trigger.contains(related);
+        return inside;
+    };
+
+    const _onMouseOver = function(event) {
+        const trigger = _findTrigger(event.target);
+        if (!trigger) {
+            return;
+        }
+        if (_isStillInside(trigger, event.relatedTarget)) {
+            return;
+        }
+        const resolved = _resolveFor(trigger);
+        if (!resolved) {
+            return;
+        }
+        const fakeEvent = { currentTarget: trigger };
+        show(fakeEvent, resolved.html, resolved.isCompact);
+    };
+
+    const _onMouseOut = function(event) {
+        const trigger = _findTrigger(event.target);
+        if (!trigger) {
+            return;
+        }
+        if (_isStillInside(trigger, event.relatedTarget)) {
+            return;
+        }
+        hide();
+    };
+
+    const _onClick = function(event) {
+        const trigger = _findTrigger(event.target);
+        if (!trigger) {
+            return;
+        }
+        hide();
+    };
+
+    /**
+     * Attiva la delega globale (una sola volta).
+     */
+    const init = function() {
+        if (_delegated) {
+            return;
+        }
+        _delegated = true;
+        document.addEventListener("mouseover", _onMouseOver);
+        document.addEventListener("mouseout", _onMouseOut);
+        document.addEventListener("click", _onClick);
+    };
+
+    /**
+     * Rimuove gli attributi del vecchio sistema CSS per evitare doppi tooltip.
+     */
+    const _stripLegacy = function(el) {
+        el.removeAttribute("data-tt");
+        el.removeAttribute("title");
+        const classesToRemove = Array.from(el.classList).filter(function(c) { return c.startsWith("tt-"); });
+        classesToRemove.forEach(function(c) { el.classList.remove(c); });
+    };
+
     const bind = function(id, text) {
         const el = document.getElementById(id);
         if (!el) return;
-        el.removeAttribute("data-tt");
-        el.removeAttribute("title");
-        const classesToRemove = Array.from(el.classList).filter(c => c.startsWith("tt-"));
-        classesToRemove.forEach(c => el.classList.remove(c));
-        const trigger = el.closest("li") || el;
-        trigger.addEventListener("mouseenter", (e) => show(e, text));
-        trigger.addEventListener("mouseleave", hide);
-        trigger.addEventListener("click", hide);
+        _stripLegacy(el);
+        el._helpHtml = text;
     };
 
-    const api = { bind };
+    /**
+     * Lega un testo dinamico rivalutato a ogni apertura del popup.
+     */
+    const bindDynamic = function(id, textFn) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        _stripLegacy(el);
+        el._helpFn = textFn;
+    };
+
+    const api = { bind: bind, bindDynamic: bindDynamic, init: init };
     return api;
 })();
 
@@ -428,9 +577,12 @@ const renderDocBar = function() {
     docBar.style.display = "flex";
     docBar.innerHTML = docs.map(doc => {
         const escName = escapeHtml(doc.fileName);
-        const itemHtml = `<span class="doc-item tt-top" data-tt="${escName}">
+        // Nome per l'attributo data-help: solo le virgolette vanno codificate,
+        // l'escape HTML completo lo applica il motore tooltip (niente doppio escape).
+        const attrName = doc.fileName.replace(/"/g, "&quot;");
+        const itemHtml = `<span class="doc-item" data-help="${attrName}">
           <svg class="doc-icon" viewBox="0 0 24 24"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M12,19L8,15H10.5V12H13.5V15H16L12,19Z"/></svg>
-          <button class="doc-remove" data-doc-name="${escName}" title="Rimuovi">
+          <button class="doc-remove" data-doc-name="${escName}" data-help="Rimuovi documento">
             <svg class="icon-remove" viewBox="0 0 24 24"><path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/></svg>
           </button>
         </span>`;
@@ -451,7 +603,6 @@ const _updateThemeAsync = async function(theme) {
             sunIcon.style.display = isLight ? "none" : "block";
             moonIcon.style.display = isLight ? "block" : "none";
         }
-        btn.setAttribute("data-tt", isLight ? "Tema Scuro" : "Tema Chiaro");
     }
 
     await SettingsMgr.setTheme(theme);
@@ -507,9 +658,9 @@ const _actionListConversationsAsync = async function() {
             jfh.append(`<td>${title}${activeMark}</td>`);
             jfh.append(`<td>${date}</td>`);
             jfh.append('<td>');
-            jfh.append(`<button class="btn-success" onclick="wnds.viewConversation(${c.id})">Visualizza</button>`);
-            jfh.append(`<button class="btn-success btn-ml5" onclick="wnds.selectConversation(${c.id})">Attiva</button>`);
-            jfh.append(`<button class="btn-danger btn-ml5" onclick="wnds.deleteConversation(${c.id})">Elimina</button>`);
+            jfh.append(`<button class="btn-success" data-action="conv-view" data-id="${c.id}">Visualizza</button>`);
+            jfh.append(`<button class="btn-success btn-ml5" data-action="conv-select" data-id="${c.id}">Attiva</button>`);
+            jfh.append(`<button class="btn-danger btn-ml5" data-action="conv-delete" data-id="${c.id}">Elimina</button>`);
             jfh.append('</td></tr>');
         });
         jfh.append('</tbody></table>');
@@ -517,11 +668,33 @@ const _actionListConversationsAsync = async function() {
 
     jfh.append('</div>');
 
-    wnds.viewConversation = _showConversationViewAsync;
-    wnds.selectConversation = _selectConversationAsync;
-    wnds.deleteConversation = _deleteConversationAsync;
-
     wnds.winfo.show(jfh.html());
+
+    _bindConversationListButtons();
+};
+
+/**
+ * Lega i bottoni della lista conversazioni dopo il render e prima dell'uso.
+ * Stesso pattern di llm-selection.js: attributi data-action + querySelector
+ * con addEventListener, niente onclick inline. Gli id IndexedDB sono numerici:
+ * dataset.id (stringa) va convertito con Number prima di passarlo agli handler.
+ */
+const _bindConversationListButtons = function() {
+    const listWin = UaWindowAdm.get("id-wnd-info");
+    const listEl = listWin && listWin.getElement();
+    if (!listEl) return;
+    const handlers = {
+        "conv-view": _showConversationViewAsync,
+        "conv-select": _selectConversationAsync,
+        "conv-delete": _deleteConversationAsync
+    };
+    Object.keys(handlers).forEach(function(action) {
+        listEl.querySelectorAll('[data-action="' + action + '"]').forEach(function(btn) {
+            btn.addEventListener("click", function() {
+                handlers[action](Number(btn.dataset.id));
+            });
+        });
+    });
 };
 
 /**
@@ -558,8 +731,8 @@ const _showConversationViewAsync = async function(id) {
         const btnWrapper = container.querySelector(".btn-wrapper");
         if (btnWrapper) {
             const copyBtn = document.createElement("button");
-            copyBtn.className = "btn-copy tt-left";
-            copyBtn.setAttribute("data-tt", "Copia");
+            copyBtn.className = "btn-copy";
+            copyBtn.setAttribute("data-help", "Copia");
             copyBtn.innerHTML = COPY_ICON_SVG;
             copyBtn.onclick = () => _copyConversationAsync(copyBtn, messages);
             btnWrapper.insertBefore(copyBtn, btnWrapper.firstChild);
@@ -639,6 +812,22 @@ const PROMPT_EXAMPLES = [
     {
         name: "Sintetizzatore di Testi",
         content: "Riceverai testi da riassumere. Producisci un riassunto chiaro e strutturato: prima una frase con l'idea centrale, poi i punti chiave in elenco puntato. Non aggiungere informazioni non presenti nel testo originale."
+    },
+    {
+        name: "Programmatore Python",
+        content: "Sei un esperto di Python 3.10+. Scrivi codice completo e funzionante: usa la standard library prima di ogni dipendenza esterna, aggiungi type hints, gestisci gli errori con eccezioni specifiche e nomi in inglese. Commenta in italiano solo i passaggi non ovvi. Alla fine mostra un breve esempio di utilizzo."
+    },
+    {
+        name: "Revisore di Codice",
+        content: "Sei un revisore di codice severo e costruttivo. Analizza il codice ricevuto cercando bug, problemi di leggibilità e colli di bottiglia. Restituisci i rilievi ordinati per gravità (bloccante, consigliato, opzionale), ciascuno con riga di riferimento e proposta di correzione. Concludi con un giudizio sintetico."
+    },
+    {
+        name: "Correttore di Bozze",
+        content: "Sei un correttore di bozze di italiano. Correggi ortografia, grammatica e punteggiatura del testo ricevuto senza alterarne stile e tono. Restituisci prima l'elenco delle correzioni (originale → corretto), poi il testo finale corretto."
+    },
+    {
+        name: "Tutor di Studio",
+        content: "Sei un tutor paziente. Spiega l'argomento richiesto con parole semplici, un esempio concreto della vita quotidiana e un'analogia. Concludi con una domanda di verifica e attendi la risposta prima di proseguire. Adatta il livello alle risposte ricevute."
     }
 ];
 
@@ -666,14 +855,15 @@ const _showPromptEditorAsync = function(prompt) {
     jfh.append('<div class="ak-form-row"><div><label class="ak-label">Contenuto</label></div></div>');
     jfh.append('<textarea id="prompt-inp-content" class="ak-input-key" rows="10" placeholder="Istruzioni per il modello"></textarea>');
     jfh.append('<div class="ak-form-row-inputs">');
-    jfh.append('<button class="ak-btn-add" onclick="wnds.handleSavePrompt()">Salva</button>');
-    jfh.append('<button class="btn-danger ak-btn-del" onclick="wnds.winfo.close()">Annulla</button>');
+    jfh.append('<button class="ak-btn-add" data-action="prompt-save">Salva</button>');
+    jfh.append('<button class="btn-danger ak-btn-del" data-action="prompt-cancel">Annulla</button>');
     jfh.append('</div></div></div>');
 
-    wnds.handleSavePrompt = () => _savePromptAsync(prompt, isEdit);
     wnds.handlePromptExample = _applyPromptExample;
 
     wnds.winfo.show(jfh.html());
+
+    _bindPromptEditorButtons(prompt, isEdit);
 
     // Finestra dell'editor prompt a larghezza fissa 60vw
     const promptWin = UaWindowAdm.get("id-wnd-info");
@@ -683,6 +873,23 @@ const _showPromptEditorAsync = function(prompt) {
         const textarea = document.getElementById("prompt-inp-content");
         if (textarea) textarea.value = prompt.content;
     }
+};
+
+/**
+ * Lega i bottoni Salva/Annulla dell'editor prompt dopo il render.
+ * Stesso pattern della lista: data-action + querySelector con addEventListener.
+ * La select degli esempi resta su onchange inline (fuori scopo di questa change).
+ * @param {Object|null} prompt - Prompt in modifica o null per crearne uno nuovo.
+ * @param {boolean} isEdit - True se si sta modificando un prompt esistente.
+ */
+const _bindPromptEditorButtons = function(prompt, isEdit) {
+    const editorWin = UaWindowAdm.get("id-wnd-info");
+    const editorEl = editorWin && editorWin.getElement();
+    if (!editorEl) return;
+    const btnSave = editorEl.querySelector('[data-action="prompt-save"]');
+    if (btnSave) btnSave.addEventListener("click", function() { _savePromptAsync(prompt, isEdit); });
+    const btnCancel = editorEl.querySelector('[data-action="prompt-cancel"]');
+    if (btnCancel) btnCancel.addEventListener("click", function() { wnds.winfo.close(); });
 };
 
 /**
@@ -709,7 +916,7 @@ const _savePromptAsync = async function(prompt, isEdit) {
     const name = document.getElementById("prompt-inp-name").value.trim();
     const content = document.getElementById("prompt-inp-content").value;
     if (!name || !content.trim()) {
-        alert("Nome e contenuto obbligatori.");
+        await alert("Nome e contenuto obbligatori.");
         return;
     }
     if (isEdit) {
@@ -762,24 +969,50 @@ const _actionListPromptsAsync = async function() {
             jfh.append(`<td>${promptName}${activeMark}</td>`);
             jfh.append('<td>');
             const actionLabel = isActive ? "Attivo" : "Attiva";
-            jfh.append(`<button class="btn-success" onclick="wnds.activatePrompt(${p.id})">${actionLabel}</button>`);
-            jfh.append(`<button class="btn-warning btn-ml5" onclick="wnds.editPrompt(${p.id})">Modifica</button>`);
-            jfh.append(`<button class="btn-danger btn-ml5" onclick="wnds.deletePrompt(${p.id})">Elimina</button>`);
+            jfh.append(`<button class="btn-success" data-action="prompt-activate" data-id="${p.id}">${actionLabel}</button>`);
+            jfh.append(`<button class="btn-warning btn-ml5" data-action="prompt-edit" data-id="${p.id}">Modifica</button>`);
+            jfh.append(`<button class="btn-danger btn-ml5" data-action="prompt-delete" data-id="${p.id}">Elimina</button>`);
             jfh.append('</td></tr>');
         });
         jfh.append('</tbody></table>');
     }
 
     jfh.append('<div class="ak-form-row-inputs">');
-    jfh.append('<button class="btn-success" onclick="wnds.newPrompt()">Nuovo Prompt</button>');
+    jfh.append('<button class="btn-success" data-action="prompt-new">Nuovo Prompt</button>');
     jfh.append('</div></div>');
 
-    wnds.activatePrompt = _activatePromptAsync;
-    wnds.editPrompt = _editPromptAsync;
-    wnds.deletePrompt = _deletePromptAsync;
-    wnds.newPrompt = _newPrompt;
-
     wnds.winfo.show(jfh.html());
+
+    _bindPromptListButtons();
+};
+
+/**
+ * Lega i bottoni della lista prompt dopo il render e prima dell'uso.
+ * Stesso pattern di llm-selection.js e della lista conversazioni:
+ * attributi data-action + querySelector con addEventListener.
+ */
+const _bindPromptListButtons = function() {
+    const listWin = UaWindowAdm.get("id-wnd-info");
+    const listEl = listWin && listWin.getElement();
+    if (!listEl) return;
+    const handlers = {
+        "prompt-activate": _activatePromptAsync,
+        "prompt-edit": _editPromptAsync,
+        "prompt-delete": _deletePromptAsync,
+        "prompt-new": _newPrompt
+    };
+    Object.keys(handlers).forEach(function(action) {
+        listEl.querySelectorAll('[data-action="' + action + '"]').forEach(function(btn) {
+            btn.addEventListener("click", function() {
+                const rawId = btn.dataset.id;
+                if (rawId === undefined) {
+                    handlers[action]();
+                } else {
+                    handlers[action](Number(rawId));
+                }
+            });
+        });
+    });
 };
 
 /**
@@ -867,10 +1100,6 @@ export const Commands = {
     readme: function() { window.open("README.html", "_blank"); },
     log: function() {
         UaLog.toggle();
-        const btn = document.getElementById("id_log");
-        if (btn) {
-            btn.setAttribute("data-tt", UaLog.active ? "Close" : "Open");
-        }
     },
     providerSettings: function() { toggleProviderTree(); },
     resetAll: async function() {
@@ -1050,7 +1279,7 @@ const _buildProviderTreeHtml = function() {
 
     jfh.append('<div class="provider-tree-header">')
        .append('  <span>Seleziona Modello</span>')
-       .append('  <button class="provider-tree-close-btn tt-left" data-tt="Chiudi">&times;</button>')
+       .append('  <button class="provider-tree-close-btn" data-help="Chiudi">&times;</button>')
        .append('</div>')
        .append('<ul class="provider-tree">');
 
@@ -1427,7 +1656,6 @@ const _bindInputEvents = function() {
         menuBtn.onchange = function() {
             const isOpen = menuBtn.checked;
             document.body.classList.toggle(CSS_MENU_OPEN, isOpen);
-            menuLabel.setAttribute("data-tt", isOpen ? "Close" : "Open");
         };
     }
 };
@@ -1459,37 +1687,22 @@ const _bindDocBarEvents = function() {
 
 /**
  * Inizializza i tooltip informativi (HelpPopup) di pulsanti e voci di menu.
+ * I testi statici sono dichiarati nel markup via data-help; qui solo delega e dinamici.
  */
 const _bindHelpPopups = function() {
-    // Header
-    HelpPopup.bind("btn-help", "<strong>Help</strong><br>Apre il manuale utente con l'elenco dei comandi dell'app.");
-    HelpPopup.bind("btn-readme", "<strong>README</strong><br>Apre la guida completa dell'applicazione in una nuova scheda.");
-    HelpPopup.bind("id_log", "<strong>Registro Eventi</strong><br>Mostra i messaggi di log dell'applicazione in tempo reale.");
-    HelpPopup.bind("btn-provider-settings", "<strong>Configurazione LLM</strong><br>Seleziona il provider AI e il modello specifico.");
-    // btn-theme-toggle usa tooltip CSS (data-tt) — dinamico in _updateThemeAsync
+    HelpPopup.init();
 
-    // Azioni
-    HelpPopup.bind("btn-action-send", "<strong>Invia Messaggio</strong><br>Invia la domanda al modello attivo mantenendo la memoria della conversazione.");
-    HelpPopup.bind("btn-copy-output", "<strong>Copia Output</strong><br>Copia il testo dell'output della chat negli appunti.");
-    HelpPopup.bind("btn-copy-output-toolbar", "<strong>Copia Output</strong><br>Copia il testo dell'output della chat negli appunti.");
-    HelpPopup.bind("btn-clear-output", "<strong>Cancella Output</strong><br>Svuota la vista dell'output senza cancellare la cronologia della conversazione.");
-
-    // Menu — Conversazioni
-    HelpPopup.bind("menu-new-conversation", "<strong>Nuova Conversazione</strong><br>Crea una nuova conversazione vuota e la attiva. La conversazione attiva resta salvata.");
-    HelpPopup.bind("menu-list-conversations", "<strong>Gestisci Conversazioni</strong><br>Elenca, visualizza, attiva o elimina le conversazioni salvate.");
-
-    // Menu — Prompt di Sistema
-    HelpPopup.bind("menu-new-prompt", "<strong>Nuovo System Prompt</strong><br>Crea un prompt di sistema personalizzato con nome e contenuto.");
-    HelpPopup.bind("menu-list-prompts", "<strong>Gestisci System Prompt</strong><br>Elenca, modifica, seleziona o elimina i prompt di sistema.");
-
-    // Menu — LLM
-    HelpPopup.bind("menu-test-llm", "<strong>Test LLM</strong><br>Esegue il test sugli LLM di un provider, utilizzando il prompt.");
-    HelpPopup.bind("menu-reset-llm", "<strong>Reset LLM</strong><br>Azzera la selezione attiva e ripristina tutti i modelli disponibili dai file locali.");
-    HelpPopup.bind("menu-provider-tree", "<strong>Seleziona LLM</strong><br>Apre l'elenco dei modelli scaricati con checkbox per aggiornare l'albero di scelta LLM.");
-    HelpPopup.bind("menu-llm-update", "<strong>Aggiorna LLM</strong><br>Testa i modelli dei provider con chiave attiva e aggiorna l'albero di selezione LLM.");
-    HelpPopup.bind("menu-add-api-key", "<strong>Gestione API Key</strong><br>Aggiungi, attiva o elimina le tue chiavi API personali.");
-    HelpPopup.bind("menu-default-api-keys", "<strong>Reset Api Keys</strong><br>Ripristina le chiavi API predefinite, sovrascrivendo quelle attuali.");
-
-    // Menu — Sistema
-    HelpPopup.bind("menu-reset", "<strong>Reset</strong><br>Cancella TUTTI i dati: conversazioni, prompt, chiavi API e configurazione.");
+    HelpPopup.bindDynamic("btn-theme-toggle", function() {
+        const isLight = document.body.classList.contains("theme-light");
+        return isLight ? "Tema Scuro" : "Tema Chiaro";
+    });
+    HelpPopup.bindDynamic("id_log", function() {
+        const desc = UaLog.active ? "Nasconde il registro eventi." : "Mostra i messaggi di log dell'applicazione in tempo reale.";
+        return `Registro Eventi|${desc}`;
+    });
+    HelpPopup.bindDynamic("id-menu-icon-label", function() {
+        const menuBtn = document.getElementById("id-menu-btn");
+        const isOpen = menuBtn && menuBtn.checked;
+        return isOpen ? "Chiudi menu" : "Apri menu";
+    });
 };
