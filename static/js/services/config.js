@@ -12,7 +12,7 @@
  * Tenerlo a false in uso normale: la login Google resta obbligatoria anche in
  * locale e LOCAL_USER_ID viene usato solo a login disabilitata (sviluppo senza auth).
  */
-export const DISABLE_LOGIN_ON_LOCAL = false;
+export const DISABLE_LOGIN_ON_LOCAL = true;
 
 /**
  * ID Utente assegnato automaticamente in ambiente locale se DISABLE_LOGIN_ON_LOCAL è true.
@@ -24,7 +24,7 @@ export const LOCAL_USER_ID = "user_local";
  * Tenerlo a false durante i test in locale, altrimenti il sender salta
  * l'invio e in console compare "invio saltato (ambiente locale)".
  */
-export const DISABLE_SENDER_ON_LOCAL = false;
+export const DISABLE_SENDER_ON_LOCAL = true;
 
 /**
  * URL del worker WWWANALYZER per l'invio eventi analytics.

@@ -62,7 +62,7 @@ function resolveUserId() {
  */
 window.onerror = function (message, source, lineno, colno, error) {
     const errorMsg = `ERRORE GLOBALE:\n${message}\nIn: ${source}:${lineno}`;
-    alert(errorMsg);
+    void alert(errorMsg);
 
     const stopPropagation = false;
     return stopPropagation;
@@ -81,7 +81,7 @@ window.onunhandledrejection = function (event) {
 
     const alertMsg = formatErrorPrefix(error, "ERRORE ASINCRONO (Promise)");
 
-    alert(alertMsg);
+    void alert(alertMsg);
 };
 
 // ============================================================================

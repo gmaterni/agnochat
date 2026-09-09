@@ -116,6 +116,25 @@ const UaWindowAdm = {
         return this;
       },
 
+      /**
+       * Applica stili inline alla finestra.
+       * Formato atteso: chiavi camelCase con valori stringa/numero
+       * (es. { width: "60vw" }). Le chiavi non valide vengono ignorate.
+       * @param {Object<string, string|number>} styles - Stili da applicare.
+       * @returns {Object} La finestra (chainable).
+       */
+      setStyle(styles) {
+        if (styles && typeof styles === "object") {
+          Object.keys(styles).forEach((key) => {
+            const value = styles[key];
+            if (typeof value === "string" || typeof value === "number") {
+              this.w.style[key] = value;
+            }
+          });
+        }
+        return this;
+      },
+
       show() {
         if (this.firstShow || this.pos === 1 || (this.pos === 0 && this.isVisible === false)) {
           this.w.style.position = "absolute";

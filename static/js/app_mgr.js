@@ -82,6 +82,11 @@ export const AppMgr = {
         // all'avvio loadConfig() girava con catalogo vuoto, la validazione
         // falliva e la selezione utente veniva sostituita dal default
         // (primo modello del primo provider).
+        // AVVISO (change refactor-leggero-ui): il doppio loadConfig() è voluto.
+        // Non rimuovere questo secondo giro senza far attendere getSelected()
+        // (ensureSelectedModels + applySelectionFilter) prima del primo:
+        // senza catalogo popolato validateActive() ripiega sul default e
+        // cancella la scelta salvata dell'utente al primo avvio.
         await LlmProvider.loadConfig();
         LlmProvider.validateActive();
     }

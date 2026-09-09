@@ -559,13 +559,85 @@
             <h2>Gestione delle API Key</h2>
             
             <div class="card">
+                <h3>Ottenere una API Key da un Provider</h3>
+                <p>
+                    La API Key è una stringa segreta che identifica il tuo account presso il provider
+                    e abilita le chiamate ai suoi modelli. Si ottiene dalla console web del provider:
+                    crea un account, vai alla sezione API Keys e genera una nuova chiave.
+                    <strong>Copiala subito</strong>: molti provider la mostrano una sola volta.
+                </p>
+                <ul>
+                    <li>
+                        <strong>Google Gemini</strong> — Vai su
+                        <a href="https://aistudio.google.com" target="_blank" rel="noopener">Google AI Studio</a>,
+                        accedi con l'account Google e premi <span class="kbd">Get API Key</span> →
+                        <span class="kbd">Create API key</span>. Il piano gratuito copre l'uso normale in chat.
+                    </li>
+                    <li>
+                        <strong>Mistral AI</strong> — Vai su
+                        <a href="https://console.mistral.ai" target="_blank" rel="noopener">console.mistral.ai</a>,
+                        apri <span class="kbd">API Keys</span> e crea una chiave. Potrebbe servirti un metodo
+                        di pagamento o credito prepagato anche per i modelli minori.
+                    </li>
+                    <li>
+                        <strong>Groq</strong> — Vai su
+                        <a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a>,
+                        apri <span class="kbd">API Keys</span> e premi <span class="kbd">Create API Key</span>.
+                        Il piano gratuito ha limiti di richieste al minuto.
+                    </li>
+                    <li>
+                        <strong>OpenRouter</strong> — Vai su
+                        <a href="https://openrouter.ai" target="_blank" rel="noopener">openrouter.ai</a>,
+                        apri <span class="kbd">Keys</span> e crea una chiave. La maggior parte dei modelli
+                        richiede crediti prepagati; alcuni modelli <em>free</em> funzionano a costo zero.
+                    </li>
+                    <li>
+                        <strong>Hugging Face</strong> — Vai su
+                        <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener">Settings → Access Tokens</a>
+                        e crea un token di tipo <span class="kbd">Read</span> (fine-grained). Serve per
+                        l'inferenza serverless sui modelli ospitati.
+                    </li>
+                </ul>
+                <div class="tip">
+                    Se una chiave smette di funzionare, rigenerala dalla stessa console e sostituiscila
+                    nell'app: le chiavi possono scadere o essere revocate dal provider.
+                </div>
+            </div>
+
+            <div class="card">
                 <h3>Aggiungere una Chiave API</h3>
                 <p>
-                    Dal menu laterale, vai su <strong>API Key > Gestisci API Key</strong>. Seleziona il provider per cui vuoi
-                    aggiungere la chiave e inseriscila nel campo dedicato.
+                    Dal menu laterale, vai su <strong>API Key > Gestisci API Key</strong> e compila il modulo in alto:
+                </p>
+                <ul>
+                    <li><strong>Provider</strong>: scegli il provider della chiave dal menu a tendina</li>
+                    <li><strong>Nome</strong>: un'etichetta a piacere (es. <code>personale</code>, <code>work</code>) per distinguerla</li>
+                    <li><strong>API Key</strong>: incolla la chiave copiata dalla console del provider</li>
+                </ul>
+                <p>
+                    Premi <span class="kbd">Aggiungi</span>: la chiave compare nell'elenco sotto il suo provider,
+                    mostrata in forma mascherata (primi/ultimi caratteri). Puoi salvare più chiavi per lo stesso provider.
                 </p>
                 <div class="tip">
                     Le chiavi vengono memorizzate in modo offuscato nell'IndexedDB del tuo browser.
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Attivare e Usare una Chiave</h3>
+                <p>
+                    Ogni provider usa <strong>una sola chiave attiva alla volta</strong>: nell'elenco,
+                    seleziona il pallino <span class="kbd">Attiva</span> sulla riga della chiave da usare.
+                    La riga attiva viene evidenziata. Poi:
+                </p>
+                <ul>
+                    <li>premi il pulsante <strong>LLM</strong> nella barra superiore per scegliere provider e modello;</li>
+                    <li>oppure usa <strong>LLM > Aggiorna LLM</strong>: testa i modelli dei provider che hanno una chiave attiva e aggiorna l'albero di selezione.</li>
+                </ul>
+                <div class="warning">
+                    Senza chiave attiva il provider non risponde: vedrai errori come <code>NO_KEY</code>
+                    (manca la chiave) o <code>401</code> (chiave non valida o scaduta). In tal caso
+                    controlla la chiave attiva in <strong>API Key > Gestisci API Key</strong>.
                 </div>
             </div>
 

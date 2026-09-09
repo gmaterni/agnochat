@@ -209,7 +209,7 @@ const _handleAddKey = async function(db, saveDb) {
     const name = document.getElementById("key-inp-name").value;
     const key = document.getElementById("key-inp-key").value;
     if (!provider || !name || !key) {
-        alert("Provider, Nome e Key obbligatori.");
+        await alert("Provider, Nome e Key obbligatori.");
         return;
     }
 
@@ -219,7 +219,7 @@ const _handleAddKey = async function(db, saveDb) {
     }
     const providerData = db.providers[provider];
     if (providerData.keys.some(k => k.name === name)) {
-        alert(`Esiste già una chiave con nome '${name}' per ${provider}.`);
+        await alert(`Esiste già una chiave con nome '${name}' per ${provider}.`);
         return;
     }
 
