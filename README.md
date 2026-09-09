@@ -46,4 +46,5 @@ Tutto l'applicativo vive in `static/`:
 - **Servizi**: `services/sender.js` (telemetria), `services/config.js` (flag ambiente locale), `services/key_retriever.js` (seed/gestione chiavi), librerie UA (`uajtfh.js`, `uawindow.js`, `uadrag.js`, `uadialog.js`, `ualog3.js`).
 - **Vendor** (copie locali, nessun CDN): `dexie.js`, `marked.min.js`, `less.js`.
 - **Stili**: `static/less/style.less` + `static/less/modules/` compilati a runtime da `less.js`.
+- **Reset totale**: `Menu → Reset` (`Commands.resetAll` in `static/js/app_ui.js:1105`) svuota IndexedDB `agnochat`/`agnochat-llm`, `localStorage`/`sessionStorage` e Cache — sostituisce la vecchia pagina `utils/clear.html` rimossa.
 

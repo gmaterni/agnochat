@@ -20,6 +20,7 @@ agnochat/
 ├── README.md
 ├── openspec/                           # OpenSpec (specifiche e change management)
 ├── docs/                               # Documentazione
+├── (rimossa) utils/                    # utils/clear.html rimossa — reset ora via Menu → Reset (Commands.resetAll, app_ui.js:1105)
 └── static/
     ├── index.html                      # ENTRY POINT PRINCIPALE
     ├── agnochat.html                   # Landing page marketing
