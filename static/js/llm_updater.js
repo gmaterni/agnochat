@@ -132,24 +132,15 @@ export const computeVote = function(responseText, elapsedMs) {
 
 /**
  * Testa un singolo modello inviando il prompt di prova.
- * Usa il pattern dell'app: setActive + getClient (chiave da IndexedDB),
- * payload con createLlmPayload, invio con timeout hard di 20 s.
+ * Usa client isolato getClientFor(provider, model) con la chiave del suo
+ * provider, senza mutare provider/modello attivo della conversazione.
+ * Payload con createLlmPayload, invio con timeout hard di 20 s.
  * @param {string} provider
  * @param {string} model
  * @returns {Promise<Object>} { provider, model, ok, elapsedMs?, reason?, response?, vote? }
  */
 export const testModel = async function(provider, model) {
-    const ok = LlmProvider.setActive(provider, model);
-    if (!ok) {
-        const notInCatalog = {
-            provider, model,
-            ok: false,
-            reason: "modello non disponibile nel catalogo"
-        };
-        return notInCatalog;
-    }
-
-    const client = await LlmProvider.getClient();
+    const client = await LlmProvider.getClientFor(provider, model);
     if (!client) {
         const missingApiKey = {
             provider, model,

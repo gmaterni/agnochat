@@ -8,12 +8,14 @@
  *   3. Mantenere una singola istanza client + API key in variabili dirette
  *   4. Persistenza su IndexedDB (salva/carica configurazione)
  *   5. Fornire getClient() come punto d'ingresso unico per le richieste LLM
+ *      di conversazione e getClientFor() come ingresso isolato per i test
+ *      (Aggiorna/Test) senza mutare l'attivo
  *
  * UI (tree view, toggle, showConfig) in app_ui.js.
  *
  * @module llm_provider
- * @version 0.3.0
- * @date    2026-06-29
+ * @version 0.4.0
+ * @date    2026-09-18
  */
 
 "use strict";
@@ -134,6 +136,34 @@ const _setDefaultConfig = function() {
  */
 export const getProviderConfig = function() {
     return _providerModels;
+};
+
+/**
+ * Crea un client isolato per il provider indicato con la sua chiave,
+ * senza toccare provider/modello attivo né la cache _active*.
+ * Unico ingresso per Aggiorna/Test: la conversazione resta invariata.
+ * @param {string} provider - Nome provider (deve essere in registry).
+ * @param {string} [model] - Nome modello sotto test (solo documentativo,
+ *   il client è per-provider; non richiede presenza in catalogo).
+ * @returns {Promise<Object|null>} Istanza client o null se provider non
+ *   supportato o chiave mancante.
+ */
+export const getClientFor = async function(provider, model) {
+    if (!provider || !isSupported(provider)) {
+        if (provider) {
+            console.warn(`getClientFor: provider non supportato: ${provider}`);
+        } else {
+            console.error("getClientFor: provider mancante");
+        }
+        return null;
+    }
+    const apiKey = await getApiKey(provider);
+    if (!apiKey) {
+        console.error(`getClientFor: chiave API mancante per ${provider}`);
+        return null;
+    }
+    const client = createClient(provider, apiKey);
+    return client;
 };
 
 // ============================================================================
@@ -405,6 +435,18 @@ export const LlmProvider = {
 
         _createClientInstance(_activeProvider, apiKey);
         return _activeClient;
+    },
+
+    /**
+     * Restituisce un client isolato per il provider indicato senza mutare
+     * provider/modello attivo né la cache _active*. Unico ingresso per
+     * Aggiorna/Test LLM.
+     * @param {string} provider - Nome provider.
+     * @param {string} [model] - Modello sotto test (documentativo).
+     * @returns {Promise<Object|null>}
+     */
+    getClientFor: async function(provider, model) {
+        return getClientFor(provider, model);
     },
 
     /**

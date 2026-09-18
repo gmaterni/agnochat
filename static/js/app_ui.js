@@ -1452,12 +1452,13 @@ export const refreshProviderTree = function() {
 };
 
 // ============================================================================
-// AGGIORNAMENTO LLM (procedura di test e repository dei modelli accettati)
+// AGGIORNAMENTO LLM (procedura di test, discovered validi vote>=6)
 // ============================================================================
 
 /**
  * Gestore della voce di menu "Aggiorna LLM".
- * Usa il modulo dedicato per scoprire e testare i modelli, salva in IndexedDB.
+ * Usa il modulo dedicato per scoprire e testare i modelli, salva in IndexedDB
+ * solo i validi non interrotti. Su STOP nessun save e nessuna auto-open.
  */
 const _actionLlmUpdateAsync = async function() {
     const menuBtn = document.getElementById("id-menu-btn");
@@ -1470,6 +1471,20 @@ const _actionLlmUpdateAsync = async function() {
     _waitSpinner.show();
     try {
         const results = await runLlmUpdate();
+
+        if (LlmUpdater.isCancelRequested()) {
+            _waitSpinner.hide();
+            const dbCancel = getLlmDb();
+            const selectedCancel = dbCancel ? await dbCancel.getSelected() : [];
+            LlmProvider.clearProviderModels();
+            if (selectedCancel && selectedCancel.length > 0) {
+                LlmProvider.ensureSelectedModels(selectedCancel);
+                LlmProvider.applySelectionFilter(selectedCancel);
+            }
+            LlmProvider.validateActive();
+            updateActiveModelDisplay();
+            return;
+        }
 
         if (results.length === 0) {
             _waitSpinner.hide();

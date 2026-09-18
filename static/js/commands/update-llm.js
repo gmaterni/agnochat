@@ -1,9 +1,12 @@
 /**
  * update-llm.js - Comando "Aggiorna LLM".
  * Scopre modelli dai provider, salva in IndexedDB, apre log automaticamente.
+ * STOP-buttare: su cancel nessun saveDiscovered, vecchio discovered
+ * conservato, solo log. Salvataggio solo validi vote >= MIN_VOTE.
+ * Test isolato via getClientFor senza mutare l'attivo.
  *
  * @module commands/update-llm
- * @version 2.0.0
+ * @version 2.1.0
  */
 
 "use strict";
@@ -15,10 +18,17 @@ import { getApiKey, IMPLEMENTED_CLIENTS } from "agnochat/services/key_retriever.
 import { discoverModels, hasFetcher } from "agnochat/llmlist/index.js";
 import { UaLog } from "agnochat/services/ualog3.js";
 import { isChatModel, loadRawCatalogForProviders } from "agnochat/llm/llm-catalog.js";
-import { LlmUpdater, cancelUpdate, resetCancel, isCancelRequested } from "agnochat/llm_updater.js";
+import { LlmUpdater, resetCancel, isCancelRequested } from "agnochat/llm_updater.js";
 
 /** Numero di token contenuti in un kilotoken (conversione delle finestre di contesto). */
 const TOKENS_PER_K = 1024;
+
+/**
+ * Voto minimo per persistere un modello in discovered-models.
+ * Owner: dominio discovered (filtro di salvataggio, non di display).
+ * @type {number}
+ */
+export const MIN_VOTE = 6;
 
 const _createUaLogAdapter = function() {
     const adapter = {
@@ -48,7 +58,6 @@ export const runUpdate = async function() {
         UaLog.toggle();
     }
 
-    const previousConfig = LlmProvider.getConfig();
     const fileCatalog = await loadRawCatalogForProviders(IMPLEMENTED_CLIENTS);
     const catalog = {};
     const allDiscovered = [];
@@ -114,7 +123,13 @@ export const runUpdate = async function() {
             if (outcome.ok) {
                 const vote = LlmUpdater.computeVote(outcome.response, outcome.elapsedMs);
                 outcome.vote = vote;
-                logger.modelResult(model, true);
+                if (vote >= MIN_VOTE) {
+                    logger.modelResult(model, true);
+                    UaLog.log(provider + "/" + model + ": voto " + vote + " salvabile.");
+                } else {
+                    logger.modelResult(model, false);
+                    UaLog.log(provider + "/" + model + " escluso: voto insufficiente (" + vote + " < " + MIN_VOTE + ").");
+                }
                 okCount++;
                 testResults.set(provider + ":" + model, { elapsedMs: outcome.elapsedMs, vote });
             } else {
@@ -123,6 +138,7 @@ export const runUpdate = async function() {
                 } else {
                     logger.modelResult(model, false);
                 }
+                UaLog.log(provider + "/" + model + " escluso: " + (outcome.reason || "motivo sconosciuto"));
                 errCount++;
                 testResults.set(provider + ":" + model, { elapsedMs: outcome.elapsedMs, vote: null, error: outcome.reason });
             }
@@ -147,20 +163,27 @@ export const runUpdate = async function() {
         }
     }
 
-    await llmDb.saveDiscovered(allDiscovered);
-
     results.sort((a, b) => a.provider.localeCompare(b.provider) || a.model.localeCompare(b.model));
 
     if (isCancelRequested()) {
-        const msg3 = "interrotto — " + testedCount + " modelli testati.";
+        const msg3 = "interrotto — " + testedCount + " modelli testati, scartati.";
         UaLog.log(msg3);
-    } else {
-        const msg4 = "completato — " + testedCount + " modelli testati.";
-        UaLog.log(msg4);
+        return results;
     }
 
-    if (previousConfig.provider && previousConfig.model) {
-        LlmProvider.setActive(previousConfig.provider, previousConfig.model);
+    const validDiscovered = allDiscovered.filter(function(obj) {
+        return obj.vote !== null && obj.vote !== undefined && obj.vote >= MIN_VOTE;
+    });
+
+    await llmDb.saveDiscovered(validDiscovered);
+
+    if (results.length === 0) {
+        UaLog.log("nessun provider testabile: discovered invariato, nessuna finestra elenco.");
+    } else if (validDiscovered.length === 0) {
+        UaLog.log("completato — " + testedCount + " modelli testati, 0 validi (successo-con-zero): discovered svuotato.");
+    } else {
+        const msg4 = "completato — " + testedCount + " modelli testati, " + validDiscovered.length + " salvati.";
+        UaLog.log(msg4);
     }
 
     return results;

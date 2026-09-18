@@ -1,12 +1,13 @@
 /**
  * llm-selection.js - Finestra modale "Seleziona LLM" stile window-info.
  *
- * Carica lo stato corrente (selected-models), mostra provider con checkbox
- * per selezione multipla, evidenzia le righe selezionate e aggiorna subito
- * l'albero LLM dopo Salva/Aggiungi.
+ * Mostra esclusivamente i discovered validi (già filtrati vote>=MIN_VOTE
+ * in salvataggio) con spunta su selectedIds, più sezione sola-lettura
+ * per eletti orfani (in selected ma non più in discovered).
+ * Aggiorna subito l'albero LLM dopo Salva/Aggiungi.
  *
  * @module llm/llm-selection
- * @version 4.0.0
+ * @version 5.0.0
  */
 
 "use strict";
@@ -15,7 +16,7 @@ import { UaWindowAdm } from "agnochat/services/uawindow.js";
 import { UaJtfh } from "agnochat/services/uajtfh.js";
 import { UaLog } from "agnochat/services/ualog3.js";
 import { LlmProvider } from "agnochat/llm_provider.js";
-console.log("llm-selection.js v4.0.1 loaded - fix Aggiorna LLM attivi");
+console.log("llm-selection.js v5.0.0 loaded - validi + orfani sola-lettura");
 import { updateActiveModelDisplay, refreshProviderTree } from "agnochat/app_ui.js";
 
 // ============================================================================
@@ -33,9 +34,6 @@ const WINDOW_Y_VW = 6;
 
 /** Altezza minima della finestra di selezione (px). */
 const MIN_WINDOW_HEIGHT_PX = 120;
-
-/** Voto minimo per considerare un modello valido (escluso dal test). */
-const MIN_VOTE = 6;
 
 /** Colonne fisse della tabella LLM (larghezze percentuali). */
 const HEADER_COLS = '<col style="width: 68%;"><col style="width: 8%;"><col style="width: 12%;"><col style="width: 10%;">';
@@ -59,7 +57,7 @@ export const createLlmSelectionWindow = function(db, options) {
         const state = await _loadStateAsync();
         const selectedIds = startUnselected ? new Set() : _buildSelectedIds(state.selected);
         const discoveredMap = _buildDiscoveredMap(state.discovered);
-        const providers = _collectProviders(state.discovered, state.providerConfig);
+        const providers = _collectProviders(state.discovered);
 
         // Diagnostica: logga stato per capire differenza menu vs Aggiorna LLM
         console.log("llm-selection.show:", {
@@ -67,8 +65,7 @@ export const createLlmSelectionWindow = function(db, options) {
             discovered: state.discovered.length,
             selected: state.selected.length,
             providers: providers.length,
-            selectedIds: Array.from(selectedIds).slice(0,5),
-            providerConfigKeys: Object.keys(state.providerConfig)
+            selectedIds: Array.from(selectedIds).slice(0,5)
         });
         try { UaLog.log("Seleziona LLM: discovered=" + state.discovered.length + " selected=" + state.selected.length + " providers=" + providers.length + " startUnselected=" + startUnselected); } catch(e){}
         try { console.log("UaLog Seleziona LLM:", "discovered=" + state.discovered.length + " selected=" + state.selected.length); } catch(e){}
@@ -93,17 +90,14 @@ export const createLlmSelectionWindow = function(db, options) {
             _sizeWindow(winEl);
             _bindCheckboxEvents(winEl);
             _bindActionButtons(winEl, discoveredMap, selectedIds);
-            // Fallback auto-restore: se dopo Aggiorna LLM nessun checkbox è spuntato
-            // ma selectedIds non è vuoto, lancia automaticamente "Seleziona Attivi".
-            // Questo copre sia il caso startUnselected che il caso discovered filtrato.
+            // Nessun auto-restore: se nessun valido è spuntato ma ci sono
+            // eletti, restano visibili in sola-lettura, solo log.
             if (selectedIds.size > 0) {
                 const anyChecked = winEl.querySelector(".llm-model-check:checked");
                 const totalChecks = winEl.querySelectorAll(".llm-model-check").length;
                 console.log("llm-selection post-render:", { totalChecks, anyChecked: !!anyChecked, selectedIdsSize: selectedIds.size });
                 if (!anyChecked && totalChecks > 0) {
-                    console.log("llm-selection: auto-restore Seleziona Attivi");
-                    try { UaLog.log("Seleziona LLM: auto-restore attivi (" + selectedIds.size + ")"); } catch(e){}
-                    _restoreActiveSelection(winEl, selectedIds);
+                    try { UaLog.log("Seleziona LLM: " + selectedIds.size + " eletti, 0 spuntati tra i validi — orfani in sola-lettura"); } catch(e){}
                 }
             }
         }
@@ -160,18 +154,14 @@ export const createLlmSelectionWindow = function(db, options) {
     };
 
     /**
-     * Raccoglie i provider da mostrare (scoperti + configurati).
-     * @param {Array<Object>} discovered - Modelli scoperti.
-     * @param {Object} providerConfig - Configurazione provider.
+     * Raccoglie i provider da mostrare (solo discovered validi).
+     * @param {Array<Object>} discovered - Modelli scoperti (già validi).
      * @returns {Array<string>}
      */
-    const _collectProviders = function(discovered, providerConfig) {
+    const _collectProviders = function(discovered) {
         const providerSet = new Set();
         for (const m of discovered) {
             providerSet.add(m.provider);
-        }
-        for (const p of Object.keys(providerConfig)) {
-            providerSet.add(p);
         }
         const providers = Array.from(providerSet);
         return providers;
@@ -198,16 +188,17 @@ export const createLlmSelectionWindow = function(db, options) {
     };
 
     /**
-     * Raccoglie i modelli validi (voto valido e non inferiore a MIN_VOTE).
+     * Raccoglie i modelli discovered validi (già filtrati vote>=MIN_VOTE
+     * in salvataggio: nessun filtro-display qui), dedup per provider:model.
      * @param {Array<string>} providers - Provider da considerare.
      * @param {Array<Object>} discovered - Modelli scoperti.
      * @returns {Array<Object>} Modelli validi normalizzati.
      */
-    const _collectValidModels = function(providers, discovered, selectedIds, discoveredMap, selectedList) {
+    const _collectValidModels = function(providers, discovered) {
         const allModels = [];
         const seen = new Set();
         for (const providerName of providers) {
-            const models = discovered.filter(m => m.provider === providerName && m.vote !== null && m.vote !== undefined && m.vote >= MIN_VOTE);
+            const models = discovered.filter(m => m.provider === providerName);
             for (const m of models) {
                 const id = m.provider + ":" + m.model;
                 if (seen.has(id)) continue;
@@ -222,47 +213,36 @@ export const createLlmSelectionWindow = function(db, options) {
                 });
             }
         }
-        // Assicura che gli LLM già selezionati (attivi) siano sempre visibili
-        // anche se non sono in discovered valid (es. dopo Aggiorna LLM con voto < MIN_VOTE
-        // o non più tornato dalla discovery). Così "Seleziona Attivi" ha righe su cui agire.
-        if (selectedIds && selectedIds.size > 0) {
-            for (const id of selectedIds) {
-                if (seen.has(id)) continue;
-                const full = discoveredMap ? discoveredMap[id] : null;
-                if (full) {
-                    const pid = full.provider;
-                    if (!providers.includes(pid)) continue;
-                    seen.add(id);
-                    allModels.push({
-                        provider: full.provider,
-                        model: full.model,
-                        name: full.name,
-                        windowSize: full.windowSize,
-                        elapsedMs: full.elapsedMs,
-                        vote: full.vote
-                    });
-                } else if (selectedList) {
-                    const sel = selectedList.find(s => (s.provider + ":" + s.model) === id);
-                    if (sel) {
-                        const pid = sel.provider;
-                        if (!providers.includes(pid) && !seen.has(pid)) {
-                            // provider di un selezionato non in discovered: aggiungilo ai providers
-                            // (gestito fuori, ma qui aggiungiamo comunque il modello)
-                        }
-                        seen.add(id);
-                        allModels.push({
-                            provider: sel.provider,
-                            model: sel.model,
-                            name: sel.name,
-                            windowSize: sel.windowSize,
-                            elapsedMs: sel.elapsedMs,
-                            vote: sel.vote
-                        });
-                    }
-                }
-            }
-        }
         return allModels;
+    };
+
+    /**
+     * Raccoglie gli eletti orfani (in selected ma non più in discovered),
+     * dedup per provider:model.
+     * @param {Array<Object>} selected - Modelli selezionati.
+     * @param {Object<string, Object>} discoveredMap - Mappa discovered per id.
+     * @returns {Array<Object>} Orfani normalizzati.
+     */
+    const _collectOrphans = function(selected, discoveredMap) {
+        const orphans = [];
+        const seen = new Set();
+        for (const s of (selected || [])) {
+            if (!s || !s.provider || !s.model) continue;
+            const id = s.provider + ":" + s.model;
+            if (seen.has(id)) continue;
+            if (discoveredMap && discoveredMap[id]) continue;
+            seen.add(id);
+            orphans.push({
+                provider: s.provider,
+                model: s.model,
+                name: s.name,
+                windowSize: s.windowSize,
+                elapsedMs: s.elapsedMs,
+                vote: s.vote
+            });
+        }
+        orphans.sort((a, b) => a.provider.localeCompare(b.provider) || a.model.localeCompare(b.model));
+        return orphans;
     };
 
     /**
@@ -280,28 +260,25 @@ export const createLlmSelectionWindow = function(db, options) {
     };
 
      /**
-      * Aggiunge la tabella dei modelli (header fisso + corpo scrollabile).
+      * Aggiunge la tabella dei modelli (header fisso + corpo scrollabile)
+      * più sezione sola-lettura per eletti orfani.
       * @param {Object} jfh - Istanza UaJtfh della finestra.
-      * @param {Array<string>} providers - Provider disponibili.
-      * @param {Array<Object>} discovered - Modelli scoperti.
+      * @param {Array<string>} providers - Provider disponibili (da discovered).
+      * @param {Array<Object>} discovered - Modelli scoperti (già validi).
       * @param {Set<string>} selectedIds - Id dei modelli già selezionati.
       * @param {Object<string, Object>} discoveredMap - Mappa discovered per id.
       * @param {Array<Object>} selected - Lista selezionati completa.
       */
     const _appendTable = function(jfh, providers, discovered, selectedIds, discoveredMap, selected) {
-        // Assicura che i provider dei selezionati siano visibili anche se non in discovered
-        if (selectedIds && selectedIds.size > 0 && selected) {
-            for (const s of selected) {
-                if (!providers.includes(s.provider)) providers.push(s.provider);
-            }
-        }
-        if (providers.length === 0) {
+        const allModels = _collectValidModels(providers, discovered);
+        const orphans = _collectOrphans(selected, discoveredMap);
+
+        if (providers.length === 0 && orphans.length === 0) {
             jfh.append("<p>Nessun modello disponibile. Esegui prima \"Aggiorna LLM\".</p>");
             return;
         }
 
-        const allModels = _collectValidModels(providers, discovered, selectedIds, discoveredMap, selected);
-        if (allModels.length === 0) {
+        if (allModels.length === 0 && orphans.length === 0) {
             jfh.append("<p>Nessun modello scoperto.</p>");
             return;
         }
@@ -311,29 +288,66 @@ export const createLlmSelectionWindow = function(db, options) {
 
         const byProvider = _groupByProvider(allModels);
 
-        jfh.append('<div class="llm-scroll-wrap">');
-        jfh.append('<table class="table-data llm-select-table llm-select-head">');
-        jfh.append(HEADER_COLS);
-        jfh.append('<thead><tr>');
-        jfh.append('<th data-help="LLM">LLM</th>');
-        jfh.append('<th data-help="V|Voto (6-10): punteggio qualità basato su velocità e completezza risposta">V</th>');
-        jfh.append('<th data-help="T|Tempo di risposta in secondi">T</th>');
-        jfh.append('<th data-help="W|Dimensione finestra di contesto in migliaia di token (k)">W</th>');
-        jfh.append('</tr></thead>');
-        jfh.append('</table>');
+        if (allModels.length > 0) {
+            jfh.append('<div class="llm-scroll-wrap">');
+            jfh.append('<table class="table-data llm-select-table llm-select-head">');
+            jfh.append(HEADER_COLS);
+            jfh.append('<thead><tr>');
+            jfh.append('<th data-help="LLM">LLM</th>');
+            jfh.append('<th data-help="V|Voto (6-10): punteggio qualità basato su velocità e completezza risposta">V</th>');
+            jfh.append('<th data-help="T|Tempo di risposta in secondi">T</th>');
+            jfh.append('<th data-help="W|Dimensione finestra di contesto in migliaia di token (k)">W</th>');
+            jfh.append('</tr></thead>');
+            jfh.append('</table>');
 
-        jfh.append('<div class="llm-scroll-body">');
-        jfh.append('<table class="table-data llm-select-table">');
-        jfh.append(HEADER_COLS);
-        jfh.append('<tbody>');
+            jfh.append('<div class="llm-scroll-body">');
+            jfh.append('<table class="table-data llm-select-table">');
+            jfh.append(HEADER_COLS);
+            jfh.append('<tbody>');
 
-        for (const providerName of Object.keys(byProvider).sort()) {
-            _appendProviderRow(jfh, providerName, byProvider[providerName], selectedIds);
+            for (const providerName of Object.keys(byProvider).sort()) {
+                _appendProviderRow(jfh, providerName, byProvider[providerName], selectedIds);
+            }
+
+            jfh.append('</tbody></table>');
+            jfh.append('</div>'); // .llm-scroll-body
+            jfh.append('</div>'); // .llm-scroll-wrap
+        } else {
+            jfh.append("<p>Nessun modello scoperto tra i validi.</p>");
         }
 
+        if (orphans.length > 0) {
+            _appendOrphanSection(jfh, orphans);
+        }
+    };
+
+    /**
+     * Aggiunge la sezione sola-lettura per eletti orfani.
+     * @param {Object} jfh - Istanza UaJtfh della finestra.
+     * @param {Array<Object>} orphans - Eletti non più in discovered.
+     */
+    const _appendOrphanSection = function(jfh, orphans) {
+        jfh.append('<div class="llm-orphan-wrap">');
+        jfh.append('<p class="llm-orphan-title">Eletti non più scoperti (sola lettura, non spuntabili — Salva senza di essi per pulire):</p>');
+        jfh.append('<table class="table-data llm-select-table llm-orphan-table">');
+        jfh.append(HEADER_COLS);
+        jfh.append('<thead><tr><th>LLM</th><th>V</th><th>T</th><th>W</th></tr></thead>');
+        jfh.append('<tbody>');
+        for (const m of orphans) {
+            const label = m.name ? m.model + " (" + m.name + ")" : m.model;
+            const windowSize = m.windowSize ? m.windowSize : "-";
+            const elapsedMs = m.elapsedMs ? (m.elapsedMs / 1000).toFixed(1) + "s" : "-";
+            const vote = (m.vote !== undefined && m.vote !== null) ? m.vote : "-";
+            const providerModel = m.provider + ":" + m.model;
+            jfh.append('<tr class="llm-orphan-row" data-provider-model="' + providerModel + '">');
+            jfh.append('  <td class="llm-name-cell"><span class="llm-name-text">' + label + '</span></td>');
+            jfh.append('  <td class="llm-vote-cell">' + vote + '</td>');
+            jfh.append('  <td class="llm-time-cell">' + elapsedMs + '</td>');
+            jfh.append('  <td class="llm-window-cell">' + windowSize + '</td>');
+            jfh.append('</tr>');
+        }
         jfh.append('</tbody></table>');
-        jfh.append('</div>'); // .llm-scroll-body
-        jfh.append('</div>'); // .llm-scroll-wrap
+        jfh.append('</div>');
     };
 
     /**

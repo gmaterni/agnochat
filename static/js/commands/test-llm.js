@@ -171,6 +171,7 @@ const _showProviderWindow = function(grouped, prompt) {
     jfh.append("<h4>Test LLM</h4>");
     jfh.append('<button class="btn-close" data-help="Chiudi" data-action="test-close">X</button>');
     jfh.append("</div>");
+    jfh.append('<p class="test-llm-pick-hint">Seleziona provider per il test</p>');
     jfh.append('<div class="test-llm-prompt-box">' + promptText + "</div>");
     jfh.append('<ul class="test-llm-providers">');
     for (const provider of providers) {
@@ -291,13 +292,7 @@ const _logTrial = function(provider, model, outcome, requestChars) {
  * @returns {Promise<Object>} Esito {model, ok, responseChars?, elapsedSec, code?, reason?}.
  */
 const _testOneModel = async function(provider, model, prompt) {
-    const activeOk = LlmProvider.setActive(provider, model);
-    if (!activeOk) {
-        const notInCatalog = { model, ok: false, elapsedSec: "0.0", code: "NO_MODEL", reason: "modello non disponibile nel catalogo" };
-        return notInCatalog;
-    }
-
-    const client = await LlmProvider.getClient();
+    const client = await LlmProvider.getClientFor(provider, model);
     if (!client) {
         const missingKey = { model, ok: false, elapsedSec: "0.0", code: "NO_KEY", reason: "chiave API non disponibile" };
         return missingKey;
@@ -376,8 +371,8 @@ const _requestStop = function() {
 /**
  * Esegue il test di tutti i modelli selezionati di un provider.
  * Mostra lo spinner con STOP, logga ogni prova su UaLog e apre la sola
- * finestra riepilogativa alla fine. Ripristina la configurazione attiva
- * precedente al termine.
+ * finestra riepilogativa alla fine. L'attivo di conversazione resta
+ * invariato (prove con client isolato getClientFor).
  * @param {string} provider - Provider da testare.
  * @param {string} prompt - Prompt di richiesta.
  * @returns {Promise<Array<Object>>} Esiti delle prove.
@@ -405,7 +400,6 @@ export const runProviderTest = async function(provider, prompt) {
         UaLog.toggle();
     }
 
-    const previousConfig = LlmProvider.getConfig();
     _cancelRequested = false;
     spinner.show();
 
@@ -428,9 +422,6 @@ export const runProviderTest = async function(provider, prompt) {
         UaLog.log(">>> " + provider + " completato (" + outcomes.length + " prove) <<<");
     }
 
-    if (previousConfig && previousConfig.provider && previousConfig.model) {
-        LlmProvider.setActive(previousConfig.provider, previousConfig.model);
-    }
     try {
         uiModule.updateActiveModelDisplay();
     } catch (error) {
