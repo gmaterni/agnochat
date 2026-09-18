@@ -1,7 +1,7 @@
 # agnochat — Specifiche Applicative
 
-**Versione:** 1.1.0
-**Data:** 2026-09-08
+**Versione:** 1.2.0
+**Data:** 2026-09-18
 **Repository:** https://github.com/gmaterni/agnochat — **Pages:** https://gmaterni.github.io/agnochat/
 
 ---
@@ -234,7 +234,7 @@ Dopo inserimento: modifica, invio e cancellazione funzionano normalmente.
 
 ## 7. layout
 
-**Purpose:** Struttura visiva: barra superiore fissa, drawer laterale, due pannelli (output/input), overlay attesa, finestre浮动, tooltip, temi dark/light.
+**Purpose:** Struttura visiva: barra superiore fissa, drawer laterale, due pannelli (output/input), overlay attesa, finestre, tooltip, temi dark/light.
 
 ### Requisiti
 
@@ -270,7 +270,7 @@ Icone "Copia Output" e "Cancella Output" in alto a destra. Cancella svuota solo 
 Icona matita in basso a destra dell'ultimo messaggio utente. Tooltip "Modifica domanda".
 
 #### Finestra di selezione LLM
-Finestra a destra del menu con: nome LLM, voto, tempo. Pulsanti "Salva" e "Annulla" stessa larghezza.
+Finestra a destra del menu con: nome LLM, voto, tempo, finestra contesto + sezione orfani sola-lettura. Pulsanti "Salva", "Aggiungi", "Annulla", "Seleziona Attivi" + chiusura X.
 
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|
@@ -296,7 +296,7 @@ Scelta persistita su IndexedDB, ripristinata all'avvio.
 | Nessuna scelta | Avvio senza scelta | Default: primo provider/modello disponibili |
 
 #### Gestione chiavi API
-Chiavi mai in chiaro nei sorgenti. Seed da `api_x.json` se DB vuoto.
+Chiavi mai in chiaro nei sorgenti. Storage in `key_store.js` (`getApiKey`, `fetchApiKeys`, `restoreDefaultApiKeys`, `IMPLEMENTED_CLIENTS` da `llmclient/registry.js`), UI in `key_ui.js` (form, tabella, handler add/attiva/elimina), `key_retriever.js` solo shim di re-export. Seed da `api_x.json` se DB vuoto. Nuovi record `{name, key}` + `exported_key` (i campi legacy `api_key_env`/`notes` non sono più scritti; `notes` resta solo nello storico `api_x.json`).
 
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|
@@ -305,7 +305,7 @@ Chiavi mai in chiaro nei sorgenti. Seed da `api_x.json` se DB vuoto.
 | Chiave mancante | Richiesta senza chiave provider | Avviso nome provider |
 
 #### Invio con retry ed errori
-Retry automatico errori transitori (timeout, 500, 502, 503, 504) fino a 3 volte, intervallo 5s.
+Retry automatico errori transitori (408, 500, 502, 503, 504) fino a 3 volte, intervallo 5s.
 
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|
@@ -315,7 +315,10 @@ Retry automatico errori transitori (timeout, 500, 502, 503, 504) fino a 3 volte,
 | Interruzione manuale | Utente annulla | Nessun errore |
 
 #### Catalogo modelli da dati locali
-Modelli da `data/models/<provider>.txt`. Se esiste repository modelli accettati, albero mostra solo quelli.
+Provider da `IMPLEMENTED_CLIENTS` (`llmclient/registry.js`), modelli dai file `data/models/<provider>.txt` (`nome|windowSizeTokens`) tramite loader unico `llm-catalog.js` (`loadRawCatalogForProviders`, filtro `isChatModel`). Albero costruito da `selected-models` all'avvio.
+
+#### Client isolato per i test
+`LlmProvider.getClientFor(provider, model)` crea un client con la chiave del provider senza mutare provider/modello attivo né la cache `_active*`. Unico ingresso per Aggiorna/Test LLM: la conversazione resta invariata, nessun ripristino necessario.
 
 ---
 
@@ -345,8 +348,15 @@ Riga: `--- <provider>: <successi> ok, <errori> error ---`
 
 ### Requisiti
 
-#### Persistenza modelli scoperti
-Salvataggio in `discovered-models` con chiave `provider:model`. Sovrascrittura ad ogni aggiornamento.
+#### Persistenza modelli scoperti (solo validi)
+Salvataggio in `discovered-models` con chiave `provider:model` dei soli modelli con `vote >= 6` (`MIN_VOTE` in `commands/update-llm.js`, owner dominio discovered). Ogni record salvato: `elapsedMs`, `vote`.
+
+| Scenario | Condizione | Risultato |
+|----------|-----------|-----------|
+| Completamento con validi | N modelli con `vote >= 6` | Salvati N modelli, log "completato — T testati, N salvati" |
+| Successo-con-zero | 0 modelli validi | `discovered-models` svuotato, log dedicato |
+| STOP utente | Cancel durante discovery/test | Nessuna scrittura, discovered precedente conservato, log "interrotto — N modelli testati, scartati", nessuna finestra elenco |
+| Nessun provider testabile | Nessuna chiave attiva | `discovered` invariato, solo log, nessuna finestra elenco |
 
 #### Persistenza modelli selezionati
 Salvataggio in `selected-models`. "Salva" sostituisce, "Aggiungi" unisce.
@@ -369,7 +379,7 @@ Albero LLM costruito da `selected-models` all'avvio.
 Svuota `selected-models`, leggi file default, salva in `selected-models`, ricostruisci albero.
 
 #### Lettura modelli default
-File `.json` in `static/data/models/` con campi: provider, model, name (opzionale).
+File `.txt` in `static/data/models/` con formato `nome|windowSizeTokens` per riga, per i soli provider in `IMPLEMENTED_CLIENTS`.
 
 #### Sovrascrittura completa
 Reset sostituisce completamente, non unisce.
@@ -378,15 +388,15 @@ Reset sostituisce completamente, non unisce.
 
 ## 12. llm-selection-ui
 
-**Purpose:** Finestra modale "Seleziona LLM" con quattro azioni (Salva, Aggiungi, Annulla, Seleziona Attivi), tooltip differenziati, evidenziazione delle righe selezionate e apertura automatica a fine "Aggiorna LLM".
+**Purpose:** Finestra "Seleziona LLM" (v5.0.0, `llm/llm-selection.js`): mostra solo i discovered validi con checkbox, più sezione sola-lettura per eletti orfani. Quattro azioni (Salva, Aggiungi, Annulla, Seleziona Attivi) + chiusura X, tooltip differenziati, evidenziazione righe, apertura automatica a fine "Aggiorna LLM" (solo se non interrotto).
 
 ### Requisiti
 
-#### Finestra con quattro azioni
-Elenco modelli da `discovered-models` (validi `vote >= MIN_VOTE` più eletti già presenti) con checkbox. Quattro pulsanti: Salva, Aggiungi (giallo), Annulla, Seleziona Attivi (inverso di Annulla). Quando aperta automaticamente al termine di "Aggiorna LLM", mostra spuntati i modelli in `selected-models` ed evidenziate le righe, senza richiedere ulteriore interazione.
+#### Finestra su soli validi + orfani sola-lettura
+Elenco da `discovered-models` (già filtrati `vote >= 6` in salvataggio, nessun filtro-display): una riga per `provider:model` unico con nome, voto (6-10), tempo, finestra contesto, raggruppati per provider. Spunta iniziale = `selected-models`. Eletti in `selected` ma non più in `discovered` (orfani) in sezione separata sola-lettura, non spuntabili ("Salva senza di essi per pulire"). Quando aperta automaticamente al termine di "Aggiorna LLM", mostra spuntati i modelli in `selected-models` ed evidenziate le righe, senza richiedere ulteriore interazione. Nessun auto-restore: se 0 spuntati tra i validi con eletti presenti, solo log ("orfani in sola-lettura").
 
 #### Pulsante Salva — sostituzione
-Svuota `selected-models`, popola con selezione, chiudi finestra, aggiorna albero.
+Svuota `selected-models`, popola con gli spuntati (solo validi: gli orfani non sono spuntabili e vengono così puliti), chiudi finestra, aggiorna albero.
 
 #### Pulsante Aggiungi — unione
 Aggiungi selezione a `selected-models`, ignora duplicati, chiudi finestra, aggiorna albero.
@@ -397,20 +407,20 @@ Chiudi finestra senza modifiche. Deseleziona tutti i modelli.
 #### Pulsante Seleziona Attivi — ripristino
 Seleziona solo gli LLM già attivi nell'albero (quelli salvati in `selected-models`), deseleziona gli altri — operazione inversa di Annulla.
 
-#### Tooltip differenziazione
-- Salva: "sostituisce completamente la selezione corrente"
-- Aggiungi: "unisce i modelli selezionati a quelli già presenti"
-- Annulla: "deseleziona tutti i modelli per iniziare una nuova selezione"
-- Seleziona Attivi: "seleziona solo gli LLM già attivi nell'albero (quelli salvati in selected-models), deseleziona tutti gli altri — operazione inversa di Annulla"
+#### Tooltip differenziazione (`data-help`)
+- Salva: "Salva|Sostituisce i salvati con gli spuntati"
+- Aggiungi: "Aggiungi|Unisce gli spuntati ai salvati"
+- Annulla: "Annulla|Deseleziona tutto"
+- Seleziona Attivi: "Seleziona Attivi|Ripristina solo gli attivi"
 
 #### Stile pulsante Aggiungi
 Background giallo per differenziarlo da Salva.
 
 #### Evidenziazione e sincronizzazione
-Righe dei modelli spuntati evidenziate (`tr.llm-row.selected`); ogni `change` su checkbox modello aggiorna la classe della riga e il flag provider (`checked`/`indeterminate`); il toggle provider propaga stato ed evidenziazione a tutte le sue righe. Se dopo l'apertura nessun checkbox è spuntato ma `selected-models` non è vuoto, auto-restore degli eletti ancora presenti (log "auto-restore attivi"). Ogni modello compare una sola volta (`provider:model` unico): nessuna riga `checked` senza `selected` né viceversa.
+Righe dei modelli spuntati evidenziate (`tr.llm-row.selected`); ogni `change` su checkbox modello aggiorna la classe della riga e il flag provider (`checked`/`indeterminate`); il toggle provider propaga stato ed evidenziazione a tutte le sue righe. Ogni modello compare una sola volta (`provider:model` unico): nessuna riga `checked` senza `selected` né viceversa. Gli orfani (`tr.llm-orphan-row`) non hanno checkbox e non partecipano alla selezione.
 
 #### Apertura automatica post-Aggiorna
-A elaborazione conclusa con modelli salvati (successo o STOP con parziali) si apre da sola un'unica finestra "Seleziona LLM" con spunta su eletti ed evidenziazione, senza dialog intermedia.
+A elaborazione completata (non STOP, con risultati) si apre da sola un'unica finestra "Seleziona LLM" (`startUnselected=false`: spunta su eletti, righe evidenziate), senza dialog intermedia. Su STOP o zero provider testabili: nessuna finestra.
 
 ---
 
@@ -436,14 +446,14 @@ Menu laterale "Aggiorna LLM" → conferma → avvio. Interrompibile con STOP.
 |----------|-----------|-----------|
 | Conferma | Utente conferma | Procedura parte |
 | Annullamento | Utente non conferma | Procedura non parte |
-| STOP | In corso | Termina con parziali salvati, log "interrotto — N modelli testati", apertura finestra se modelli salvati |
+| STOP | In corso | Scarta tutto senza scrivere (discovered precedente conservato), log "interrotto — N modelli testati, scartati", nessuna finestra elenco |
 | Nessun provider | Nessuna chiave attiva | Termina in `UaLog` senza aprire la finestra elenco |
 
 #### Test modelli
-Ogni modello testato con prompt fisso, sequenziale, tracciamento in UaLog.
+Ogni modello testato con prompt fisso (`TEST_SYSTEM_PROMPT` + `TEST_USER_PROMPT`, teorema di Pitagora), sequenziale, via client isolato `getClientFor` (attivo invariato), timeout hard 20s, tracciamento in UaLog. Test isolato: nessuna `setActive`, nessun ripristino.
 
 #### Criterio superamento test
-Risposta corretta + non vuota + tempo < 20 secondi.
+Risposta corretta + non vuota + tempo < 20 secondi → `computeVote` (6-10, penalità lentezza/brevità); salvataggio solo se `vote >= 6`.
 
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|
@@ -452,18 +462,19 @@ Risposta corretta + non vuota + tempo < 20 secondi.
 | Tempo > 20s | Timeout | Escluso, soglia in UaLog |
 
 #### Memorizzazione e riepilogo
-Tutti i modelli scoperti salvati in `discovered-models` (con `elapsedMs`, `vote` per superati, `testError` per falliti). Nessuna dialog di riepilogo: riepilogo solo in `UaLog`/console ("completato/interrotto — N modelli testati"). Al termine con modelli salvati si apre automaticamente un'unica finestra "Seleziona LLM" con spunta su eletti ed evidenziazione.
+Solo i modelli validi (`vote >= 6`) salvati in `discovered-models` (con `elapsedMs`, `vote`). Falliti ed esclusi per voto insufficiente solo in `UaLog` ("escluso: ..."). Nessuna dialog di riepilogo: riepilogo solo in `UaLog`/console ("completato — T testati, N salvati" / "0 validi (successo-con-zero): discovered svuotato" / "interrotto — N testati, scartati"). Al termine non interrotto con risultati si apre automaticamente un'unica finestra "Seleziona LLM" con spunta su eletti ed evidenziazione.
 
 #### Finestra selezione LLM
-Elenco modelli scaricati con: nome, voto (6-10), tempo, finestra contesto. Raggruppati per provider.
+Elenco modelli validi con: nome, voto (6-10), tempo, finestra contesto. Raggruppati per provider + sezione orfani sola-lettura.
 
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|
 | Apertura manuale | Click "Seleziona LLM" | Finestra con elenco e quattro colonne |
-| Apertura automatica | Fine "Aggiorna LLM" con modelli salvati | Unica finestra, spuntati su eletti, righe evidenziate, nessuna dialog |
+| Apertura automatica | Fine "Aggiorna LLM" non interrotta con risultati | Unica finestra, spuntati su eletti, righe evidenziate, nessuna dialog |
+| STOP | Cancel richiesto | Nessuna finestra, solo `UaLog`, spinner nascosto |
 | Nessun provider | Nessuna chiave attiva (`results.length === 0`) | Nessuna finestra, solo `UaLog`, spinner nascosto |
-| Provider vuoto | Nessun modello superato | Provider mostrato con indicazione |
-| Nessun modello | Nessun superato | Messaggio dedicato |
+| Provider vuoto | Nessun modello valido | Provider assente; messaggio dedicato |
+| Nessun modello | Zero validi | Messaggio dedicato + orfani sola-lettura se eletti presenti |
 
 #### Selezione modelli e provider
 Checkbox per modello e per provider (toggle tutti). Indipendenti tra provider.
@@ -562,7 +573,7 @@ Verifica che `.text-input` contenga testo; se vuoto, alert "digita prima un prom
 | Nessun modello selezionato | `selected-models` vuoto | Alert "nessun modello selezionato" |
 
 #### Scelta del provider e test dei suoi modelli
-Finestra `wnd-test-llm-pick` con lista provider aventi modelli selezionati e conteggio; click provider avvia test sequenziale di tutti i suoi modelli con lo stesso prompt (60s timeout, 512 max_tokens, temp 0.7).
+Finestra `wnd-test-llm-pick` con lista provider aventi modelli selezionati e conteggio; click provider avvia test sequenziale di tutti i suoi modelli con lo stesso prompt (60s timeout, 512 max_tokens, temp 0.7) via client isolato `getClientFor` (attivo di conversazione invariato, nessun ripristino).
 
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|
@@ -578,7 +589,7 @@ Spinner STOP con conferma "Confermi lo STOP del Test LLM?"; per ogni prova logga
 | STOP utente | Click STOP | Annulla richiesta in corso, interrompe ciclo |
 
 #### Riepilogo finale con errori
-A fine ciclo (anche parziale su STOP) apre `wnd-test-llm-summary` (84vw, stili in `tree.less`) con tabella Modello / Response / Tempo o `ERRORE codice: X` + motivo; ripristina il provider/modello attivi precedenti.
+A fine ciclo (anche parziale su STOP) apre `wnd-test-llm-summary` (84vw, stili in `tree.less`) con tabella Modello / Response / Tempo o `ERRORE codice: X` + motivo; l'attivo resta invariato (prove con client isolato).
 
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|

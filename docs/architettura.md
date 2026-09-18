@@ -1,7 +1,7 @@
 # agnochat — Architettura dell'Applicazione
 
-**Versione:** 1.1.0
-**Data:** 2026-09-08
+**Versione:** 1.2.0
+**Data:** 2026-09-18
 **Repository:** https://github.com/gmaterni/agnochat — **Pages:** https://gmaterni.github.io/agnochat/
 
 ---
@@ -37,18 +37,18 @@ agnochat/
     ├── js/                             # Tutto il JavaScript applicativo
     │   ├── app.js                      # Entry point, bootstrapper
     │   ├── app_mgr.js                  # Gestore configurazione app
-    │   ├── app_ui.js                   # Controller UI (1426 righe)
+    │   ├── app_ui.js                   # Controller UI (~1720 righe)
     │   ├── chat_engine.js              # Costruttore payload + retry
     │   ├── conversation_mgr.js         # CRUD conversazioni/messaggi
-    │   ├── llm_provider.js             # Stato provider + factory client
-    │   ├── llm_updater.js              # Discovery + test + voto modelli
+    │   ├── llm_provider.js             # Stato provider + factory client (getClient + getClientFor isolato)
+    │   ├── llm_updater.js              # Test singolo modello + voto qualità (nessuna discovery)
     │   ├── prompt_mgr.js               # CRUD prompt di sistema
     │   ├── settings_mgr.js             # Persistenza impostazioni
     │   ├── uploader.js                 # Upload documenti
-│   ├── commands/
-│   │   ├── test-llm.js             # Comando "Test LLM" (test modelli selezionati, UaLog + riepilogo)
-│   │   ├── update-llm.js           # Comando "Aggiorna LLM"
-│   │   └── reset-llm.js            # Comando "Reset LLM"
+    │   ├── commands/
+    │   │   ├── test-llm.js             # Comando "Test LLM" (test modelli selezionati, UaLog + riepilogo)
+    │   │   ├── update-llm.js           # Comando "Aggiorna LLM" (discovery + test + save solo validi)
+    │   │   └── reset-llm.js            # Comando "Reset LLM"
     │   ├── llm/
     │   │   ├── llm-catalog.js          # Lettura cataloghi locali
     │   │   ├── llm-db.js               # IndexedDB modelli LLM
@@ -62,7 +62,9 @@ agnochat/
     │   │   ├── groq_client.js          # Groq
     │   │   ├── openrouter_client.js    # OpenRouter
     │   │   ├── huggingface_client.js   # Hugging Face
-    │   │   └── models.js              # Modelli dati + validatori
+    │   │   ├── models.js               # Modelli dati + validatori
+    │   │   ├── registry.js             # Registry unico provider (IMPLEMENTED_CLIENTS, createClient)
+    │   │   └── index.js                # Barrel export (createLlmPayload, createMessage)
     │   ├── llmlist/                    # Discovery modelli live
     │   │   ├── index.js                # Dispatcher fetcher
     │   │   ├── fetcher.js              # Classe base ModelFetcher
@@ -71,22 +73,28 @@ agnochat/
     │       ├── config.js               # Rilevamento ambiente
     │       ├── data_keys.js            # Costanti chiavi storage
     │       ├── db_instance.js          # Istanza Dexie.js
-    │       ├── key_retriever.js        # Gestione chiavi API
+    │       ├── error_utils.js          # Normalizzazione errori provider
+    │       ├── help.js                 # Contenuti finestra aiuto
+    │       ├── history_utils.js        # Utility cronologia (escapeHtml)
+    │       ├── key_store.js            # Storage chiavi API + seed api_x.json (IMPLEMENTED_CLIENTS)
+    │       ├── key_ui.js               # Finestra gestione chiavi API (form/tabella/handler)
+    │       ├── key_retriever.js        # Shim compatibilità (re-export store + UI)
     │       ├── sender.js               # Telemetria analytics (UaSender; spec: openspec/specs/analytics/spec.md)
     │       ├── uadb.js                 # Wrapper key-value DB
     │       ├── uadialog.js             # Dialoghi alert/confirm/prompt
     │       ├── uadrag.js               # Utilità drag mouse
     │       ├── uajtfh.js               # Builder stringhe HTML
-    │       ├── ualog3.js               # Finestra log浮动
-    │       ├── uawindow.js             # Gestore finestre浮动
+    │       ├── ualog3.js               # Finestra log
+    │       ├── uawindow.js             # Gestore finestre
     │       └── vendor/                 # Librerie locali (no CDN)
     │           ├── dexie.js
     │           ├── marked.min.js
     │           ├── pdf.min.js
+    │           ├── pdf.worker.min.js
     │           ├── mammoth.browser.min.js
-    │           └── jszip.min.js
-    └── less/                           # Stili LESS
-        ├── less.js                     # Compilatore LESS runtime
+    │           ├── jszip.min.js
+    │           └── less.js             # Compilatore LESS runtime
+    └── less/                           # Stili LESS (compilatore in services/vendor/less.js)
         ├── style.less                  # Stylesheet principale
         ├── tooltip.less
         ├── uadialog.less
@@ -97,12 +105,14 @@ agnochat/
             ├── layout.less             # Layout app (output/input)
             ├── themes.less             # Mixin temi dark/light
             ├── components.less         # Menu, header, pulsanti
-            ├── tree.less               # Albero provider
+            ├── tree.less               # Albero provider + riepilogo Test LLM
             ├── actions.less            # Pulsanti azione, finestre
             ├── spinner.less            # Overlay spinner
             ├── apikeys.less            # Finestra gestione chiavi
             ├── help.less               # Finestra help
             ├── app_ui.less             # Finestre gestione
+            ├── table.less              # Tabelle dati
+            ├── delete.less             # Stili cancellazione
             └── upload.less             # Drop-zone upload
 ```
 
@@ -128,7 +138,7 @@ agnochat/
    - `<script type="module" src="js/app.js">`
    - `marked.min.js` come script globale
 3. `app.js` su `window.load`:
-   - `wnds.init()` — inizializza sistema finestre浮动
+   - `wnds.init()` — inizializza sistema finestre
    - `UaLog.setXY(40, 6).setZ(111).new()` — finestra log
    - `AppMgr.initApp()` — init DB LLM, fetch API keys, carica config provider
    - `AppMgr.loadSelectedModels()` — carica modelli selezionati
@@ -161,7 +171,7 @@ agnochat/
 ### 4.3 UI Framework
 
 - **Nessun UI framework** — manipolazione DOM vanilla
-- **Sistema finestre浮动** custom (`UaWindowAdm` + `UaDrag`)
+- **Sistema finestre** custom (`UaWindowAdm` + `UaDrag`)
 - **Sistema dialoghi** custom (`DialogManager` — alert/confirm/prompt)
 - **Pannello log** custom (`UaLog`)
 - **Builder stringhe** custom (`UaJtfh` per composizione HTML)
@@ -177,11 +187,12 @@ agnochat/
 
 | Table | Campi | Scopo |
 |-------|-------|-------|
-| `kvStore` | key-value generico | Store generico |
 | `settings` | key-value (JSON) | Temi, ID attivi, chiavi API |
 | `conversations` | id, title, createdAt, updatedAt | Conversazioni |
 | `messages` | id, conversationId, role, content, timestamp | Messaggi |
 | `prompts` | id, name, content, createdAt, updatedAt | Prompt di sistema |
+
+> v2: store v1 `kvStore` rimosso (mai usato, nessun dato migrato).
 
 ### 5.2 Database LLM: `agnochat-llm` (IndexedDB raw)
 
@@ -194,7 +205,7 @@ agnochat/
 
 - `UaDb` wrappa la tabella `settings` con operazioni `read/write/delete/saveJson/readJson`
 - `DATA_KEYS` centralizza tutti i nomi delle chiavi di storage
-- Chiavi API memorizzate come blob JSON nella tabella `settings` sotto la chiave `"api_keys"`
+- Chiavi API memorizzate come blob JSON nella tabella `settings` sotto la chiave `"api_keys"` (`key_store.js`): record `{name, key}` + `exported_key` (chiave attiva); i campi legacy `api_key_env`/`notes` non sono più scritti nei nuovi record
 - Tema salvato sotto la chiave `"theme"`
 - Config provider attiva salvata sotto la chiave `"llm_provider"`
 
@@ -210,31 +221,32 @@ BaseClient (astratta)
   ├── MistralClient     (OpenAI-compatibile, adattato)
   ├── GroqClient        (OpenAI-compatibile)
   ├── OpenRouterClient  (OpenAI-compatibile)
-  ├── OpenRouterClient  (OpenAI-compatibile)
   └── HuggingFaceClient (router HF, con top_k)
 ```
 
 ### 6.2 Flusso di una Richiesta
 
 1. **`llm_provider.js`** mantiene un catalogo `_providerModels` in memoria (mappa provider → modelli)
-2. **`LlmProvider.getClient()`** crea l'istanza del client appropriato con la API key da IndexedDB
-3. **`chat_engine.js`** compone il payload via `createLlmPayload()`, invia tramite il client, gestisce retry/abort
-4. Ogni client trasforma il payload nel formato specifico del provider, chiama `BaseClient._fetch()`, e parsa la risposta
+2. **`LlmProvider.getClient()`** crea l'istanza del client appropriato con la API key da IndexedDB (solo conversazione)
+3. **`LlmProvider.getClientFor(provider, model)`** crea un client isolato per i test (Aggiorna/Test) senza mutare provider/modello attivo né la cache `_active*`
+4. **`chat_engine.js`** compone il payload via `createLlmPayload()`, invia tramite il client, gestisce retry/abort
+5. Ogni client trasforma il payload nel formato specifico del provider, chiama `BaseClient._fetch()`, e parsa la risposta
 
 ### 6.3 Discovery e Test Modelli
 
-- **Catalogo statico:** file `data/models/<provider>.txt` con formato `model|windowSize`
-- **Discovery live:** fetcher in `llmlist/` chiamano le API dei provider
-- **Test:** `llm_updater.js` testa ogni modello con un prompt fisso, misura tempo risposta, calcola un voto qualità
-- **Selezione utente:** `llm-selection.js` fornisce un'interfaccia checkbox per selezionare quali modelli appaiono
-- **Test LLM selezionati:** `commands/test-llm.js` testa con lo stesso prompt utente tutti i modelli selezionati di un provider, con spinner STOP, log su `UaLog` (dimensioni request/response, tempo) e finestra riepilogativa finale (84vw, tabella nome/modello/tempo o codice errore)
+- **Catalogo statico:** file `data/models/<provider>.txt` con formato `model|windowSize` (sorgente provider: `IMPLEMENTED_CLIENTS` da `llmclient/registry.js`, loader unico `llm-catalog.js`)
+- **Discovery live:** fetcher in `llmlist/` chiamano le API dei provider (fallback file su errore)
+- **Test:** `llm_updater.js:testModel` testa ogni modello con client isolato `getClientFor` (prompt fisso, timeout 20s), `computeVote` calcola voto 6-10
+- **Salvataggio filtrato:** `commands/update-llm.js` (`MIN_VOTE = 6`) salva in `discovered-models` solo i modelli validi; STOP scarta tutto senza scrivere (discovered precedente conservato); zero validi = successo-con-zero (discovered svuotato)
+- **Selezione utente:** `llm-selection.js` (v5.0.0) mostra solo i validi con checkbox + sezione sola-lettura per eletti orfani (in `selected` ma non più in `discovered`)
+- **Test LLM selezionati:** `commands/test-llm.js` testa con lo stesso prompt utente tutti i modelli selezionati di un provider via `getClientFor` (attivo invariato), con spinner STOP, log su `UaLog` (dimensioni request/response, tempo) e finestra riepilogativa finale (84vw, tabella nome/modello/tempo o codice errore)
 
 ### 6.4 Hot-Swap
 
 - Cambio provider/modello invalida l'istanza client in cache
 - Nuovo client viene creato alla successiva chiamata `getClient()` con la API key del nuovo provider
 - Nessun riavvio della pagina necessario
-- `commands/test-llm.js` ripristina la configurazione attiva precedente al termine del test
+- `commands/test-llm.js` e `commands/update-llm.js` usano `getClientFor` isolato: l'attivo di conversazione resta invariato, nessun ripristino necessario
 
 ### 6.5 Test LLM Selezionati (llm-test)
 
@@ -242,7 +254,7 @@ Flusso dedicato per confrontare i modelli già selezionati (`llm-test`, spec in 
 
 1. Voce menu **Test LLM** (prima nella sezione LLM, tooltip llm-selected) → verifica prompt in `.text-input`
 2. Finestra provider (`wnd-test-llm-pick`) con conteggio modelli per provider → click provider
-3. Ciclo sequenziale: `LlmProvider.setActive` + `getClient` + `sendRequest` (60s timeout, 512 token, temp 0.7) per ogni modello
+3. Ciclo sequenziale: `LlmProvider.getClientFor(provider, model)` + `sendRequest` (60s timeout, 512 token, temp 0.7) per ogni modello, senza mutare l'attivo
 4. Durante l'esecuzione: spinner STOP + `UaLog` con `req char | resp char | tempo s` per prova; STOP interrompe e logga `interrotto`
 5. Finestra riepilogativa (`wnd-test-llm-summary`, 84vw, stili in `tree.less`) con tabella Modello / Response / Tempo o `ERRORE codice`
 
@@ -266,7 +278,7 @@ Tutte le librerie esterne sono copie locali in `static/js/services/vendor/`, nes
 |----------|-------|
 | Dexie.js | Wrapper IndexedDB |
 | marked.js | Parsing markdown |
-| PDF.js | Estrazione testo PDF |
+| PDF.js (+ worker) | Estrazione testo PDF |
 | mammoth.js | Estrazione testo DOCX |
 | jszip.js | Gestione file ZIP |
 | LESS.js | Compilatore LESS runtime |
@@ -281,5 +293,6 @@ Tutte le librerie esterne sono copie locali in `static/js/services/vendor/`, nes
 4. **Lingua Italiana:** UI interamente in italiano, commenti del codice e JSDoc in italiano.
 5. **Isolamento dei Database:** Dati app (conversazioni, impostazioni) in un DB Dexie, dati modelli LLM in un IndexedDB separato.
 6. **Compilazione LESS Runtime:** Stili compilati nel browser, abilitando il cambio tema tramite parametri mixin.
-7. **5 Provider LLM:** Gemini (formato nativo) + 4 OpenAI-compatibili (Mistral, Groq, OpenRouter, HuggingFace), tutti dietro `BaseClient`; `llm-test` riusa gli stessi client per test comparativi.
-8. **Librerie interne:** Sistema di layout (gabbia verticale), librerie interne UA (`uawindow`, `uadrag`, `uajtfh`, `ualog3`, `uadialog`), gestione provider/modelli.
+7. **5 Provider LLM:** Gemini (formato nativo) + 4 OpenAI-compatibili (Mistral, Groq, OpenRouter, HuggingFace), tutti dietro `BaseClient` e censiti in `llmclient/registry.js`; Aggiorna/Test usano client isolato `getClientFor`, senza toccare l'attivo.
+8. **Chiavi API isolate:** storage in `key_store.js`, UI in `key_ui.js`, `key_retriever.js` solo shim; nuovi record `{name, key}` + `exported_key` (campi legacy `api_key_env`/`notes` non più scritti).
+9. **Librerie interne:** Sistema di layout (gabbia verticale), librerie interne UA (`uawindow`, `uadrag`, `uajtfh`, `ualog3`, `uadialog`), gestione provider/modelli.
