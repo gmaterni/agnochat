@@ -1,8 +1,8 @@
-cohere/north-mini-code:free|256000|10|6.08
-dots-studio/dots-3-note-preview:free|512000|10|14.85
-inclusionai/ling-3.1-flash|262144|9|7.80
-liquid/lfm-2.5-2.6b:free|65536|8|4.51
-nvidia/nemotron-3-super-120b-a12b:free|262144|10|22.70
-nvidia/nemotron-3-ultra-550b-a55b:free|999424|10|26.28
-nvidia/nemotron-3.5-lightning:free|999424|8|121.49
-stealth/space-bunny-alpha|999424|8|8.04
+cohere/north-mini-code:free|256000|9|8.32
+dots-studio/dots-3-note-preview:free|512000|10|17.49
+inclusionai/ling-3.1-flash|262144|9|7.95
+liquid/lfm-2.5-2.6b:free|65536|10|9.75
+nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free|256000|9|8.30
+nvidia/nemotron-3-ultra-550b-a55b:free|999424|10|22.85
+nvidia/nemotron-3.5-lightning:free|999424|7|27.45
+stealth/space-bunny-alpha|999424|10|7.05

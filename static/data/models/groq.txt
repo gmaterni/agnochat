@@ -1,4 +1,4 @@
-openai/gpt-oss-120b|131072|9|3.43
-openai/gpt-oss-20b|131072|9|1.56
-openai/gpt-oss-safeguard-20b|131072|10|1.32
-qwen/qwen3.8-27b|131072|10|1.39
+openai/gpt-oss-120b|131072|9|2.42
+openai/gpt-oss-20b|131072|8|1.80
+openai/gpt-oss-safeguard-20b|131072|9|1.29
+qwen/qwen3.8-27b|131072|9|1.39
