@@ -16,6 +16,5 @@ export { GeminiClient } from './gemini_client.js';
 export { GroqClient } from './groq_client.js';
 export { MistralClient } from './mistral_client.js';
 export { OpenRouterClient } from './openrouter_client.js';
-export { HuggingFaceClient } from './huggingface_client.js';
 export { PROVIDER_REGISTRY, isSupported, getProviderNames, createClient } from './registry.js';
 export { createMessage, createLlmPayload, toTextContent } from './models.js';

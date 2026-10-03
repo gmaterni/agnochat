@@ -19,7 +19,6 @@ import { GeminiClient } from "./gemini_client.js";
 import { MistralClient } from "./mistral_client.js";
 import { GroqClient } from "./groq_client.js";
 import { OpenRouterClient } from "./openrouter_client.js";
-import { HuggingFaceClient } from "./huggingface_client.js";
 
 /**
  * Mappa nome provider → classe client. L'ordine di inserimento definisce
@@ -30,8 +29,7 @@ const PROVIDER_REGISTRY = new Map([
     ["gemini", GeminiClient],
     ["mistral", MistralClient],
     ["groq", GroqClient],
-    ["openrouter", OpenRouterClient],
-    ["huggingface", HuggingFaceClient]
+    ["openrouter", OpenRouterClient]
 ]);
 
 /**

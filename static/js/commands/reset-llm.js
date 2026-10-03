@@ -18,8 +18,9 @@ import { loadProviderModels } from "agnochat/llm/llm-catalog.js";
 
 /**
  * Legge i modelli di default dai file .txt in static/data/models/
- * Formato .txt: nome|windowSizeTokens per riga, per i soli provider in
- * IMPLEMENTED_CLIENTS, tramite loader unico loadProviderModels.
+ * Formato .txt: nome|windowSizeTokens|voto|tempo per riga (usati solo i
+ * primi due campi), per i soli provider in IMPLEMENTED_CLIENTS, tramite
+ * loader unico loadProviderModels.
  * I provider sono quelli con client implementato in llmclient: chi non ha
  * file ha 0 modelli, nessun errore.
  * @returns {Promise<Array<Object>>} Array di {provider, model, name?, windowSize?}

@@ -47,7 +47,7 @@ export const discoverModels = async function(provider, apiKey) {
     if (!fetcher) {
         throw new Error(`Nessun fetcher per il provider "${provider}"`);
     }
-    const models = fetcher(apiKey);
+    const models = await fetcher(apiKey);
     return models;
 };
 

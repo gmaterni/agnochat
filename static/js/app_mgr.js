@@ -10,6 +10,7 @@
 
 import { LlmProvider } from "./llm_provider.js";
 import { llmDb } from "./llm/llm-db.js";
+import { IMPLEMENTED_CLIENTS } from "./services/key_store.js";
 
 // Istanza singleton del database LLM
 let _llmDb = null;
@@ -33,6 +34,30 @@ export const AppMgr = {
 
         await LlmProvider.init();
         await AppMgr.initConfig();
+        await AppMgr.pruneUnsupportedModels();
+    },
+
+    /**
+     * Rimuove dagli store discovered/selected i modelli di provider non più
+     * supportati (rimossi dal registry llmclient). Solo a quel punto
+     * riscrive lo store.
+     */
+    pruneUnsupportedModels: async function() {
+        if (!_llmDb) return;
+        const discovered = await _llmDb.getDiscovered();
+        const keptDiscovered = (discovered || []).filter(function(m) {
+            return IMPLEMENTED_CLIENTS.includes(m.provider);
+        });
+        if (keptDiscovered.length !== (discovered || []).length) {
+            await _llmDb.saveDiscovered(keptDiscovered);
+        }
+        const selected = await _llmDb.getSelected();
+        const keptSelected = (selected || []).filter(function(m) {
+            return IMPLEMENTED_CLIENTS.includes(m.provider);
+        });
+        if (keptSelected.length !== (selected || []).length) {
+            await _llmDb.saveSelected(keptSelected);
+        }
     },
 
     /**

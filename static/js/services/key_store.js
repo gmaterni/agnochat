@@ -113,11 +113,80 @@ export async function fetchApiKeys() {
         const existingDb = await UaDb.readJson(STORAGE_KEY);
         if (existingDb && existingDb.providers && Object.keys(existingDb.providers).length > 0) {
             console.debug("*** API_KEYS db found.");
+            await _mergeMissingProviders(URL, existingDb);
             return;
         }
         await _loadDefaultKeys(URL);
     } catch (error) {
         console.error("Errore in fetchApiKeys:", error);
+    }
+}
+
+/**
+ * Integra i provider presenti nel file JSON ma assenti nel DB esistente,
+ * ripara le voci senza chiave attiva valida ed elimina le voci di provider
+ * non più supportati (rimossi dal registry llmclient).
+ * Non tocca mai le chiavi salvate né l'attiva quando è valida.
+ * @param {string} url - Percorso del file JSON di default.
+ * @param {Object} existingDb - Contenuto attuale dello store chiavi.
+ */
+async function _mergeMissingProviders(url, existingDb) {
+    let prunedCount = 0;
+    Object.keys(existingDb.providers).forEach(function(providerName) {
+        if (!IMPLEMENTED_CLIENTS.includes(providerName)) {
+            delete existingDb.providers[providerName];
+            prunedCount++;
+        }
+    });
+    if (prunedCount > 0) {
+        existingDb.last_updated = new Date().toISOString();
+        await UaDb.saveJson(STORAGE_KEY, existingDb);
+        console.debug("API Keys potate per provider non supportati: " + prunedCount);
+    }
+    let freshData = null;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            return;
+        }
+        const raw = await response.json();
+        freshData = decodeApiKeysJson(raw);
+    } catch (error) {
+        console.error("Errore in _mergeMissingProviders:", error);
+        return;
+    }
+    if (!freshData || !freshData.providers) {
+        return;
+    }
+    let changedCount = 0;
+    Object.keys(freshData.providers).forEach(function(providerName) {
+        if (!IMPLEMENTED_CLIENTS.includes(providerName)) {
+            return;
+        }
+        const existing = existingDb.providers[providerName];
+        if (!existing) {
+            const missing = freshData.providers[providerName];
+            if (missing.keys && missing.keys.length > 0) {
+                missing.exported_key = missing.keys[0].name;
+            }
+            existingDb.providers[providerName] = missing;
+            changedCount++;
+            return;
+        }
+        const storedKeys = existing.keys || [];
+        const activeName = existing.exported_key;
+        const activeValid = activeName && storedKeys.some(function(k) {
+            return k.name === activeName;
+        });
+        if (!activeValid && storedKeys.length > 0) {
+            existing.exported_key = storedKeys[0].name;
+            changedCount++;
+        }
+    });
+    if (changedCount > 0) {
+        existingDb.last_updated = new Date().toISOString();
+        await UaDb.saveJson(STORAGE_KEY, existingDb);
+        console.debug("API Keys integrate/riparate per provider: " + changedCount);
     }
 }
 

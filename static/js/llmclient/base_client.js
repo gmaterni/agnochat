@@ -128,6 +128,13 @@ class BaseClient {
       if (contentType && contentType.includes("application/json")) {
         detailsContent = await response.json();
 
+        if (status === 404 && detailsContent) {
+          const errorData404 = detailsContent.error || detailsContent;
+          const errorMsg404 = typeof errorData404 === "string" ? errorData404 : errorData404.message;
+          if (errorMsg404) {
+            message = "Endpoint non trovato: " + errorMsg404;
+          }
+        }
         if (status === 400 && detailsContent) {
           const errorData = detailsContent.error || detailsContent;
           const errorMsg = typeof errorData === "string" ? errorData : errorData.message;

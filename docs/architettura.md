@@ -31,7 +31,6 @@ agnochat/
     │   └── models/                     # Cataloghi modelli per provider
     │       ├── gemini.txt
     │       ├── groq.txt
-    │       ├── huggingface.txt
     │       ├── mistral.txt
     │       └── openrouter.txt
     ├── js/                             # Tutto il JavaScript applicativo
@@ -61,7 +60,6 @@ agnochat/
     │   │   ├── mistral_client.js       # Mistral AI
     │   │   ├── groq_client.js          # Groq
     │   │   ├── openrouter_client.js    # OpenRouter
-    │   │   ├── huggingface_client.js   # Hugging Face
     │   │   ├── models.js               # Modelli dati + validatori
     │   │   ├── registry.js             # Registry unico provider (IMPLEMENTED_CLIENTS, createClient)
     │   │   └── index.js                # Barrel export (createLlmPayload, createMessage)
@@ -220,8 +218,7 @@ BaseClient (astratta)
   ├── GeminiClient      (formato nativo Gemini)
   ├── MistralClient     (OpenAI-compatibile, adattato)
   ├── GroqClient        (OpenAI-compatibile)
-  ├── OpenRouterClient  (OpenAI-compatibile)
-  └── HuggingFaceClient (router HF, con top_k)
+  └── OpenRouterClient  (OpenAI-compatibile)
 ```
 
 ### 6.2 Flusso di una Richiesta
@@ -238,7 +235,7 @@ BaseClient (astratta)
 - **Discovery live:** fetcher in `llmlist/` chiamano le API dei provider (fallback file su errore)
 - **Test:** `llm_updater.js:testModel` testa ogni modello con client isolato `getClientFor` (prompt fisso, timeout 20s), `computeVote` calcola voto 6-10
 - **Salvataggio filtrato:** `commands/update-llm.js` (`MIN_VOTE = 6`) salva in `discovered-models` solo i modelli validi; STOP scarta tutto senza scrivere (discovered precedente conservato); zero validi = successo-con-zero (discovered svuotato)
-- **Selezione utente:** `llm-selection.js` (v5.0.0) mostra solo i validi con checkbox + sezione sola-lettura per eletti orfani (in `selected` ma non più in `discovered`)
+- **Selezione utente:** `llm-selection.js` (v5.1.0) mostra solo i validi con checkbox
 - **Test LLM selezionati:** `commands/test-llm.js` testa con lo stesso prompt utente tutti i modelli selezionati di un provider via `getClientFor` (attivo invariato), con spinner STOP, log su `UaLog` (dimensioni request/response, tempo) e finestra riepilogativa finale (84vw, tabella nome/modello/tempo o codice errore)
 
 ### 6.4 Hot-Swap
@@ -293,6 +290,6 @@ Tutte le librerie esterne sono copie locali in `static/js/services/vendor/`, nes
 4. **Lingua Italiana:** UI interamente in italiano, commenti del codice e JSDoc in italiano.
 5. **Isolamento dei Database:** Dati app (conversazioni, impostazioni) in un DB Dexie, dati modelli LLM in un IndexedDB separato.
 6. **Compilazione LESS Runtime:** Stili compilati nel browser, abilitando il cambio tema tramite parametri mixin.
-7. **5 Provider LLM:** Gemini (formato nativo) + 4 OpenAI-compatibili (Mistral, Groq, OpenRouter, HuggingFace), tutti dietro `BaseClient` e censiti in `llmclient/registry.js`; Aggiorna/Test usano client isolato `getClientFor`, senza toccare l'attivo.
+7. **4 Provider LLM:** Gemini (formato nativo) + 3 OpenAI-compatibili (Mistral, Groq, OpenRouter), tutti dietro `BaseClient` e censiti in `llmclient/registry.js`; Aggiorna/Test usano client isolato `getClientFor`, senza toccare l'attivo.
 8. **Chiavi API isolate:** storage in `key_store.js`, UI in `key_ui.js`, `key_retriever.js` solo shim; nuovi record `{name, key}` + `exported_key` (campi legacy `api_key_env`/`notes` non più scritti).
 9. **Librerie interne:** Sistema di layout (gabbia verticale), librerie interne UA (`uawindow`, `uadrag`, `uajtfh`, `ualog3`, `uadialog`), gestione provider/modelli.

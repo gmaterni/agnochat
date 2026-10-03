@@ -270,7 +270,7 @@ Icone "Copia Output" e "Cancella Output" in alto a destra. Cancella svuota solo 
 Icona matita in basso a destra dell'ultimo messaggio utente. Tooltip "Modifica domanda".
 
 #### Finestra di selezione LLM
-Finestra a destra del menu con: nome LLM, voto, tempo, finestra contesto + sezione orfani sola-lettura. Pulsanti "Salva", "Aggiungi", "Annulla", "Seleziona Attivi" + chiusura X.
+Finestra a destra del menu con: nome LLM, voto, tempo, finestra contesto. Pulsanti "Salva", "Aggiungi", "Annulla", "Seleziona Attivi" + chiusura X.
 
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|
@@ -282,7 +282,7 @@ Finestra a destra del menu con: nome LLM, voto, tempo, finestra contesto + sezio
 
 ## 8. llm-access
 
-**Purpose:** Accesso ai provider LLM (Gemini, Mistral, Groq, OpenRouter, HuggingFace): selezione, chiavi API, retry, errori standardizzati.
+**Purpose:** Accesso ai provider LLM (Gemini, Mistral, Groq, OpenRouter): selezione, chiavi API, retry, errori standardizzati.
 
 ### Requisiti
 
@@ -388,15 +388,15 @@ Reset sostituisce completamente, non unisce.
 
 ## 12. llm-selection-ui
 
-**Purpose:** Finestra "Seleziona LLM" (v5.0.0, `llm/llm-selection.js`): mostra solo i discovered validi con checkbox, più sezione sola-lettura per eletti orfani. Quattro azioni (Salva, Aggiungi, Annulla, Seleziona Attivi) + chiusura X, tooltip differenziati, evidenziazione righe, apertura automatica a fine "Aggiorna LLM" (solo se non interrotto).
+**Purpose:** Finestra "Seleziona LLM" (v5.1.0, `llm/llm-selection.js`): mostra solo i discovered validi con checkbox. Quattro azioni (Salva, Aggiungi, Annulla, Seleziona Attivi) + chiusura X, tooltip differenziati, evidenziazione righe, apertura automatica a fine "Aggiorna LLM" (solo se non interrotto).
 
 ### Requisiti
 
-#### Finestra su soli validi + orfani sola-lettura
-Elenco da `discovered-models` (già filtrati `vote >= 6` in salvataggio, nessun filtro-display): una riga per `provider:model` unico con nome, voto (6-10), tempo, finestra contesto, raggruppati per provider. Spunta iniziale = `selected-models`. Eletti in `selected` ma non più in `discovered` (orfani) in sezione separata sola-lettura, non spuntabili ("Salva senza di essi per pulire"). Quando aperta automaticamente al termine di "Aggiorna LLM", mostra spuntati i modelli in `selected-models` ed evidenziate le righe, senza richiedere ulteriore interazione. Nessun auto-restore: se 0 spuntati tra i validi con eletti presenti, solo log ("orfani in sola-lettura").
+#### Finestra su soli validi
+Elenco da `discovered-models` (già filtrati `vote >= 6` in salvataggio, nessun filtro-display): una riga per `provider:model` unico con nome, voto (6-10), tempo, finestra contesto, raggruppati per provider. Spunta iniziale = `selected-models` (solo per i modelli ancora presenti tra i validi). Quando aperta automaticamente al termine di "Aggiorna LLM", mostra spuntati i modelli in `selected-models` ed evidenziate le righe, senza richiedere ulteriore interazione.
 
 #### Pulsante Salva — sostituzione
-Svuota `selected-models`, popola con gli spuntati (solo validi: gli orfani non sono spuntabili e vengono così puliti), chiudi finestra, aggiorna albero.
+Svuota `selected-models`, popola con gli spuntati, chiudi finestra, aggiorna albero.
 
 #### Pulsante Aggiungi — unione
 Aggiungi selezione a `selected-models`, ignora duplicati, chiudi finestra, aggiorna albero.
@@ -417,7 +417,7 @@ Seleziona solo gli LLM già attivi nell'albero (quelli salvati in `selected-mode
 Background giallo per differenziarlo da Salva.
 
 #### Evidenziazione e sincronizzazione
-Righe dei modelli spuntati evidenziate (`tr.llm-row.selected`); ogni `change` su checkbox modello aggiorna la classe della riga e il flag provider (`checked`/`indeterminate`); il toggle provider propaga stato ed evidenziazione a tutte le sue righe. Ogni modello compare una sola volta (`provider:model` unico): nessuna riga `checked` senza `selected` né viceversa. Gli orfani (`tr.llm-orphan-row`) non hanno checkbox e non partecipano alla selezione.
+Righe dei modelli spuntati evidenziate (`tr.llm-row.selected`); ogni `change` su checkbox modello aggiorna la classe della riga e il flag provider (`checked`/`indeterminate`); il toggle provider propaga stato ed evidenziazione a tutte le sue righe. Ogni modello compare una sola volta (`provider:model` unico): nessuna riga `checked` senza `selected` né viceversa.
 
 #### Apertura automatica post-Aggiorna
 A elaborazione completata (non STOP, con risultati) si apre da sola un'unica finestra "Seleziona LLM" (`startUnselected=false`: spunta su eletti, righe evidenziate), senza dialog intermedia. Su STOP o zero provider testabili: nessuna finestra.
@@ -465,7 +465,7 @@ Risposta corretta + non vuota + tempo < 20 secondi → `computeVote` (6-10, pena
 Solo i modelli validi (`vote >= 6`) salvati in `discovered-models` (con `elapsedMs`, `vote`). Falliti ed esclusi per voto insufficiente solo in `UaLog` ("escluso: ..."). Nessuna dialog di riepilogo: riepilogo solo in `UaLog`/console ("completato — T testati, N salvati" / "0 validi (successo-con-zero): discovered svuotato" / "interrotto — N testati, scartati"). Al termine non interrotto con risultati si apre automaticamente un'unica finestra "Seleziona LLM" con spunta su eletti ed evidenziazione.
 
 #### Finestra selezione LLM
-Elenco modelli validi con: nome, voto (6-10), tempo, finestra contesto. Raggruppati per provider + sezione orfani sola-lettura.
+Elenco modelli validi con: nome, voto (6-10), tempo, finestra contesto. Raggruppati per provider.
 
 | Scenario | Condizione | Risultato |
 |----------|-----------|-----------|
@@ -474,7 +474,7 @@ Elenco modelli validi con: nome, voto (6-10), tempo, finestra contesto. Raggrupp
 | STOP | Cancel richiesto | Nessuna finestra, solo `UaLog`, spinner nascosto |
 | Nessun provider | Nessuna chiave attiva (`results.length === 0`) | Nessuna finestra, solo `UaLog`, spinner nascosto |
 | Provider vuoto | Nessun modello valido | Provider assente; messaggio dedicato |
-| Nessun modello | Zero validi | Messaggio dedicato + orfani sola-lettura se eletti presenti |
+| Nessun modello | Zero validi | Messaggio dedicato |
 
 #### Selezione modelli e provider
 Checkbox per modello e per provider (toggle tutti). Indipendenti tra provider.

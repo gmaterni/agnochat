@@ -15,6 +15,8 @@ import { llmDb } from "agnochat/llm/llm-db.js";
 import { createLlmLogger } from "agnochat/llm/llm-logging.js";
 import { LlmProvider } from "agnochat/llm_provider.js";
 import { getApiKey, IMPLEMENTED_CLIENTS } from "agnochat/services/key_retriever.js";
+import { STORAGE_KEY } from "agnochat/services/key_store.js";
+import { UaDb } from "agnochat/services/uadb.js";
 import { discoverModels, hasFetcher } from "agnochat/llmlist/index.js";
 import { UaLog } from "agnochat/services/ualog3.js";
 import { isChatModel, loadRawCatalogForProviders } from "agnochat/llm/llm-catalog.js";
@@ -29,6 +31,41 @@ const TOKENS_PER_K = 1024;
  * @type {number}
  */
 export const MIN_VOTE = 6;
+
+/**
+ * Diagnostica il motivo per cui getApiKey restituisce null per un provider,
+ * senza mai esporre valori di chiavi: distingue voce assente, attiva
+ * mancante e attiva senza corrispondenza.
+ * @param {string} provider - Nome provider.
+ * @returns {Promise<string>} Motivo in forma breve.
+ */
+const _diagnoseMissingKey = async function(provider) {
+    let reason = "voce assente nel DB";
+    try {
+        const db = await UaDb.readJson(STORAGE_KEY);
+        const entry = db && db.providers ? db.providers[provider] : null;
+        if (!entry) {
+            return reason;
+        }
+        const storedKeys = entry.keys || [];
+        if (storedKeys.length === 0) {
+            reason = "voce presente ma senza chiavi";
+            return reason;
+        }
+        if (!entry.exported_key) {
+            const names = storedKeys.map(function(k) {
+                return k.name;
+            });
+            reason = "nessuna attiva selezionata (presenti: " + names.join(", ") + ")";
+            return reason;
+        }
+        reason = "attiva '" + entry.exported_key + "' senza corrispondenza";
+    } catch (error) {
+        console.error("_diagnoseMissingKey:", error);
+        reason = "store illeggibile";
+    }
+    return reason;
+};
 
 const _createUaLogAdapter = function() {
     const adapter = {
@@ -68,7 +105,8 @@ export const runUpdate = async function() {
 
         const apiKey = await getApiKey(provider);
         if (!apiKey) {
-            const msg = provider + " saltato (nessuna chiave).";
+            const why = await _diagnoseMissingKey(provider);
+            const msg = provider + " saltato (nessuna chiave: " + why + ").";
             UaLog.log(msg);
             continue;
         }
