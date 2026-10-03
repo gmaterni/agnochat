@@ -21,8 +21,8 @@ limitations under the License.
  * Implementa la gestione degli errori globale.
  *
  * @module  app
- * @version 0.1.2
- * @date    2026-09-18
+ * @version 0.1.3
+ * @date    2026-10-03
  */
 
 "use strict";
@@ -47,7 +47,7 @@ import "./services/uadialog.js";
 // console.log = () => { };
 
 /** @type {string} Versione dell'applicazione. */
-const APP_VERSION = "0.1.2";
+const APP_VERSION = "0.1.3";
 
 /** Codice di errore che indica l'interruzione manuale dell'utente. */
 const ERROR_CODE_CANCELLED = 499;
