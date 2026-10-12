@@ -18,3 +18,4 @@ export { MistralClient } from './mistral_client.js';
 export { OpenRouterClient } from './openrouter_client.js';
 export { PROVIDER_REGISTRY, isSupported, getProviderNames, createClient } from './registry.js';
 export { createMessage, createLlmPayload, toTextContent } from './models.js';
+export { PromptAssembler } from './prompt_assembler.js';

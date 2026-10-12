@@ -12,7 +12,7 @@
 
 import { LlmProvider } from "agnochat/llm_provider.js";
 import { llmDb } from "agnochat/llm/llm-db.js";
-import { createLlmPayload, createMessage, toTextContent } from "agnochat/llmclient/index.js";
+import { createLlmPayload, toTextContent, PromptAssembler } from "agnochat/llmclient/index.js";
 import { UaLog } from "agnochat/services/ualog3.js";
 import { UaJtfh } from "agnochat/services/uajtfh.js";
 import { UaWindowAdm } from "agnochat/services/uawindow.js";
@@ -52,6 +52,10 @@ const STOP_MESSAGE = "Confermi lo STOP del Test LLM?";
 
 /** Classe CSS del contenitore della finestra di scelta. */
 const PICK_CONTAINER_CLASS = "test-llm-pick";
+
+/** Delimitatori del blocco dati con il prompt digitato (nomi liberi, non parti dello schema). */
+const PROMPT_BLOCK_OPEN = "<source>";
+const PROMPT_BLOCK_CLOSE = "</source>";
 
 // ============================================================================
 // STATO PRIVATO
@@ -298,7 +302,12 @@ const _testOneModel = async function(provider, model, prompt) {
         return missingKey;
     }
 
-    const payload = createLlmPayload(model, [createMessage("user", prompt)], {
+    const taskLine = "## Task\nEsegui la richiesta riportata nel blocco dati.";
+    const userText = taskLine + "\n" + PROMPT_BLOCK_OPEN + "\n" + prompt + "\n" + PROMPT_BLOCK_CLOSE;
+    const assembler = new PromptAssembler();
+    assembler.addUserMessage(userText);
+    const messages = assembler.getMessages();
+    const payload = createLlmPayload(model, messages, {
         temperature: TEST_TEMPERATURE,
         max_tokens: TEST_MAX_TOKENS
     });

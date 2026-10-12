@@ -19,7 +19,7 @@
 "use strict";
 
 import { LlmProvider } from "./llm_provider.js";
-import { createLlmPayload, createMessage } from "./llmclient/index.js";
+import { createLlmPayload, PromptAssembler } from "./llmclient/index.js";
 import { TEST_SYSTEM_PROMPT, TEST_USER_PROMPT } from "agnochat/llm/test-prompts.js";
 
 // ============================================================================
@@ -134,7 +134,8 @@ export const computeVote = function(responseText, elapsedMs) {
  * Testa un singolo modello inviando il prompt di prova.
  * Usa client isolato getClientFor(provider, model) con la chiave del suo
  * provider, senza mutare provider/modello attivo della conversazione.
- * Payload con createLlmPayload, invio con timeout hard di 20 s.
+ * Payload assemblato con PromptAssembler (system unico + user con compito e dati),
+ * invio con timeout hard di 20 s.
  * @param {string} provider
  * @param {string} model
  * @returns {Promise<Object>} { provider, model, ok, elapsedMs?, reason?, response?, vote? }
@@ -150,10 +151,12 @@ export const testModel = async function(provider, model) {
         return missingApiKey;
     }
 
-    const payload = createLlmPayload(model, [
-        createMessage("system", TEST_SYSTEM_PROMPT),
-        createMessage("user", TEST_USER_PROMPT.replace("{QUESTION}", TEST_QUESTION))
-    ], {
+    const userText = TEST_USER_PROMPT.replace("{QUESTION}", TEST_QUESTION);
+    const assembler = new PromptAssembler();
+    assembler.setSystemMessage(TEST_SYSTEM_PROMPT);
+    assembler.addUserMessage(userText);
+    const messages = assembler.getMessages();
+    const payload = createLlmPayload(model, messages, {
         temperature: 0.3,
         max_tokens: 512
     });

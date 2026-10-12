@@ -17,17 +17,16 @@ Sei un assistente che verifica la funzionalità di base di un modello LLM.
 Rispondi alla domanda dell'utente in italiano, in modo conciso e accurato.
 
 ## Rules
-1. Rispondi in non più di 5 righe.
+1. Scrivi al massimo 5 righe.
 2. Includi un esempio numerico con numeri interi.
-3. Non aggiungere preamboli, note o formattazione extra.
+3. Scrivi solo la risposta, in testo puro.
 
 ## Output
-Testo puro in italiano. No preamble.
-No markdown.
+Testo puro in italiano, senza formattazione markdown e senza preamboli.
 `;
 
-export const TEST_USER_PROMPT = `## Instructions
-Spiega cos'è il teorema di Pitagora con un esempio numerico.
+export const TEST_USER_PROMPT = `## Task
+Rispondi alla domanda riportata nel blocco dati.
 
 <source>
 {QUESTION}
